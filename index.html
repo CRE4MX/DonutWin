@@ -905,6 +905,10 @@
       setTimeout(() => el.classList.remove("flash-green", "flash-red"), 600);
     }
     function placeBet(amount) {
+      if (balance === 0) {
+        balance = 1000; saveBalance(); updateBalDisplay();
+        toast("Balance automatically reset to 1,000 🪙", "info");
+      }
       if (amount > balance || amount < 1) { toast("Insufficient balance!", "error"); return false; }
       balance -= amount; saveBalance(); updateBalDisplay(); return true;
     }
@@ -1844,12 +1848,16 @@
 
     // ==================== LIVE BETS ====================
     const playerNames = [
-      "CryptoKing", "LuckyStrike", "DiamondHands", "MoonShot", "BetMaster",
-      "HighRoller", "AcePlayer", "GoldenBet", "WinStreak", "FortuneFox",
-      "BlazeGamer", "NeonNinja", "VegasVibes", "RiskTaker", "ChipChamp",
-      "JackpotJoe", "ProGambler", "SlotStar", "BetBoss", "CashCow",
-      "RocketRider", "LuckyLion", "DiceDevil", "CardShark", "WinWizard",
-      "BetBandit", "CasinoKid", "SpinMaster", "RollKing", "VictoryViper"
+      "James", "Robert", "John", "Michael", "David", "William", "Richard", "Joseph", "Thomas", "Christopher",
+      "Charles", "Daniel", "Matthew", "Anthony", "Mark", "Donald", "Steven", "Andrew", "Paul", "Joshua",
+      "Kenneth", "Kevin", "Brian", "George", "Timothy", "Ronald", "Edward", "Jason", "Jeffrey", "Ryan",
+      "Jacob", "Gary", "Nicholas", "Eric", "Jonathan", "Stephen", "Larry", "Justin", "Scott", "Brandon",
+      "Benjamin", "Samuel", "Raymond", "Gregory", "Frank", "Alexander", "Patrick", "Jack", "Dennis", "Jerry",
+      "Mary", "Patricia", "Jennifer", "Linda", "Barbara", "Elizabeth", "Susan", "Jessica", "Sarah", "Karen",
+      "Lisa", "Nancy", "Betty", "Margaret", "Sandra", "Ashley", "Kimberly", "Emily", "Donna", "Michelle",
+      "Carol", "Amanda", "Dorothy", "Melissa", "Deborah", "Stephanie", "Rebecca", "Sharon", "Laura", "Cynthia",
+      "Amy", "Kathleen", "Angela", "Shirley", "Anna", "Brenda", "Pamela", "Emma", "Nicole", "Helen",
+      "Samantha", "Katherine", "Christine", "Debra", "Rachel", "Carolyn", "Janet", "Catherine", "Maria", "Heather"
     ];
     
     const gameIcons = {
@@ -1864,7 +1872,9 @@
     let liveBetsHistory = [];
     
     function generateRandomBet() {
-      const player = playerNames[Math.floor(Math.random() * playerNames.length)];
+      const baseName = playerNames[Math.floor(Math.random() * playerNames.length)];
+      const playerNumber = Math.floor(Math.random() * 10000);
+      const player = baseName + playerNumber;
       const game = gameNames[Math.floor(Math.random() * gameNames.length)];
       const betAmount = [5, 10, 25, 50, 100, 250, 500][Math.floor(Math.random() * 7)];
       const won = Math.random() > 0.48; // 52% win rate
