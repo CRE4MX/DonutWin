@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DonutWin - Early Casino Experience</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="logo">DONUTWIN</div>
+      <div class="nav-links">
+        <a href="#crash">Crash</a>
+        <a href="#mines">Mines</a>
+        <a href="#provably">Provably Fair</a>
+        <a href="#waitlist">Join waitlist</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-badge">⚡ true experience • fast gameplay • verifiable</div>
+      <h1>DonutWin<br/>Early Casino Experience</h1>
+      <p>
+        DonutWin is the highest-budget, dopamine-tuned gaming casino of 2026.
+        Sponsored by #HELL Energy Bulgaria EOOD
+      </p>
+
+      <div class="cta-buttons">
+        <a href="#crash" class="btn btn-primary">Play Crash</a>
+        <a href="#mines" class="btn btn-primary">Play Mines</a>
+        <span class="badge">🚧 building in public</span>
+      </div>
+
+      <p class="tip">Tip: enable sound, then spam rounds. It's tuned for "one more".</p>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Games available</div>
+          <div class="stat-value">2</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Mode</div>
+          <div class="stat-value">Try-only</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Engagement</div>
+          <div class="stat-value">High</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Fairness</div>
+          <div class="stat-value">Verifiable</div>
+        </div>
+      </div>
+
+      <div class="sound-toggle">
+        <label>
+          <input type="checkbox" id="soundToggle">
+          <span>🔊 Sound</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Crash Game Section -->
+    <section id="crash" class="game-section">
+      <h2>Crash (demo)</h2>
+      
+      <div class="game-container">
+        <div class="game-controls">
+          <div class="status-badge live">⚡ live</div>
+          
+          <div class="control-group">
+            <label>Auto cashout</label>
+            <input type="number" id="crashAutoCashout" min="1.01" step="0.01" value="2.00">
+          </div>
+
+          <button id="crashStart" class="btn btn-primary">Start round</button>
+          <button id="crashCashout" class="btn btn-success" disabled>Cash out</button>
+
+          <div class="checkbox-group">
+            <label>
+              <input type="checkbox" id="crashAutoBet">
+              <span>Auto-bet</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="game-stats">
+          <div class="stat">
+            <div class="stat-label">Multiplier</div>
+            <div class="stat-value" id="crashMultiplier">1.00×</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" id="crashStatus">Ready</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Next round</div>
+            <div class="stat-value" id="crashNextRound">—</div>
+          </div>
+        </div>
+
+        <div class="game-display">
+          <div class="crash-graph">
+            <div class="multiplier-display" id="crashMultiplierDisplay">1.00×</div>
+            <div class="status-text" id="crashStatusText">Waiting for round…</div>
+          </div>
+        </div>
+
+        <div id="crashMessage"></div>
+      </div>
+
+      <div class="recent-rounds">
+        <h3>Recent rounds <span class="updating-badge">🔄 updating</span></h3>
+        <div id="crashHistory" class="history-list"></div>
+        <p class="delay-notice">⏱ Activity has ±14.035s delay.</p>
+      </div>
+    </section>
+
+    <!-- Mines Game Section -->
+    <section id="mines" class="game-section">
+      <h2>Mines (demo)</h2>
+      
+      <div class="game-container">
+        <div class="game-controls">
+          <div class="control-group">
+            <label>Mines</label>
+            <input type="number" id="minesCount" min="1" max="24" value="5">
+          </div>
+
+          <button id="minesStart" class="btn btn-primary">Start</button>
+          <button id="minesCashout" class="btn btn-success" disabled>Cash out</button>
+          <button id="minesReset" class="btn btn-secondary">Reset</button>
+        </div>
+
+        <div class="game-stats">
+          <div class="stat">
+            <div class="stat-label">Safe picks</div>
+            <div class="stat-value" id="minesSafePicks">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Multiplier</div>
+            <div class="stat-value" id="minesMultiplier">1.00×</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" id="minesStatus">Ready</div>
+          </div>
+        </div>
+
+        <div class="game-display">
+          <div id="minesGrid" class="mines-grid"></div>
+        </div>
+
+        <div id="minesMessage"></div>
+      </div>
+
+      <div class="recent-rounds">
+        <h3>Recent wins <span class="updating-badge">🔄 updating</span></h3>
+        <div id="minesHistory" class="history-list"></div>
+        <p class="help-text">Click tiles → cash out anytime.</p>
+      </div>
+    </section>
+
+    <!-- Provably Fair Section -->
+    <section id="provably" class="game-section">
+      <h2>Provably fair (verify locally)</h2>
+
+      <div class="verify-container">
+        <div class="verify-section">
+          <h3>🎲 Crash proof</h3>
+          
+          <div class="input-group">
+            <label>Client seed</label>
+            <input type="text" id="crashClientSeed" readonly>
+          </div>
+
+          <div class="input-group">
+            <label>Server seed hash (commit)</label>
+            <input type="text" id="crashServerHash" value="—" readonly>
+          </div>
+
+          <div class="input-group">
+            <label>Server seed (reveal)</label>
+            <input type="text" id="crashServerSeed" value="—" readonly>
+          </div>
+
+          <div class="input-group">
+            <label>Nonce</label>
+            <input type="text" id="crashNonce" value="—" readonly>
+          </div>
+
+          <div class="input-group">
+            <label>Result (crash point)</label>
+            <input type="text" id="crashResult" value="—" readonly>
+          </div>
+
+          <div class="button-group">
+            <button id="verifyCrash" class="btn btn-secondary">Verify last Crash</button>
+            <button id="newCrashSeeds" class="btn btn-secondary">New seeds</button>
+          </div>
+
+          <p class="help-text">We commit to a server seed hash before the round, then reveal the seed after.</p>
+        </div>
+
+        <div class="verify-section">
+          <h3>💎 Mines proof</h3>
+
+          <div class="input-group">
+            <label>Server seed hash (commit)</label>
+            <input type="text" id="minesServerHash" value="—" readonly>
+          </div>
+
+          <div class="input-group">
+            <label>Server seed (reveal)</label>
+            <input type="text" id="minesServerSeed" value="—" readonly>
+          </div>
+
+          <div class="input-group">
+            <label>Nonce</label>
+            <input type="text" id="minesNonce" value="—" readonly>
+          </div>
+
+          <div class="input-group">
+            <label>Mine positions (0–24)</label>
+            <input type="text" id="minesPositions" value="—" readonly>
+          </div>
+
+          <div class="button-group">
+            <button id="verifyMines" class="btn btn-secondary">Verify last Mines</button>
+          </div>
+
+          <p class="help-text">Mines uses the same seed flow and derives mine positions deterministically.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Waitlist Section -->
+    <section id="waitlist" class="game-section">
+      <h2>Join the waitlist</h2>
+      
+      <p>
+        Get an email when the full app goes live on <strong>app.donutwin.shop</strong>.
+      </p>
+
+      <div class="waitlist-form">
+        <input type="email" id="waitlistEmail" placeholder="your@email.com">
+        <button id="waitlistSubmit" class="btn btn-primary">Notify me</button>
+        <div id="waitlistMessage"></div>
+      </div>
+
+      <p class="terms">
+        By joining you agree to receive occasional updates. No spam.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <div class="copyright">
+        © 2026 DonutWin • early experience • patent pending design
+      </div>
+      <div class="footer-links">
+        <a href="#crash">Crash</a>
+        <a href="#mines">Mines</a>
+        <a href="#provably">Verify</a>
+        <a href="#waitlist">Waitlist</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
