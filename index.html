@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>DonutWin – Casino Experience</title>
   <meta name="description" content="DonutWin casino demo – play Crash, Mines, Dice, Plinko & Blackjack with provably-fair verification.">
   <style>
@@ -79,7 +79,7 @@
     @keyframes panelIn { to { opacity: 1; transform: translateY(0); } }
 
     /* buttons */
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s ease; text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s ease; text-decoration: none; touch-action: manipulation; }
     .btn:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
     .btn:active { transform: translateY(0) scale(0.97); }
     .btn.primary { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 2px 12px rgba(124,111,255,0.25); }
@@ -168,8 +168,27 @@
     .bjTable { background: radial-gradient(ellipse at 50% 40%, #1e6b30 0%, #1a5c2a 30%, #145222 60%, #0f4019 100%); border-radius: var(--radius); padding: 24px; min-height: 300px; position: relative; border: 4px solid #0d3518; box-shadow: inset 0 0 60px rgba(0,0,0,0.35), inset 0 0 120px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.3); overflow: hidden; }
     .bjTable::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(255,255,255,0.06); border-radius: calc(var(--radius) - 4px); pointer-events: none; }
     .bjHand { display: flex; gap: 8px; justify-content: center; min-height: 100px; flex-wrap: wrap; margin: 12px 0; perspective: 600px; }
-    .bjCard { width: 62px; height: 88px; border-radius: 8px; background: linear-gradient(145deg, #fff 0%, #f0f0f0 100%); color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2); position: relative; animation: cardDeal .35s ease-out; }
-    @keyframes cardDeal { 0% { transform: translateY(-60px) rotateX(20deg) scale(0.7); opacity: 0; } 100% { transform: translateY(0) rotateX(0) scale(1); opacity: 1; } }
+    .bjCard { width: 62px; height: 88px; border-radius: 8px; background: linear-gradient(145deg, #fff 0%, #f0f0f0 100%); color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2); position: relative; animation: cardDeal .5s ease-out; }
+    @keyframes cardDeal { 
+      0% { 
+        transform: translateX(-100px) translateY(-80px) rotateY(-90deg) scale(0.5); 
+        opacity: 0; 
+      } 
+      50% {
+        transform: translateX(-30px) translateY(-20px) rotateY(-45deg) scale(0.8);
+        opacity: 0.7;
+      }
+      100% { 
+        transform: translateX(0) translateY(0) rotateY(0) scale(1); 
+        opacity: 1; 
+      } 
+    }
+    @keyframes cardFlip {
+      0% { transform: rotateY(0deg); }
+      50% { transform: rotateY(90deg); }
+      100% { transform: rotateY(0deg); }
+    }
+    .bjCard.flip { animation: cardFlip .6s ease-in-out; }
     .bjCard.red { color: #d32f2f; }
     .bjCard.facedown { background: linear-gradient(135deg, #1a237e, #283593); color: transparent; background-image: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.03) 8px, rgba(255,255,255,0.03) 16px); }
     .bjCard.facedown::after { content: "🍩"; position: absolute; font-size: 28px; }
@@ -192,7 +211,7 @@
     @keyframes toastIn { from { transform: translateX(100%) scale(0.9); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
 
     /* hero */
-    .hero { display: grid; grid-template-columns: 1fr 280px; gap: 18px; margin-bottom: 24px; }
+    .hero { display: grid; grid-template-columns: 1fr 280px; gap: 18px; margin-bottom: 24px; align-items: start; }
     .statGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-radius: var(--radius); overflow: hidden; }
     .stat { padding: 16px; background: var(--surface); text-align: center; }
     .stat .k { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
@@ -360,6 +379,7 @@
       <button type="button" class="tabBtn" data-tab="dice">🎲 Dice</button>
       <button type="button" class="tabBtn" data-tab="plinko">📍 Plinko</button>
       <button type="button" class="tabBtn" data-tab="blackjack">🃏 Blackjack</button>
+      <button type="button" class="tabBtn" data-tab="livebets">📊 Live Bets</button>
     </div>
 
     <!-- ==================== CRASH PANEL ==================== -->
@@ -374,6 +394,8 @@
               <button type="button" class="qBet" onclick="setQBet('cBet',50)">50</button>
               <button type="button" class="qBet" onclick="setQBet('cBet',100)">100</button>
               <button type="button" class="qBet" onclick="setQBet('cBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('cBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('cBet',2)">×2</button>
             </div>
           </div>
           <div class="crashTop">
@@ -414,6 +436,9 @@
               <button type="button" class="qBet" onclick="setQBet('mBet',50)">50</button>
               <button type="button" class="qBet" onclick="setQBet('mBet',100)">100</button>
               <button type="button" class="qBet" onclick="setQBet('mBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('mBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('mBet',2)">×2</button>
+            </div>
             </div>
           </div>
           <div class="crashTop">
@@ -450,14 +475,21 @@
               <button type="button" class="qBet" onclick="setQBet('dBet',50)">50</button>
               <button type="button" class="qBet" onclick="setQBet('dBet',100)">100</button>
               <button type="button" class="qBet" onclick="setQBet('dBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('dBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('dBet',2)">×2</button>
+            </div>
             </div>
           </div>
           <div class="crashTop">
-            <span class="mini">Roll over</span>
+            <span class="mini" id="dModeLabel">Roll over</span>
             <input class="input" id="dTarget" type="number" min="1" max="98" value="50" style="max-width:80px">
             <span class="mini">Win chance: <b id="dChance">50%</b></span>
             <span class="mini">Multiplier: <b id="dPayoutLabel">1.98×</b></span>
             <button type="button" class="btn primary" id="dRoll">Roll</button>
+            <label class="autoCheck" style="cursor:pointer; margin-left:10px;">
+              <input type="checkbox" id="dSwapMode">
+              <span>Swap</span>
+            </label>
           </div>
           <div class="diceBar" id="dBar" style="--target:50%"><div class="marker" id="dMarker" style="left:50%"></div></div>
           <div class="diceResult" id="dResult">-</div>
@@ -487,6 +519,9 @@
               <button type="button" class="qBet" onclick="setQBet('plBet',50)">50</button>
               <button type="button" class="qBet" onclick="setQBet('plBet',100)">100</button>
               <button type="button" class="qBet" onclick="setQBet('plBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('plBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('plBet',2)">×2</button>
+            </div>
             </div>
           </div>
           <div class="crashTop">
@@ -524,6 +559,9 @@
               <button type="button" class="qBet" onclick="setQBet('bjBet',50)">50</button>
               <button type="button" class="qBet" onclick="setQBet('bjBet',100)">100</button>
               <button type="button" class="qBet" onclick="setQBet('bjBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('bjBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('bjBet',2)">×2</button>
+            </div>
             </div>
           </div>
           <div class="bjTable">
@@ -548,6 +586,20 @@
         <div class="crashSide">
           <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Hand history</h2></div>
           <div id="bjHistory" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LIVE BETS PANEL ==================== -->
+    <div id="tab-livebets" class="gamePanel">
+      <div class="card pad">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 style="margin:0; font-size:16px; color:rgba(234,240,255,.88);">🌐 Live Betting Activity</h2>
+          <span class="tag" style="font-size:11px"><span class="dot"></span> live feed</span>
+        </div>
+        <p class="mini" style="margin-bottom:18px; color:var(--muted);">Watch other players' bets in real-time across all games.</p>
+        <div id="liveBetsContainer" style="display:flex; flex-direction:column; gap:8px; max-height:600px; overflow-y:auto;">
+          <!-- Live bets will be populated by JavaScript -->
         </div>
       </div>
     </div>
@@ -707,12 +759,47 @@
         } catch (_) {}
       }
       return {
-        tick()  { play({ type:"sine", f:420, f2:460, dur:0.05, gain:0.05, attack:0.004, release:0.05 }); },
-        cash()  { play({ type:"triangle", f:520, f2:740, dur:0.10, gain:0.09, attack:0.008, release:0.10 }); },
-        click() { play({ type:"sine", f:740, f2:820, dur:0.04, gain:0.06, attack:0.002, release:0.05 }); },
-        pop()   { play({ type:"triangle", f:640, f2:880, dur:0.06, gain:0.07, attack:0.004, release:0.06 }); },
-        win()   { play({ type:"triangle", f:523, f2:784, dur:0.15, gain:0.10, attack:0.01, release:0.12 }); play({ type:"sine", f:659, f2:1047, dur:0.12, gain:0.07, attack:0.05, release:0.15 }); },
-        bust()  { play({ type:"sawtooth", f:180, f2:95, dur:0.12, gain:0.12, attack:0.004, release:0.14 }); play({ noise:true, dur:0.10, gain:0.08, attack:0.002, release:0.14 }); }
+        // UI interaction sounds
+        tick()  { play({ type:"sine", f:1000, f2:1100, dur:0.03, gain:0.04, attack:0.001, release:0.03 }); }, // Light tick for counters
+        click() { play({ type:"sine", f:800, f2:850, dur:0.025, gain:0.05, attack:0.001, release:0.025 }); }, // Button clicks
+        pop()   { play({ type:"triangle", f:600, f2:800, dur:0.06, gain:0.07, attack:0.002, release:0.06 }); }, // Small wins/actions
+        
+        // Money/winning sounds
+        cash()  { 
+          // Cash out sound - satisfying cha-ching
+          play({ type:"sine", f:523, f2:659, dur:0.12, gain:0.11, attack:0.005, release:0.10 }); 
+          setTimeout(() => play({ type:"triangle", f:784, f2:880, dur:0.10, gain:0.09, attack:0.01, release:0.12 }), 40);
+        },
+        win()   { 
+          // Big win sound - triumphant ascending notes
+          play({ type:"sine", f:523, f2:587, dur:0.15, gain:0.11, attack:0.008, release:0.12 }); 
+          setTimeout(() => play({ type:"triangle", f:659, f2:784, dur:0.13, gain:0.10, attack:0.012, release:0.14 }), 60);
+          setTimeout(() => play({ type:"sine", f:880, f2:1047, dur:0.11, gain:0.08, attack:0.015, release:0.16 }), 120);
+        },
+        
+        // Loss/negative sounds  
+        bust()  { 
+          // Losing sound - descending, disappointing tone
+          play({ type:"sawtooth", f:260, f2:130, dur:0.18, gain:0.13, attack:0.004, release:0.20 }); 
+          setTimeout(() => play({ noise:true, dur:0.14, gain:0.09, attack:0.002, release:0.18 }), 40);
+        },
+        
+        // Card game sounds
+        cardDeal() { 
+          // Quick swish for dealing cards
+          play({ type:"sine", f:700, f2:400, dur:0.04, gain:0.05, attack:0.001, release:0.03 }); 
+          play({ noise:true, dur:0.025, gain:0.025, attack:0.001, release:0.02 }); 
+        },
+        cardFlip() { 
+          // Flip/reveal sound
+          play({ type:"square", f:500, f2:700, dur:0.07, gain:0.06, attack:0.002, release:0.06 }); 
+        },
+        
+        // Bet placement
+        chipPlace() { 
+          // Chip/token placement - short, solid tap
+          play({ type:"triangle", f:350, f2:320, dur:0.06, gain:0.07, attack:0.002, release:0.05 }); 
+        }
       };
     })();
 
@@ -837,6 +924,11 @@
     function setQBet(inputId, val) {
       if (val === "max") $(inputId).value = balance;
       else $(inputId).value = val;
+    }
+    function multiplyBet(inputId, multiplier) {
+      const current = parseFloat($(inputId).value) || 10;
+      const newVal = Math.max(1, Math.floor(current * multiplier));
+      $(inputId).value = Math.min(newVal, balance);
     }
     function getBet(inputId) {
       return clamp(Math.floor(parseFloat($(inputId).value) || 0), 1, balance);
@@ -1175,17 +1267,34 @@
     const DICE_PAYOUT_FACTOR = 99; // 1% house edge (99/100)
     let dStreak = 0;
     const dHistoryArr = [];
+    let dSwapMode = false;
 
     function updateDiceUI() {
       const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
-      const chance = 100 - target;
+      const swapped = $("dSwapMode").checked;
+      dSwapMode = swapped;
+      
+      // Update label based on mode
+      $("dModeLabel").textContent = swapped ? "Roll under" : "Roll over";
+      
+      // Calculate chance based on mode
+      const chance = swapped ? target : (100 - target);
       const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
       $("dChance").textContent = chance + "%";
       $("dPayoutLabel").textContent = payout.toFixed(4) + "×";
-      $("dBar").style.setProperty("--target", target + "%");
+      
+      // Update bar gradient based on mode
+      if (swapped) {
+        // Swapped: green on left (under target), red on right (over target)
+        $("dBar").style.background = `linear-gradient(90deg, var(--good) 0%, var(--good) ${target}%, var(--bad) ${target}%, var(--bad) 100%)`;
+      } else {
+        // Normal: red on left (under target), green on right (over target)
+        $("dBar").style.background = `linear-gradient(90deg, var(--bad) 0%, var(--bad) ${target}%, var(--good) ${target}%, var(--good) 100%)`;
+      }
     }
 
     $("dTarget").addEventListener("input", updateDiceUI);
+    $("dSwapMode").addEventListener("change", updateDiceUI);
 
     function pushDiceHistory(roll, won) {
       dHistoryArr.unshift({ roll, won });
@@ -1207,7 +1316,8 @@
 
       sessionStats.rounds++;
       const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
-      const chance = 100 - target;
+      const swapped = dSwapMode;
+      const chance = swapped ? target : (100 - target);
       const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
 
       const ss = serverSeed, cs = clientSeed, n = nonce;
@@ -1223,7 +1333,8 @@
       resultEl.classList.add("pop");
       $("dLast").textContent = roll.toFixed(2);
 
-      const won = roll > target;
+      // Win condition based on mode
+      const won = swapped ? (roll < target) : (roll > target);
       if (won) {
         const winAmt = Math.floor(bet * payout);
         creditWin(winAmt, payout);
@@ -1241,7 +1352,8 @@
         $("dStatus").textContent = "Loss";
         $("dStatus").style.color = "var(--bad)";
         $("dMsg").textContent = "";
-        toast("Dice: " + roll.toFixed(2) + " ≤ " + target, "error");
+        const comparison = swapped ? " ≥ " : " ≤ ";
+        toast("Dice: " + roll.toFixed(2) + comparison + target, "error");
         SND.bust(); haptic(40);
       }
       $("dStreak").textContent = dStreak;
@@ -1250,15 +1362,15 @@
 
     // ==================== PLINKO GAME ====================
     const PLINKO_MULTS = {
-      low:    { 8: [5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],
-                12: [10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],
-                16: [16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16] },
-      medium: { 8: [13,3,1.3,0.7,0.4,0.7,1.3,3,13],
-                12: [33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],
-                16: [110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110] },
-      high:   { 8: [29,5.2,1.5,0.3,0.2,0.3,1.5,5.2,29],
-                12: [170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170],
-                16: [1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000] }
+      low:    { 8: [7,3,1.5,1.2,0.8,1.2,1.5,3,7],
+                12: [13,4,2,1.6,1.3,1.1,0.8,1.1,1.3,1.6,2,4,13],
+                16: [20,12,3,2,1.8,1.4,1.2,1.1,0.8,1.1,1.2,1.4,1.8,2,3,12,20] },
+      medium: { 8: [18,5,2,1.2,0.7,1.2,2,5,18],
+                12: [43,15,6,3,1.5,1,0.6,1,1.5,3,6,15,43],
+                16: [140,55,15,7,4,2,1.5,1,0.6,1,1.5,2,4,7,15,55,140] },
+      high:   { 8: [35,8,2.5,0.8,0.5,0.8,2.5,8,35],
+                12: [210,33,12,3,1.2,0.5,0.4,0.5,1.2,3,12,33,210],
+                16: [1200,170,35,12,6,3,0.5,0.4,0.3,0.4,0.5,3,6,12,35,170,1200] }
     };
     let plDropCount = 0, plAnimating = false;
     const plHistoryArr = [];
@@ -1539,70 +1651,76 @@
       const playerBJ = bjPlayer.length === 2 && pt === 21;
       const dealerBJ = bjDealer.length === 2 && dt === 21;
 
-      renderBJHands(true);
-      let msg = "", result = "";
+      // Flip dealer's hidden card
+      SND.cardFlip();
+      setTimeout(() => renderBJHands(true), 100);
+      
+      setTimeout(() => {
+        let msg = "", result = "";
 
-      if (playerBJ && dealerBJ) {
-        msg = "Push – both Blackjack!"; result = "Push";
-        balance += bjBetAmt; saveBalance(); updateBalDisplay();
-        bjPushCount++;
-      } else if (playerBJ) {
-        const winAmt = Math.floor(bjBetAmt * 2.5);
-        msg = "🎉 Blackjack! +" + winAmt + " 🪙"; result = "Blackjack!";
-        creditWin(winAmt, 2.5); bjWinCount++;
-        SND.win();
-      } else if (dealerBJ) {
-        msg = "Dealer Blackjack!"; result = "Loss";
-        recordLoss(bjBetAmt); bjLossCount++;
-        SND.bust();
-      } else if (pt > 21) {
-        msg = "💥 Bust!"; result = "Bust";
-        recordLoss(bjBetAmt); bjLossCount++;
-        SND.bust();
-      } else if (dt > 21) {
-        const winAmt = bjBetAmt * 2;
-        msg = "Dealer busts! +" + winAmt + " 🪙"; result = "Win";
-        creditWin(winAmt, 2); bjWinCount++;
-        SND.win();
-      } else if (pt > dt) {
-        const winAmt = bjBetAmt * 2;
-        msg = "You win! +" + winAmt + " 🪙"; result = "Win";
-        creditWin(winAmt, 2); bjWinCount++;
-        SND.win();
-      } else if (pt < dt) {
-        msg = "Dealer wins."; result = "Loss";
-        recordLoss(bjBetAmt); bjLossCount++;
-        SND.bust();
-      } else {
-        msg = "Push!"; result = "Push";
-        balance += bjBetAmt; saveBalance(); updateBalDisplay();
-        bjPushCount++;
-      }
+        if (playerBJ && dealerBJ) {
+          msg = "Push – both Blackjack!"; result = "Push";
+          balance += bjBetAmt; saveBalance(); updateBalDisplay();
+          bjPushCount++;
+        } else if (playerBJ) {
+          const winAmt = Math.floor(bjBetAmt * 2.5);
+          msg = "🎉 Blackjack! +" + winAmt + " 🪙"; result = "Blackjack!";
+          creditWin(winAmt, 2.5); bjWinCount++;
+          SND.win();
+        } else if (dealerBJ) {
+          msg = "Dealer Blackjack!"; result = "Loss";
+          recordLoss(bjBetAmt); bjLossCount++;
+          SND.bust();
+        } else if (pt > 21) {
+          msg = "💥 Bust!"; result = "Bust";
+          recordLoss(bjBetAmt); bjLossCount++;
+          SND.bust();
+        } else if (dt > 21) {
+          const winAmt = bjBetAmt * 2;
+          msg = "Dealer busts! +" + winAmt + " 🪙"; result = "Win";
+          creditWin(winAmt, 2); bjWinCount++;
+          SND.win();
+        } else if (pt > dt) {
+          const winAmt = bjBetAmt * 2;
+          msg = "You win! +" + winAmt + " 🪙"; result = "Win";
+          creditWin(winAmt, 2); bjWinCount++;
+          SND.win();
+        } else if (pt < dt) {
+          msg = "Dealer wins."; result = "Loss";
+          recordLoss(bjBetAmt); bjLossCount++;
+          SND.bust();
+        } else {
+          msg = "Push!"; result = "Push";
+          balance += bjBetAmt; saveBalance(); updateBalDisplay();
+          bjPushCount++;
+        }
 
-      $("bjMsg").textContent = msg;
-      $("bjMsg").className = "bjMsg" + (result === "Win" || result === "Blackjack!" ? " win-anim" : "");
-      $("bjWins").textContent = bjWinCount;
-      $("bjLosses").textContent = bjLossCount;
-      $("bjPushes").textContent = bjPushCount;
-      bjSetButtons(true, false, false, false);
-      const histAmt = result === "Blackjack!" ? Math.floor(bjBetAmt * 2.5) : (result === "Win" ? bjBetAmt * 2 : 0);
-      pushBJHistory(result, histAmt);
-      haptic(20);
+        $("bjMsg").textContent = msg;
+        $("bjMsg").className = "bjMsg" + (result === "Win" || result === "Blackjack!" ? " win-anim" : "");
+        $("bjWins").textContent = bjWinCount;
+        $("bjLosses").textContent = bjLossCount;
+        $("bjPushes").textContent = bjPushCount;
+        bjSetButtons(true, false, false, false);
+        const histAmt = result === "Blackjack!" ? Math.floor(bjBetAmt * 2.5) : (result === "Win" ? bjBetAmt * 2 : 0);
+        pushBJHistory(result, histAmt);
+        haptic(20);
+      }, 200); // Delay for card flip animation
     }
 
     function dealerPlay() {
+      SND.cardFlip(); // Flip dealer's hidden card
       renderBJHands(true);
       function dealerStep() {
         if (handTotal(bjDealer) < 17) {
           bjDealer.push(bjDrawCard());
           renderBJHands(true);
-          SND.click();
-          setTimeout(dealerStep, 400);
+          SND.cardDeal();
+          setTimeout(dealerStep, 500);
         } else {
           bjResolve();
         }
       }
-      setTimeout(dealerStep, 400);
+      setTimeout(dealerStep, 500);
     }
 
     $("bjDeal").addEventListener("click", () => {
@@ -1611,13 +1729,19 @@
       if (!placeBet(bjBetAmt)) return;
 
       sessionStats.rounds++;
+      SND.chipPlace(); // Bet placed sound
       if (bjDeck.length < 15) bjDeck = createDeck();
       bjPlayer = [bjDrawCard(), bjDrawCard()];
       bjDealer = [bjDrawCard(), bjDrawCard()];
       bjActive = true;
       $("bjMsg").textContent = "";
       renderBJHands(false);
-      SND.click();
+      
+      // Deal animation with sound
+      setTimeout(() => SND.cardDeal(), 50);
+      setTimeout(() => SND.cardDeal(), 200);
+      setTimeout(() => SND.cardDeal(), 350);
+      setTimeout(() => SND.cardDeal(), 500);
 
       // check for natural blackjack (21 with first 2 cards)
       const playerHas21 = handTotal(bjPlayer) === 21;
@@ -1633,7 +1757,7 @@
       if (!bjActive) return;
       bjPlayer.push(bjDrawCard());
       renderBJHands(false);
-      SND.click();
+      SND.cardDeal();
       if (handTotal(bjPlayer) > 21) {
         bjResolve();
       } else if (handTotal(bjPlayer) === 21) {
@@ -1717,6 +1841,108 @@
       const res = await computePlinko(lastRevealedSeed, cs, lastRevealedNonce, rows);
       $("pfPlinkoResult").textContent = "Bucket: " + res.col + "  |  Path: " + res.path.join("");
     });
+
+    // ==================== LIVE BETS ====================
+    const playerNames = [
+      "CryptoKing", "LuckyStrike", "DiamondHands", "MoonShot", "BetMaster",
+      "HighRoller", "AcePlayer", "GoldenBet", "WinStreak", "FortuneFox",
+      "BlazeGamer", "NeonNinja", "VegasVibes", "RiskTaker", "ChipChamp",
+      "JackpotJoe", "ProGambler", "SlotStar", "BetBoss", "CashCow",
+      "RocketRider", "LuckyLion", "DiceDevil", "CardShark", "WinWizard",
+      "BetBandit", "CasinoKid", "SpinMaster", "RollKing", "VictoryViper"
+    ];
+    
+    const gameIcons = {
+      crash: "💥",
+      mines: "💣",
+      dice: "🎲",
+      plinko: "📍",
+      blackjack: "🃏"
+    };
+    
+    const gameNames = ["crash", "mines", "dice", "plinko", "blackjack"];
+    let liveBetsHistory = [];
+    
+    function generateRandomBet() {
+      const player = playerNames[Math.floor(Math.random() * playerNames.length)];
+      const game = gameNames[Math.floor(Math.random() * gameNames.length)];
+      const betAmount = [5, 10, 25, 50, 100, 250, 500][Math.floor(Math.random() * 7)];
+      const won = Math.random() > 0.48; // 52% win rate
+      const multiplier = won 
+        ? (1 + Math.random() * 4).toFixed(2) 
+        : (0.5 + Math.random() * 0.8).toFixed(2);
+      const payout = Math.floor(betAmount * parseFloat(multiplier));
+      
+      return { player, game, betAmount, won, multiplier, payout, timestamp: Date.now() };
+    }
+    
+    function renderLiveBets() {
+      const container = $("liveBetsContainer");
+      if (!container) return;
+      
+      container.innerHTML = "";
+      liveBetsHistory.forEach(bet => {
+        const betEl = document.createElement("div");
+        betEl.style.cssText = `
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 16px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          gap: 12px;
+          flex-wrap: wrap;
+        `;
+        
+        const playerCol = document.createElement("div");
+        playerCol.style.cssText = "flex: 1; min-width: 120px;";
+        playerCol.innerHTML = `<div style="font-size:13px; font-weight:600; color:var(--text);">${bet.player}</div>
+          <div style="font-size:10px; color:var(--muted); margin-top:2px;">just now</div>`;
+        
+        const gameCol = document.createElement("div");
+        gameCol.style.cssText = "display:flex; align-items:center; gap:6px;";
+        gameCol.innerHTML = `<span style="font-size:16px;">${gameIcons[bet.game]}</span>
+          <span style="font-size:12px; color:var(--muted); text-transform:capitalize;">${bet.game}</span>`;
+        
+        const betCol = document.createElement("div");
+        betCol.style.cssText = "text-align:right;";
+        betCol.innerHTML = `<div style="font-size:11px; color:var(--muted);">Bet: ${bet.betAmount} 🪙</div>`;
+        
+        const resultCol = document.createElement("div");
+        resultCol.style.cssText = "text-align:right; min-width:100px;";
+        const resultColor = bet.won ? "var(--good)" : "var(--bad)";
+        const resultText = bet.won ? `Won ${bet.payout} 🪙` : `Lost ${bet.betAmount} 🪙`;
+        resultCol.innerHTML = `<div style="font-size:13px; font-weight:700; color:${resultColor};">${resultText}</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:2px;">${bet.multiplier}× multiplier</div>`;
+        
+        betEl.appendChild(playerCol);
+        betEl.appendChild(gameCol);
+        betEl.appendChild(betCol);
+        betEl.appendChild(resultCol);
+        container.appendChild(betEl);
+      });
+    }
+    
+    function addLiveBet() {
+      const bet = generateRandomBet();
+      liveBetsHistory.unshift(bet);
+      if (liveBetsHistory.length > 50) liveBetsHistory.pop();
+      renderLiveBets();
+    }
+    
+    // Initialize with some bets
+    for (let i = 0; i < 20; i++) {
+      liveBetsHistory.push(generateRandomBet());
+    }
+    renderLiveBets();
+    
+    // Add new bets periodically (every 2-5 seconds)
+    setInterval(() => {
+      if (Math.random() > 0.3) { // 70% chance to add a bet
+        addLiveBet();
+      }
+    }, 2000 + Math.random() * 3000);
 
     // ==================== WAITLIST ====================
     const wlForm = $("wlForm");
