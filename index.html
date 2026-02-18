@@ -48,25 +48,25 @@
     .section > h2 { font-size: 15px; color: rgba(234,240,255,0.78); margin-bottom: 14px; letter-spacing: .3px; }
 
     /* nav bar */
-    .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 22px; gap: 14px; flex-wrap: wrap; }
-    .brand { display: flex; align-items: center; gap: 10px; }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 18px; gap: 12px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .logo { width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(var(--accent), var(--accent2), var(--accent)); flex-shrink: 0; }
-    .brand h1 { font-size: 20px; letter-spacing: -0.4px; }
+    .brand h1 { font-size: 20px; letter-spacing: -0.4px; line-height: 1; }
     .brand h1 span { color: var(--accent); }
 
     /* balance bar */
-    .balanceBar { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: linear-gradient(135deg, var(--surface) 0%, rgba(124,111,255,0.06) 100%); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; flex-wrap: wrap; }
-    .balanceBar .balAmt { font-size: 22px; font-weight: 800; color: var(--accent2); transition: color .3s, transform .3s; letter-spacing: -0.3px; }
+    .balanceBar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: linear-gradient(135deg, var(--surface) 0%, rgba(124,111,255,0.06) 100%); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; flex-wrap: wrap; min-height: 52px; }
+    .balanceBar .balAmt { font-size: 22px; font-weight: 800; color: var(--accent2); transition: color .3s, transform .3s; letter-spacing: -0.3px; line-height: 1.2; }
     .balanceBar .balAmt.flash-green { color: var(--good); transform: scale(1.12); }
     .balanceBar .balAmt.flash-red { color: var(--bad); transform: scale(0.95); }
-    .balanceBar .sessionStat { font-size: 11px; color: var(--muted); }
+    .balanceBar .sessionStat { font-size: 11px; color: var(--muted); line-height: 1.2; white-space: nowrap; }
     .balanceBar .sessionStat b { color: var(--text); }
-    .balResetBtn { padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; transition: all .2s; margin-left: auto; }
+    .balResetBtn { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; transition: all .2s; margin-left: auto; line-height: 1.2; }
     .balResetBtn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
 
     /* tabs */
-    .tabBar { display: flex; gap: 6px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px; flex-wrap: wrap; }
-    .tabBtn { padding: 8px 18px; border: none; background: transparent; color: var(--muted); border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .25s ease; position: relative; }
+    .tabBar { display: flex; gap: 6px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px; flex-wrap: wrap; align-items: stretch; }
+    .tabBtn { padding: 8px 18px; border: none; background: transparent; color: var(--muted); border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .25s ease; position: relative; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
     .tabBtn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
     .tabBtn.active { background: var(--accent); color: #fff; box-shadow: 0 0 16px rgba(124,111,255,0.35); }
     .gamePanel { display: none; opacity: 0; transform: translateY(8px); }
@@ -137,10 +137,10 @@
     .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 340px; margin: 10px auto; }
     .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all .25s ease; transform: scale(1); }
     .mTile:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); box-shadow: 0 0 12px rgba(124,111,255,0.15); }
-    .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tileReveal .35s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
-    .mTile.mine { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.35); animation: tileReveal .35s ease-out; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
+    .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
+    .mTile.mine { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
     .mTile.disabled { pointer-events: none; opacity: 0.6; transform: none; }
-    @keyframes tileReveal { 0% { transform: rotateY(90deg) scale(0.8); opacity: 0.3; } 100% { transform: rotateY(0) scale(1); opacity: 1; } }
+    @keyframes tilePop { 0% { transform: scale(0.7); opacity: 0.4; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
 
     /* dice */
     .diceWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
@@ -160,7 +160,8 @@
 
     /* blackjack */
     .bjWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
-    .bjTable { background: linear-gradient(145deg, #1a5c2a 0%, #145222 50%, #1a5c2a 100%); border-radius: var(--radius); padding: 24px; min-height: 300px; position: relative; border: 3px solid #0d3518; box-shadow: inset 0 0 40px rgba(0,0,0,0.2); }
+    .bjTable { background: radial-gradient(ellipse at 50% 40%, #1e6b30 0%, #1a5c2a 30%, #145222 60%, #0f4019 100%); border-radius: var(--radius); padding: 24px; min-height: 300px; position: relative; border: 4px solid #0d3518; box-shadow: inset 0 0 60px rgba(0,0,0,0.35), inset 0 0 120px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.3); overflow: hidden; }
+    .bjTable::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(255,255,255,0.06); border-radius: calc(var(--radius) - 4px); pointer-events: none; }
     .bjHand { display: flex; gap: 8px; justify-content: center; min-height: 100px; flex-wrap: wrap; margin: 12px 0; perspective: 600px; }
     .bjCard { width: 62px; height: 88px; border-radius: 8px; background: linear-gradient(145deg, #fff 0%, #f0f0f0 100%); color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2); position: relative; animation: cardDeal .35s ease-out; }
     @keyframes cardDeal { 0% { transform: translateY(-60px) rotateX(20deg) scale(0.7); opacity: 0; } 100% { transform: translateY(0) rotateX(0) scale(1); opacity: 1; } }
@@ -170,9 +171,9 @@
     .bjCard .rank { font-size: 14px; position: absolute; top: 4px; left: 6px; }
     .bjCard .suit { font-size: 24px; }
     .bjCard .rank-br { font-size: 14px; position: absolute; bottom: 4px; right: 6px; transform: rotate(180deg); }
-    .bjLabel { text-align: center; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .bjLabel { text-align: center; font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.4); font-weight: 600; letter-spacing: 0.3px; }
     .bjActions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
-    .bjMsg { text-align: center; font-size: 18px; font-weight: 700; margin-top: 12px; min-height: 28px; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    .bjMsg { text-align: center; font-size: 18px; font-weight: 700; margin-top: 12px; min-height: 28px; text-shadow: 0 2px 6px rgba(0,0,0,0.4); }
     .bjMsg.win-anim { animation: winPop .5s ease-out; }
     @keyframes winPop { 0% { transform: scale(0.7); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
 
@@ -208,6 +209,74 @@
       .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap { grid-template-columns: 1fr; }
       .crashSide, .hero { grid-template-columns: 1fr; }
       .hero > .card:last-child { order: -1; }
+
+      /* --- handheld improvements --- */
+      body { font-size: 15px; -webkit-text-size-adjust: 100%; }
+      .wrap { padding: 12px 10px 32px; }
+
+      /* nav bar mobile fix */
+      .nav { padding: 10px 0 14px; gap: 10px; }
+      .brand h1 { font-size: 18px; }
+
+      /* balance bar mobile */
+      .balanceBar { padding: 10px 14px; gap: 10px; flex-wrap: wrap; }
+      .balanceBar .balAmt { font-size: 20px; }
+      .balanceBar .sessionStat { font-size: 10px; }
+
+      /* tab bar mobile */
+      .tabBar { gap: 4px; padding: 5px; }
+      .tabBtn { padding: 10px 12px; font-size: 13px; min-height: 44px; }
+
+      /* bigger touch targets */
+      .btn { padding: 12px 18px; min-height: 44px; font-size: 14px; }
+      .qBet { padding: 8px 12px; min-height: 36px; font-size: 12px; }
+      .input { padding: 10px 12px; font-size: 14px; min-height: 44px; }
+
+      /* bet rows */
+      .betRow { gap: 6px; }
+      .betRow .input { max-width: 100px; }
+      .crashTop { gap: 8px; }
+
+      /* mines grid mobile */
+      .mGrid { max-width: 100%; gap: 5px; }
+      .mTile { font-size: 20px; border-radius: 8px; }
+
+      /* blackjack mobile */
+      .bjTable { padding: 16px 12px; min-height: 260px; }
+      .bjCard { width: 54px; height: 76px; font-size: 16px; }
+      .bjCard .rank { font-size: 12px; }
+      .bjCard .suit { font-size: 20px; }
+      .bjCard .rank-br { font-size: 12px; }
+      .bjActions { flex-wrap: wrap; gap: 6px; }
+      .bjMsg { font-size: 16px; }
+
+      /* dice mobile */
+      .diceResult { font-size: 42px; }
+
+      /* plinko mobile */
+      .plinkoBucket { font-size: 9px; padding: 5px 0; }
+
+      /* side panels */
+      .crashSide { margin-top: 8px; }
+
+      /* stats grid */
+      .stats3 { gap: 8px; }
+      .stat3 .v { font-size: 15px; }
+
+      /* hero section */
+      .hero { gap: 12px; margin-bottom: 18px; }
+      .section { margin-bottom: 24px; }
+    }
+
+    /* small phone extra tweaks */
+    @media (max-width: 400px) {
+      .tabBtn { padding: 8px 8px; font-size: 12px; }
+      .bjCard { width: 46px; height: 66px; font-size: 14px; }
+      .bjCard .rank { font-size: 11px; }
+      .bjCard .suit { font-size: 18px; }
+      .bjCard .rank-br { font-size: 11px; }
+      .crashCanvasWrap { aspect-ratio: 1.8/1; }
+      .betRow .input { max-width: 80px; }
     }
   </style>
 </head>
@@ -1101,7 +1170,7 @@
       const chance = 100 - target;
       const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
       $("dChance").textContent = chance + "%";
-      $("dPayoutLabel").textContent = payout.toFixed(2) + "×";
+      $("dPayoutLabel").textContent = payout.toFixed(4) + "×";
       $("dBar").style.setProperty("--target", target + "%");
     }
 
@@ -1471,6 +1540,10 @@
         msg = "🎉 Blackjack! +" + winAmt + " 🪙"; result = "Blackjack!";
         creditWin(winAmt, 2.5); bjWinCount++;
         SND.win();
+      } else if (dealerBJ) {
+        msg = "Dealer Blackjack!"; result = "Loss";
+        recordLoss(bjBetAmt); bjLossCount++;
+        SND.bust();
       } else if (pt > 21) {
         msg = "💥 Bust!"; result = "Bust";
         recordLoss(bjBetAmt); bjLossCount++;
@@ -1501,7 +1574,8 @@
       $("bjLosses").textContent = bjLossCount;
       $("bjPushes").textContent = bjPushCount;
       bjSetButtons(true, false, false, false);
-      pushBJHistory(result, result === "Win" || result === "Blackjack!" ? bjBetAmt * 2 : 0);
+      const histAmt = result === "Blackjack!" ? Math.floor(bjBetAmt * 2.5) : (result === "Win" ? bjBetAmt * 2 : 0);
+      pushBJHistory(result, histAmt);
       haptic(20);
     }
 
@@ -1534,8 +1608,10 @@
       renderBJHands(false);
       SND.click();
 
-      // check instant blackjack
-      if (handTotal(bjPlayer) === 21) {
+      // check instant blackjack (player or dealer natural 21)
+      const playerHas21 = handTotal(bjPlayer) === 21;
+      const dealerHas21 = handTotal(bjDealer) === 21;
+      if (playerHas21 || dealerHas21) {
         bjResolve();
         return;
       }
