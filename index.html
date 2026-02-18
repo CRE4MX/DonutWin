@@ -1588,12 +1588,12 @@
 
         const pegsInRow = currentRow + 2;
         const nextPegsInRow = currentRow + 3;
-        const currentRowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+        const rowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
         const nextRowWidth = (nextPegsInRow - 1) * ((W - padX * 2) / (rows + 1));
-        const currentStartX = (W - currentRowWidth) / 2;
+        const startX = (W - rowWidth) / 2;
         const nextStartX = (W - nextRowWidth) / 2;
 
-        const bx = currentStartX + col * ((W - padX * 2) / (rows + 1));
+        const bx = startX + col * ((W - padX * 2) / (rows + 1));
         const nbx = nextStartX + nextCol * ((W - padX * 2) / (rows + 1));
         const by = padTop + (currentRow + 1) * rowH;
         const nby = padTop + (currentRow + 2) * rowH;
@@ -1665,17 +1665,17 @@
       });
     }
 
-    function dropOneBall(bet) {
-      return new Promise(async (resolve) => {
-        const rows = parseInt($("plRows").value);
-        const risk = $("plRisk").value;
-        const ss = serverSeed, cs = clientSeed, n = nonce;
-        const result = await computePlinko(ss, cs, n, rows);
-        revealSeed("plinko");
+    async function dropOneBall(bet) {
+      const rows = parseInt($("plRows").value);
+      const risk = $("plRisk").value;
+      const ss = serverSeed, cs = clientSeed, n = nonce;
+      const result = await computePlinko(ss, cs, n, rows);
+      revealSeed("plinko");
 
-        const mults = PLINKO_MULTS[risk][rows];
-        const mult = mults[result.col];
+      const mults = PLINKO_MULTS[risk][rows];
+      const mult = mults[result.col];
 
+      return new Promise((resolve) => {
         const ball = {
           path: result.path,
           t: 0,
