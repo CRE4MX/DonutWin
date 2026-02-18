@@ -1588,12 +1588,12 @@
 
         const pegsInRow = currentRow + 2;
         const nextPegsInRow = currentRow + 3;
-        const rowWidth2 = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+        const currentRowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
         const nextRowWidth = (nextPegsInRow - 1) * ((W - padX * 2) / (rows + 1));
-        const startX2 = (W - rowWidth2) / 2;
+        const currentStartX = (W - currentRowWidth) / 2;
         const nextStartX = (W - nextRowWidth) / 2;
 
-        const bx = startX2 + col * ((W - padX * 2) / (rows + 1));
+        const bx = currentStartX + col * ((W - padX * 2) / (rows + 1));
         const nbx = nextStartX + nextCol * ((W - padX * 2) / (rows + 1));
         const by = padTop + (currentRow + 1) * rowH;
         const nby = padTop + (currentRow + 2) * rowH;
@@ -1627,7 +1627,11 @@
           const elapsed = now - b.startTime;
           const rawT = Math.min(elapsed / b.duration, 1);
           b.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
-          if (Math.random() < 0.1) SND.tick();
+          const rows = parseInt($("plRows").value);
+          const prevRow = b.lastRow || 0;
+          const currentRow = Math.min(Math.floor(b.t * rows), rows - 1);
+          if (currentRow > prevRow) SND.tick();
+          b.lastRow = currentRow;
           if (rawT >= 1) {
             plActiveBalls.splice(i, 1);
             b.onDone();
@@ -1661,55 +1665,58 @@
       });
     }
 
-    async function dropOneBall(bet) {
-      const rows = parseInt($("plRows").value);
-      const risk = $("plRisk").value;
-      const ss = serverSeed, cs = clientSeed, n = nonce;
-      const result = await computePlinko(ss, cs, n, rows);
-      revealSeed("plinko");
+    function dropOneBall(bet) {
+      return new Promise(async (resolve) => {
+        const rows = parseInt($("plRows").value);
+        const risk = $("plRisk").value;
+        const ss = serverSeed, cs = clientSeed, n = nonce;
+        const result = await computePlinko(ss, cs, n, rows);
+        revealSeed("plinko");
 
-      const mults = PLINKO_MULTS[risk][rows];
-      const mult = mults[result.col];
+        const mults = PLINKO_MULTS[risk][rows];
+        const mult = mults[result.col];
 
-      const ball = {
-        path: result.path,
-        t: 0,
-        startTime: Date.now(),
-        duration: 1500,
-        onDone: () => {
-          plDropCount++;
-          $("plDropped").textContent = plDropCount;
-          $("plLastMult").textContent = mult.toFixed(2) + "×";
+        const ball = {
+          path: result.path,
+          t: 0,
+          startTime: Date.now(),
+          duration: 1500,
+          onDone: () => {
+            plDropCount++;
+            $("plDropped").textContent = plDropCount;
+            $("plLastMult").textContent = mult.toFixed(2) + "×";
 
-          const winAmt = Math.floor(bet * mult);
-          if (winAmt > 0) {
-            creditWin(winAmt, mult);
-            $("plStatus").textContent = mult >= 1 ? "Win!" : "Low";
-            $("plStatus").style.color = mult >= 1 ? "var(--good)" : "var(--bad)";
-            toast("Plinko: " + mult + "× → " + winAmt + " 🪙", mult >= 1 ? "success" : "info");
-            if (mult >= 2) SND.win(); else SND.pop();
-          } else {
-            recordLoss(bet);
-            $("plStatus").textContent = "Miss";
-            $("plStatus").style.color = "var(--bad)";
+            const winAmt = Math.floor(bet * mult);
+            if (winAmt > 0) {
+              creditWin(winAmt, mult);
+              $("plStatus").textContent = mult >= 1 ? "Win!" : "Low";
+              $("plStatus").style.color = mult >= 1 ? "var(--good)" : "var(--bad)";
+              toast("Plinko: " + mult + "× → " + winAmt + " 🪙", mult >= 1 ? "success" : "info");
+              if (mult >= 2) SND.win(); else SND.pop();
+            } else {
+              recordLoss(bet);
+              $("plStatus").textContent = "Miss";
+              $("plStatus").style.color = "var(--bad)";
+            }
+            pushPlinkoHistory(mult, winAmt > bet);
+            haptic(20);
+
+            const bucketEls = $("plBuckets").children;
+            if (bucketEls[result.col]) {
+              bucketEls[result.col].style.transform = "scale(1.3)";
+              setTimeout(() => { if (bucketEls[result.col]) bucketEls[result.col].style.transform = ""; }, 800);
+            }
+            resolve();
           }
-          pushPlinkoHistory(mult, winAmt > bet);
-          haptic(20);
+        };
 
-          const bucketEls = $("plBuckets").children;
-          if (bucketEls[result.col]) {
-            bucketEls[result.col].style.transform = "scale(1.3)";
-            setTimeout(() => { if (bucketEls[result.col]) bucketEls[result.col].style.transform = ""; }, 800);
-          }
-        }
-      };
-
-      plActiveBalls.push(ball);
-      plAnimating = true;
-      $("plDrop").disabled = true;
-      $("plStatus").textContent = "Dropping…";
-      $("plStatus").style.color = "var(--accent2)";
-      startPlinkoBallLoop();
+        plActiveBalls.push(ball);
+        plAnimating = true;
+        $("plDrop").disabled = true;
+        $("plStatus").textContent = "Dropping…";
+        $("plStatus").style.color = "var(--accent2)";
+        startPlinkoBallLoop();
+      });
     }
 
     $("plDrop").addEventListener("click", async () => {
@@ -1719,7 +1726,15 @@
       await dropOneBall(bet);
     });
 
-    $("plAutoStart").addEventListener("click", () => {
+    function stopAutobet() {
+      plAutoRunning = false;
+      plAutoRemaining = 0;
+      $("plAutoStart").style.display = "";
+      $("plAutoStop").style.display = "none";
+      if (plActiveBalls.length === 0) $("plDrop").disabled = false;
+    }
+
+    $("plAutoStart").addEventListener("click", async () => {
       if (plAutoRunning) return;
       const totalBalls = clamp(parseInt($("plAutoBalls").value) || 10, 1, 500);
       const bet = getBet("plBet");
@@ -1731,37 +1746,24 @@
       $("plAutoStop").style.display = "";
       $("plDrop").disabled = true;
 
-      const interval = setInterval(async () => {
-        if (!plAutoRunning || plAutoRemaining <= 0) {
-          clearInterval(interval);
-          plAutoRunning = false;
-          $("plAutoStart").style.display = "";
-          $("plAutoStop").style.display = "none";
-          if (plActiveBalls.length === 0) $("plDrop").disabled = false;
-          return;
-        }
+      for (let i = 0; i < totalBalls; i++) {
+        if (!plAutoRunning) break;
         if (!placeBet(bet)) {
-          clearInterval(interval);
-          plAutoRunning = false;
-          $("plAutoStart").style.display = "";
-          $("plAutoStop").style.display = "none";
           toast("Auto-bet stopped: insufficient balance", "error");
-          if (plActiveBalls.length === 0) $("plDrop").disabled = false;
-          return;
+          break;
         }
         sessionStats.rounds++;
         plAutoRemaining--;
         await dropOneBall(bet);
-      }, 200);
+        // short pause between drops for fast sequential play
+        if (plAutoRunning && plAutoRemaining > 0) {
+          await new Promise(r => setTimeout(r, 100));
+        }
+      }
+      stopAutobet();
     });
 
-    $("plAutoStop").addEventListener("click", () => {
-      plAutoRunning = false;
-      plAutoRemaining = 0;
-      $("plAutoStart").style.display = "";
-      $("plAutoStop").style.display = "none";
-      if (plActiveBalls.length === 0) $("plDrop").disabled = false;
-    });
+    $("plAutoStop").addEventListener("click", stopAutobet);
 
     $("plRisk").addEventListener("change", () => { renderPlinkoBuckets(); drawPlinkoBoard(); });
     $("plRows").addEventListener("change", () => { renderPlinkoBuckets(); drawPlinkoBoard(); });
