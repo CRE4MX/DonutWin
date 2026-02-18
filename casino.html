@@ -461,7 +461,7 @@
         <div class="pf">
           <div class="tag"><span class="dot"></span> Seeds</div>
           <div class="lab">Client seed</div>
-          <input class="input" id="pfClientSeed" value="donutwin-client" autocomplete="off" style="max-width:100%">
+          <input class="input" id="pfClientSeed" value="" autocomplete="off" style="max-width:100%" placeholder="Auto-generated on load">
           <div class="lab">Server seed hash (commit)</div>
           <div class="mono" id="pfCommit">—</div>
           <div class="lab">Server seed (reveal after round)</div>
@@ -633,7 +633,7 @@
     }
 
     // ==================== SEED STATE ====================
-    let clientSeed = "donutwin-client";
+    let clientSeed = randSeed(16);
     let serverSeed = randSeed(32);
     let nonce = 0;
     let lastRevealedSeed = null;
@@ -986,7 +986,8 @@
       mSafe++;
       const mc = parseInt($("mMineCount").value) || 5;
       const total = 25, remaining = total - mSafe - mc;
-      mMult = mSafe === 0 ? 1 : parseFloat(((total / (total - mc)) ** mSafe * 0.97).toFixed(2));
+      const MINES_HOUSE_EDGE = 0.97;
+      mMult = mSafe === 0 ? 1 : parseFloat(((total / (total - mc)) ** mSafe * MINES_HOUSE_EDGE).toFixed(2));
       SND.pop(); haptic(15);
       setMStatus("Playing", "var(--accent2)");
       $("mCash").disabled = false;
@@ -1043,13 +1044,14 @@
     });
 
     // ==================== DICE GAME ====================
+    const DICE_PAYOUT_FACTOR = 99; // 1% house edge (99/100)
     let dStreak = 0;
     const dHistoryArr = [];
 
     function updateDiceUI() {
       const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
       const chance = 100 - target;
-      const payout = chance > 0 ? parseFloat((99 / chance).toFixed(4)) : 0;
+      const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
       $("dChance").textContent = chance + "%";
       $("dPayoutLabel").textContent = payout.toFixed(2) + "×";
       $("dBar").style.setProperty("--target", target + "%");
@@ -1078,7 +1080,7 @@
       sessionStats.rounds++;
       const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
       const chance = 100 - target;
-      const payout = chance > 0 ? parseFloat((99 / chance).toFixed(4)) : 0;
+      const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
 
       const ss = serverSeed, cs = clientSeed, n = nonce;
       const roll = await computeDice(ss, cs, n);
