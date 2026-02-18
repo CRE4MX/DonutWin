@@ -1879,9 +1879,9 @@
       if (rand < 0.4) {
         player = baseName; // No number
       } else if (rand < 0.7) {
-        player = baseName + Math.floor(Math.random() * 100); // 0-99
+        player = baseName + (Math.floor(Math.random() * 99) + 1); // 1-99
       } else {
-        player = baseName + Math.floor(Math.random() * 10000); // 0-9999
+        player = baseName + (Math.floor(Math.random() * 9000) + 1000); // 1000-9999
       }
       const game = gameNames[Math.floor(Math.random() * gameNames.length)];
       const betAmount = [5, 10, 25, 50, 100, 250, 500][Math.floor(Math.random() * 7)];
