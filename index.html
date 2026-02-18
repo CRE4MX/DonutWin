@@ -1,277 +1,1676 @@
 <!DOCTYPE html>
+<!-- DonutWin – Casino Experience -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DonutWin - Early Casino Experience</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>DonutWin – Casino Experience</title>
+  <meta name="description" content="DonutWin casino demo – play Crash, Mines, Dice, Plinko & Blackjack with provably-fair verification.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f1a; --surface: #13162a; --border: rgba(255,255,255,0.08);
+      --accent: #7c6fff; --accent2: #6ee7ff; --good: #7cff6b; --bad: #ff6b6b;
+      --text: rgba(234,240,255,0.92); --muted: rgba(234,240,255,0.55); --radius: 14px;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
+
+    /* particle canvas */
+    #p { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+    /* floating donuts */
+    .donuts { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .donut { position: absolute; width: 54px; height: 54px; animation: floatDonut linear infinite; opacity: 0; }
+    .donut:nth-child(1) { left: 6%; animation-duration: 18s; animation-delay: 0s; }
+    .donut:nth-child(2) { left: 20%; animation-duration: 24s; animation-delay: -5s; }
+    .donut:nth-child(3) { left: 40%; animation-duration: 20s; animation-delay: -10s; }
+    .donut:nth-child(4) { left: 60%; animation-duration: 26s; animation-delay: -3s; }
+    .donut:nth-child(5) { left: 78%; animation-duration: 22s; animation-delay: -8s; }
+    .donut:nth-child(6) { left: 92%; animation-duration: 19s; animation-delay: -14s; }
+    @keyframes floatDonut {
+      0%   { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+      5%   { opacity: 0.18; }
+      90%  { opacity: 0.12; }
+      100% { transform: translateY(-120px) rotate(540deg); opacity: 0; }
+    }
+    .donut .ring { position: absolute; inset: 0; border-radius: 50%; border: 14px solid #c2793a; }
+    .donut .frost { position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px; border-radius: 50%; background: radial-gradient(circle, #f9d0a0 0%, #e8956a 100%); opacity: 0.85; }
+    .donut .spr { position: absolute; top: 12px; left: 12px; right: 12px; bottom: 12px; border-radius: 50%; background: repeating-conic-gradient(#f77 0% 12.5%, transparent 0% 25%); opacity: 0.55; animation: spinSpr 6s linear infinite; }
+    @keyframes spinSpr { to { transform: rotate(360deg); } }
+    .donut .shine { position: absolute; top: 4px; left: 14px; width: 18px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.45); transform: rotate(-30deg); }
+
+    /* layout */
+    .wrap { position: relative; z-index: 1; max-width: 1060px; margin: 0 auto; padding: 18px 16px 40px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+    .pad { padding: 22px; }
+    .section { margin-bottom: 32px; }
+    .section > h2 { font-size: 15px; color: rgba(234,240,255,0.78); margin-bottom: 14px; letter-spacing: .3px; }
+
+    /* nav bar */
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 22px; gap: 14px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo { width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(var(--accent), var(--accent2), var(--accent)); flex-shrink: 0; }
+    .brand h1 { font-size: 20px; letter-spacing: -0.4px; }
+    .brand h1 span { color: var(--accent); }
+
+    /* balance bar */
+    .balanceBar { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: linear-gradient(135deg, var(--surface) 0%, rgba(124,111,255,0.06) 100%); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; flex-wrap: wrap; }
+    .balanceBar .balAmt { font-size: 22px; font-weight: 800; color: var(--accent2); transition: color .3s, transform .3s; letter-spacing: -0.3px; }
+    .balanceBar .balAmt.flash-green { color: var(--good); transform: scale(1.12); }
+    .balanceBar .balAmt.flash-red { color: var(--bad); transform: scale(0.95); }
+    .balanceBar .sessionStat { font-size: 11px; color: var(--muted); }
+    .balanceBar .sessionStat b { color: var(--text); }
+    .balResetBtn { padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; transition: all .2s; margin-left: auto; }
+    .balResetBtn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    /* tabs */
+    .tabBar { display: flex; gap: 6px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px; flex-wrap: wrap; }
+    .tabBtn { padding: 8px 18px; border: none; background: transparent; color: var(--muted); border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .25s ease; position: relative; }
+    .tabBtn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .tabBtn.active { background: var(--accent); color: #fff; box-shadow: 0 0 16px rgba(124,111,255,0.35); }
+    .gamePanel { display: none; opacity: 0; transform: translateY(8px); }
+    .gamePanel.active { display: block; animation: panelIn .35s ease-out forwards; }
+    @keyframes panelIn { to { opacity: 1; transform: translateY(0); } }
+
+    /* buttons */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s ease; text-decoration: none; }
+    .btn:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0) scale(0.97); }
+    .btn.primary { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 2px 12px rgba(124,111,255,0.25); }
+    .btn.primary:hover { filter: brightness(1.15); box-shadow: 0 4px 20px rgba(124,111,255,0.4); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    /* inputs */
+    .input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; outline: none; transition: border-color .2s, box-shadow .2s; }
+    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,111,255,0.15); }
+    select.input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(234,240,255,0.55)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 26px; cursor: pointer; }
+    select.input option { background: var(--surface); color: var(--text); }
+
+    /* bet row */
+    .betRow { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .betRow .input { max-width: 120px; }
+    .qBet { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--muted); font-size: 11px; cursor: pointer; transition: all .2s; }
+    .qBet:hover { color: var(--text); background: rgba(255,255,255,0.07); }
+
+    /* tags */
+    .tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.04); font-size: 11px; color: var(--muted); letter-spacing: .3px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); display: inline-block; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* toggle */
+    .toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; color: var(--muted); }
+    .toggle input { appearance: none; width: 36px; height: 20px; border-radius: 12px; background: rgba(255,255,255,0.1); position: relative; cursor: pointer; transition: background .2s; }
+    .toggle input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .2s; }
+    .toggle input:checked { background: var(--accent); }
+    .toggle input:checked::after { transform: translateX(16px); }
+
+    /* stats */
+    .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+    .stat3 { text-align: center; }
+    .stat3 .k { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .stat3 .v { font-size: 16px; font-weight: 700; }
+    .mini { font-size: 11px; color: var(--muted); }
+    .mono { font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 11px; color: var(--accent2); background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 8px; word-break: break-all; margin: 4px 0 10px; cursor: pointer; transition: background .2s; }
+    .mono:hover { background: rgba(255,255,255,0.07); }
+    .lab { font-size: 11px; color: var(--muted); margin-top: 10px; text-transform: uppercase; letter-spacing: .4px; }
+    .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .pf { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+
+    /* crash game */
+    .crashWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
+    .crashPanel { min-width: 0; }
+    .crashSide { min-width: 0; }
+    .crashTop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .crashCanvasWrap { position: relative; width: 100%; aspect-ratio: 2.2/1; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); }
+    .crashCanvasWrap canvas { width: 100%; height: 100%; display: block; }
+    .crashOverlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+    .crashOverlay b { font-size: 44px; color: #fff; text-shadow: 0 2px 24px rgba(124,111,255,0.7); transition: transform .15s ease; }
+    .crashOverlay b.crashed { color: #ff6b6b; text-shadow: 0 2px 24px rgba(255,107,107,0.7); animation: crashShake .4s ease-out; }
+    .crashOverlay small { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    @keyframes crashShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+    .roundTag { display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin: 2px; transition: transform .2s; }
+    .roundTag:hover { transform: scale(1.05); }
+
+    /* mines */
+    .minesWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
+    .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 340px; margin: 10px auto; }
+    .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all .25s ease; transform: scale(1); }
+    .mTile:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); box-shadow: 0 0 12px rgba(124,111,255,0.15); }
+    .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tileReveal .35s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
+    .mTile.mine { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.35); animation: tileReveal .35s ease-out; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
+    .mTile.disabled { pointer-events: none; opacity: 0.6; transform: none; }
+    @keyframes tileReveal { 0% { transform: rotateY(90deg) scale(0.8); opacity: 0.3; } 100% { transform: rotateY(0) scale(1); opacity: 1; } }
+
+    /* dice */
+    .diceWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
+    .diceBar { height: 20px; border-radius: 10px; background: linear-gradient(90deg, var(--bad) 0%, var(--bad) var(--target), var(--good) var(--target), var(--good) 100%); position: relative; margin: 16px 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+    .diceBar .marker { position: absolute; top: -8px; width: 4px; height: 36px; background: #fff; border-radius: 2px; transform: translateX(-50%); transition: left .5s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+    .diceResult { font-size: 52px; font-weight: 800; text-align: center; margin: 20px 0; transition: color .3s; }
+    .diceResult.pop { animation: resultPop .4s ease-out; }
+    @keyframes resultPop { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+
+    /* plinko */
+    .plinkoWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
+    .plinkoCanvasWrap { position: relative; width: 100%; aspect-ratio: 1.3/1; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); }
+    .plinkoCanvasWrap canvas { width: 100%; height: 100%; display: block; }
+    .plinkoBuckets { display: flex; gap: 2px; margin-top: 8px; }
+    .plinkoBucket { flex: 1; text-align: center; padding: 6px 0; border-radius: 6px; font-size: 10px; font-weight: 700; transition: transform .3s ease, box-shadow .3s ease; }
+    .plinkoBucket.hit { box-shadow: 0 0 16px currentColor; }
+
+    /* blackjack */
+    .bjWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
+    .bjTable { background: linear-gradient(145deg, #1a5c2a 0%, #145222 50%, #1a5c2a 100%); border-radius: var(--radius); padding: 24px; min-height: 300px; position: relative; border: 3px solid #0d3518; box-shadow: inset 0 0 40px rgba(0,0,0,0.2); }
+    .bjHand { display: flex; gap: 8px; justify-content: center; min-height: 100px; flex-wrap: wrap; margin: 12px 0; perspective: 600px; }
+    .bjCard { width: 62px; height: 88px; border-radius: 8px; background: linear-gradient(145deg, #fff 0%, #f0f0f0 100%); color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2); position: relative; animation: cardDeal .35s ease-out; }
+    @keyframes cardDeal { 0% { transform: translateY(-60px) rotateX(20deg) scale(0.7); opacity: 0; } 100% { transform: translateY(0) rotateX(0) scale(1); opacity: 1; } }
+    .bjCard.red { color: #d32f2f; }
+    .bjCard.facedown { background: linear-gradient(135deg, #1a237e, #283593); color: transparent; background-image: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.03) 8px, rgba(255,255,255,0.03) 16px); }
+    .bjCard.facedown::after { content: "🍩"; position: absolute; font-size: 28px; }
+    .bjCard .rank { font-size: 14px; position: absolute; top: 4px; left: 6px; }
+    .bjCard .suit { font-size: 24px; }
+    .bjCard .rank-br { font-size: 14px; position: absolute; bottom: 4px; right: 6px; transform: rotate(180deg); }
+    .bjLabel { text-align: center; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .bjActions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+    .bjMsg { text-align: center; font-size: 18px; font-weight: 700; margin-top: 12px; min-height: 28px; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    .bjMsg.win-anim { animation: winPop .5s ease-out; }
+    @keyframes winPop { 0% { transform: scale(0.7); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+
+    /* toast */
+    .toastContainer { position: fixed; top: 18px; right: 18px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; animation: toastIn .3s ease-out; max-width: 320px; transition: opacity .3s ease, transform .3s ease; backdrop-filter: blur(8px); }
+    .toast.success { background: rgba(124,255,107,0.9); color: #111; }
+    .toast.error { background: rgba(255,107,107,0.9); }
+    .toast.info { background: rgba(124,111,255,0.9); }
+    .toast.fade-out { opacity: 0; transform: translateX(40px) scale(0.95); }
+    @keyframes toastIn { from { transform: translateX(100%) scale(0.9); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
+
+    /* hero */
+    .hero { display: grid; grid-template-columns: 1fr 280px; gap: 18px; margin-bottom: 24px; }
+    .statGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-radius: var(--radius); overflow: hidden; }
+    .stat { padding: 16px; background: var(--surface); text-align: center; }
+    .stat .k { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+    .stat .v { font-size: 20px; font-weight: 700; }
+    .sub { color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
+    .ctaRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .pulse { display: inline-flex; align-items: center; gap: 4px; }
+    .pulse i { width: 6px; height: 6px; border-radius: 50%; background: var(--good); display: inline-block; animation: pulse 2s ease-in-out infinite; }
+
+    /* waitlist */
+    .waitlist { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+    /* footer */
+    .foot { text-align: center; padding: 24px 0; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .foot a { color: var(--accent2); text-decoration: none; }
+
+    /* responsive */
+    @media (max-width: 760px) {
+      .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap { grid-template-columns: 1fr; }
+      .crashSide, .hero { grid-template-columns: 1fr; }
+      .hero > .card:last-child { order: -1; }
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <nav>
-      <div class="logo">DONUTWIN</div>
-      <div class="nav-links">
-        <a href="#crash">Crash</a>
-        <a href="#mines">Mines</a>
-        <a href="#provably">Provably Fair</a>
-        <a href="#waitlist">Join waitlist</a>
+  <canvas id="p"></canvas>
+  <!-- floating donuts -->
+  <div class="donuts" aria-hidden="true">
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+  </div>
+
+  <div class="wrap">
+    <!-- nav -->
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Donut<span>Win</span></h1>
       </div>
-    </nav>
-  </header>
-
-  <main>
-    <!-- Hero Section -->
-    <section class="hero">
-      <div class="hero-badge">⚡ true experience • fast gameplay • verifiable</div>
-      <h1>DonutWin<br/>Early Casino Experience</h1>
-      <p>
-        DonutWin is the highest-budget, dopamine-tuned gaming casino of 2026.
-        Sponsored by #HELL Energy Bulgaria EOOD
-      </p>
-
-      <div class="cta-buttons">
-        <a href="#crash" class="btn btn-primary">Play Crash</a>
-        <a href="#mines" class="btn btn-primary">Play Mines</a>
-        <span class="badge">🚧 building in public</span>
-      </div>
-
-      <p class="tip">Tip: enable sound, then spam rounds. It's tuned for "one more".</p>
-
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-label">Games available</div>
-          <div class="stat-value">2</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Mode</div>
-          <div class="stat-value">Try-only</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Engagement</div>
-          <div class="stat-value">High</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Fairness</div>
-          <div class="stat-value">Verifiable</div>
-        </div>
-      </div>
-
-      <div class="sound-toggle">
-        <label>
-          <input type="checkbox" id="soundToggle">
-          <span>🔊 Sound</span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <label class="toggle" title="Sound effects">
+          <input id="sndMaster" type="checkbox" checked>
+          <span>🔊</span>
         </label>
-      </div>
-    </section>
-
-    <!-- Crash Game Section -->
-    <section id="crash" class="game-section">
-      <h2>Crash (demo)</h2>
-      
-      <div class="game-container">
-        <div class="game-controls">
-          <div class="status-badge live">⚡ live</div>
-          
-          <div class="control-group">
-            <label>Auto cashout</label>
-            <input type="number" id="crashAutoCashout" min="1.01" step="0.01" value="2.00">
-          </div>
-
-          <button id="crashStart" class="btn btn-primary">Start round</button>
-          <button id="crashCashout" class="btn btn-success" disabled>Cash out</button>
-
-          <div class="checkbox-group">
-            <label>
-              <input type="checkbox" id="crashAutoBet">
-              <span>Auto-bet</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="game-stats">
-          <div class="stat">
-            <div class="stat-label">Multiplier</div>
-            <div class="stat-value" id="crashMultiplier">1.00×</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Status</div>
-            <div class="stat-value" id="crashStatus">Ready</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Next round</div>
-            <div class="stat-value" id="crashNextRound">—</div>
-          </div>
-        </div>
-
-        <div class="game-display">
-          <div class="crash-graph">
-            <div class="multiplier-display" id="crashMultiplierDisplay">1.00×</div>
-            <div class="status-text" id="crashStatusText">Waiting for round…</div>
-          </div>
-        </div>
-
-        <div id="crashMessage"></div>
-      </div>
-
-      <div class="recent-rounds">
-        <h3>Recent rounds <span class="updating-badge">🔄 updating</span></h3>
-        <div id="crashHistory" class="history-list"></div>
-        <p class="delay-notice">⏱ Activity has ±14.035s delay.</p>
-      </div>
-    </section>
-
-    <!-- Mines Game Section -->
-    <section id="mines" class="game-section">
-      <h2>Mines (demo)</h2>
-      
-      <div class="game-container">
-        <div class="game-controls">
-          <div class="control-group">
-            <label>Mines</label>
-            <input type="number" id="minesCount" min="1" max="24" value="5">
-          </div>
-
-          <button id="minesStart" class="btn btn-primary">Start</button>
-          <button id="minesCashout" class="btn btn-success" disabled>Cash out</button>
-          <button id="minesReset" class="btn btn-secondary">Reset</button>
-        </div>
-
-        <div class="game-stats">
-          <div class="stat">
-            <div class="stat-label">Safe picks</div>
-            <div class="stat-value" id="minesSafePicks">0</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Multiplier</div>
-            <div class="stat-value" id="minesMultiplier">1.00×</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Status</div>
-            <div class="stat-value" id="minesStatus">Ready</div>
-          </div>
-        </div>
-
-        <div class="game-display">
-          <div id="minesGrid" class="mines-grid"></div>
-        </div>
-
-        <div id="minesMessage"></div>
-      </div>
-
-      <div class="recent-rounds">
-        <h3>Recent wins <span class="updating-badge">🔄 updating</span></h3>
-        <div id="minesHistory" class="history-list"></div>
-        <p class="help-text">Click tiles → cash out anytime.</p>
-      </div>
-    </section>
-
-    <!-- Provably Fair Section -->
-    <section id="provably" class="game-section">
-      <h2>Provably fair (verify locally)</h2>
-
-      <div class="verify-container">
-        <div class="verify-section">
-          <h3>🎲 Crash proof</h3>
-          
-          <div class="input-group">
-            <label>Client seed</label>
-            <input type="text" id="crashClientSeed" readonly>
-          </div>
-
-          <div class="input-group">
-            <label>Server seed hash (commit)</label>
-            <input type="text" id="crashServerHash" value="—" readonly>
-          </div>
-
-          <div class="input-group">
-            <label>Server seed (reveal)</label>
-            <input type="text" id="crashServerSeed" value="—" readonly>
-          </div>
-
-          <div class="input-group">
-            <label>Nonce</label>
-            <input type="text" id="crashNonce" value="—" readonly>
-          </div>
-
-          <div class="input-group">
-            <label>Result (crash point)</label>
-            <input type="text" id="crashResult" value="—" readonly>
-          </div>
-
-          <div class="button-group">
-            <button id="verifyCrash" class="btn btn-secondary">Verify last Crash</button>
-            <button id="newCrashSeeds" class="btn btn-secondary">New seeds</button>
-          </div>
-
-          <p class="help-text">We commit to a server seed hash before the round, then reveal the seed after.</p>
-        </div>
-
-        <div class="verify-section">
-          <h3>💎 Mines proof</h3>
-
-          <div class="input-group">
-            <label>Server seed hash (commit)</label>
-            <input type="text" id="minesServerHash" value="—" readonly>
-          </div>
-
-          <div class="input-group">
-            <label>Server seed (reveal)</label>
-            <input type="text" id="minesServerSeed" value="—" readonly>
-          </div>
-
-          <div class="input-group">
-            <label>Nonce</label>
-            <input type="text" id="minesNonce" value="—" readonly>
-          </div>
-
-          <div class="input-group">
-            <label>Mine positions (0–24)</label>
-            <input type="text" id="minesPositions" value="—" readonly>
-          </div>
-
-          <div class="button-group">
-            <button id="verifyMines" class="btn btn-secondary">Verify last Mines</button>
-          </div>
-
-          <p class="help-text">Mines uses the same seed flow and derives mine positions deterministically.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Waitlist Section -->
-    <section id="waitlist" class="game-section">
-      <h2>Join the waitlist</h2>
-      
-      <p>
-        Get an email when the full app goes live on <strong>app.donutwin.shop</strong>.
-      </p>
-
-      <div class="waitlist-form">
-        <input type="email" id="waitlistEmail" placeholder="your@email.com">
-        <button id="waitlistSubmit" class="btn btn-primary">Notify me</button>
-        <div id="waitlistMessage"></div>
-      </div>
-
-      <p class="terms">
-        By joining you agree to receive occasional updates. No spam.
-      </p>
-    </section>
-  </main>
-
-  <footer>
-    <div class="footer-content">
-      <div class="copyright">
-        © 2026 DonutWin • early experience • patent pending design
-      </div>
-      <div class="footer-links">
-        <a href="#crash">Crash</a>
-        <a href="#mines">Mines</a>
-        <a href="#provably">Verify</a>
-        <a href="#waitlist">Waitlist</a>
+        <a class="btn primary" href="#waitlist-section">Join waitlist</a>
       </div>
     </div>
-  </footer>
 
-  <script src="script.js"></script>
+    <!-- hero -->
+    <div class="hero section">
+      <div class="card pad">
+        <span class="tag"><span class="dot"></span> true experience • fast gameplay • verifiable</span>
+        <h2 style="font-size:22px; margin:12px 0 0;">The highest-budget, dopamine-tuned<br>gaming experience of 2026.</h2>
+        <p class="sub">Five provably-fair casino games with real-time verification. Built for adrenaline, designed for trust.</p>
+        <div class="ctaRow">
+          <button type="button" class="btn primary" onclick="switchTab('crash')">Play Crash</button>
+          <button type="button" class="btn" onclick="switchTab('plinko')">Play Plinko</button>
+          <span class="mini"><span class="pulse"><i></i></span> building in public</span>
+        </div>
+        <p class="mini">Tip: enable sound, then spam rounds. It's tuned for "one more".</p>
+      </div>
+      <div class="card">
+        <div class="statGrid">
+          <div class="stat"><div class="k">Games available</div><div class="v">5</div></div>
+          <div class="stat"><div class="k">Mode</div><div class="v">Virtual 🪙</div></div>
+          <div class="stat"><div class="k">Engagement</div><div class="v">High</div></div>
+          <div class="stat"><div class="k">Fairness</div><div class="v">Verifiable</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- balance bar -->
+    <div class="balanceBar">
+      <span>🪙</span>
+      <span class="balAmt" id="balDisplay">1,000</span>
+      <span class="sessionStat">Rounds: <b id="ssRounds">0</b></span>
+      <span class="sessionStat">Streak: <b id="ssStreak">0</b></span>
+      <span class="sessionStat">Best: <b id="ssBest">-</b></span>
+      <span class="sessionStat">P&L: <b id="ssPnl">0</b></span>
+      <button type="button" class="balResetBtn" id="balReset" title="Reset balance to 1,000">↻ Reset</button>
+    </div>
+
+    <!-- tab bar -->
+    <div class="tabBar">
+      <button type="button" class="tabBtn active" data-tab="crash">💥 Crash</button>
+      <button type="button" class="tabBtn" data-tab="mines">💣 Mines</button>
+      <button type="button" class="tabBtn" data-tab="dice">🎲 Dice</button>
+      <button type="button" class="tabBtn" data-tab="plinko">📍 Plinko</button>
+      <button type="button" class="tabBtn" data-tab="blackjack">🃏 Blackjack</button>
+    </div>
+
+    <!-- ==================== CRASH PANEL ==================== -->
+    <div id="tab-crash" class="gamePanel active">
+      <div class="card pad crashWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px"><span class="dot"></span> live</span>
+            <div class="betRow">
+              <input class="input" id="cBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('cBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('cBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('cBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('cBet','max')">MAX</button>
+            </div>
+          </div>
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">Auto cashout</span>
+            <input class="input" id="cAuto" type="number" min="1.01" step="0.01" value="2.00" style="max-width:100px">
+            <button type="button" class="btn primary" id="cStart">Start round</button>
+            <button type="button" class="btn" id="cCash" disabled>Cash out</button>
+            <label class="toggle" title="Auto-bet"><input id="cAutoBet" type="checkbox"><span>Auto</span></label>
+          </div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Multiplier</div><div class="v" id="cMult">1.00×</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="cStatus">Ready</div></div>
+            <div class="stat3"><div class="k">Potential win</div><div class="v" id="cPotential">-</div></div>
+          </div>
+          <div class="crashCanvasWrap">
+            <canvas id="crashCanvas"></canvas>
+            <div class="crashOverlay" id="cOverlay"><b id="cOverlayMult">1.00×</b><small id="cOverlayHint">Waiting for round…</small></div>
+          </div>
+          <p class="mini" id="cMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Recent rounds</h2><span class="tag" style="font-size:11px"><span class="dot"></span> updating</span></div>
+          <div id="cRounds" style="margin-top:10px"></div>
+          <div class="mini" style="margin-top:12px">Hold <b>Space</b> to cash out during a round.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MINES PANEL ==================== -->
+    <div id="tab-mines" class="gamePanel">
+      <div class="card pad minesWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">Mines</span>
+            <div class="betRow">
+              <input class="input" id="mBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('mBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('mBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('mBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('mBet','max')">MAX</button>
+            </div>
+          </div>
+          <div class="crashTop">
+            <input class="input" id="mMineCount" type="number" min="1" max="24" value="5" style="max-width:80px" title="Number of mines">
+            <button type="button" class="btn primary" id="mStart">Start</button>
+            <button type="button" class="btn" id="mCash" disabled>Cash out</button>
+            <button type="button" class="btn" id="mReset">Reset</button>
+          </div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Safe picks</div><div class="v" id="mSafe">0</div></div>
+            <div class="stat3"><div class="k">Multiplier</div><div class="v" id="mMult">1.00×</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="mStatus">Ready</div></div>
+          </div>
+          <div id="mGrid" class="mGrid" aria-label="Mines grid"></div>
+          <p class="mini" id="mMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Recent wins</h2><span class="tag" style="font-size:11px"><span class="dot"></span> updating</span></div>
+          <div id="mWins" style="margin-top:10px"></div>
+          <div class="mini" style="margin-top:12px">Click tiles → cash out anytime.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DICE PANEL ==================== -->
+    <div id="tab-dice" class="gamePanel">
+      <div class="card pad diceWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">🎲 Dice</span>
+            <div class="betRow">
+              <input class="input" id="dBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('dBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('dBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('dBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('dBet','max')">MAX</button>
+            </div>
+          </div>
+          <div class="crashTop">
+            <span class="mini">Roll over</span>
+            <input class="input" id="dTarget" type="number" min="1" max="98" value="50" style="max-width:80px">
+            <span class="mini">Win chance: <b id="dChance">50%</b></span>
+            <span class="mini">Multiplier: <b id="dPayoutLabel">1.98×</b></span>
+            <button type="button" class="btn primary" id="dRoll">Roll</button>
+          </div>
+          <div class="diceBar" id="dBar" style="--target:50%"><div class="marker" id="dMarker" style="left:50%"></div></div>
+          <div class="diceResult" id="dResult">-</div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Last roll</div><div class="v" id="dLast">-</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="dStatus">Ready</div></div>
+            <div class="stat3"><div class="k">Streak</div><div class="v" id="dStreak">0</div></div>
+          </div>
+          <p class="mini" id="dMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Roll history</h2></div>
+          <div id="dHistory" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PLINKO PANEL ==================== -->
+    <div id="tab-plinko" class="gamePanel">
+      <div class="card pad plinkoWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">📍 Plinko</span>
+            <div class="betRow">
+              <input class="input" id="plBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('plBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('plBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('plBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('plBet','max')">MAX</button>
+            </div>
+          </div>
+          <div class="crashTop">
+            <span class="mini">Risk</span>
+            <select class="input" id="plRisk"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+            <span class="mini">Rows</span>
+            <select class="input" id="plRows"><option value="8">8</option><option value="12" selected>12</option><option value="16">16</option></select>
+            <button type="button" class="btn primary" id="plDrop">Drop ball</button>
+          </div>
+          <div class="plinkoCanvasWrap"><canvas id="plinkoCanvas"></canvas></div>
+          <div class="plinkoBuckets" id="plBuckets"></div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Last mult</div><div class="v" id="plLastMult">-</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="plStatus">Ready</div></div>
+            <div class="stat3"><div class="k">Balls dropped</div><div class="v" id="plDropped">0</div></div>
+          </div>
+          <p class="mini" id="plMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Drop history</h2></div>
+          <div id="plHistory" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== BLACKJACK PANEL ==================== -->
+    <div id="tab-blackjack" class="gamePanel">
+      <div class="card pad bjWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">🃏 Blackjack</span>
+            <div class="betRow">
+              <input class="input" id="bjBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('bjBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('bjBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('bjBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('bjBet','max')">MAX</button>
+            </div>
+          </div>
+          <div class="bjTable">
+            <div class="bjLabel">Dealer <span id="bjDealerScore"></span></div>
+            <div class="bjHand" id="bjDealerHand"></div>
+            <div class="bjMsg" id="bjMsg"></div>
+            <div class="bjLabel">You <span id="bjPlayerScore"></span></div>
+            <div class="bjHand" id="bjPlayerHand"></div>
+            <div class="bjActions">
+              <button type="button" class="btn primary" id="bjDeal">Deal</button>
+              <button type="button" class="btn" id="bjHit" disabled>Hit</button>
+              <button type="button" class="btn" id="bjStand" disabled>Stand</button>
+              <button type="button" class="btn" id="bjDouble" disabled>Double</button>
+            </div>
+          </div>
+          <div class="stats3" style="margin-top:12px">
+            <div class="stat3"><div class="k">Wins</div><div class="v" id="bjWins">0</div></div>
+            <div class="stat3"><div class="k">Losses</div><div class="v" id="bjLosses">0</div></div>
+            <div class="stat3"><div class="k">Pushes</div><div class="v" id="bjPushes">0</div></div>
+          </div>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Hand history</h2></div>
+          <div id="bjHistory" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PROVABLY FAIR ==================== -->
+    <div class="section" id="provably-section">
+      <h2>Provably fair (verify locally)</h2>
+      <div class="split">
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Seeds</div>
+          <div class="lab">Client seed</div>
+          <input class="input" id="pfClientSeed" value="" autocomplete="off" style="max-width:100%" placeholder="Auto-generated on load">
+          <div class="lab">Server seed hash (commit)</div>
+          <div class="mono" id="pfCommit">—</div>
+          <div class="lab">Server seed (reveal after round)</div>
+          <div class="mono" id="pfReveal">—</div>
+          <div class="lab">Nonce</div>
+          <div class="mono" id="pfNonce">—</div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <button type="button" class="btn" id="pfNewSeeds">New seeds</button>
+          </div>
+          <div class="mini" style="margin-top:8px">We commit to a server seed hash before each round, then reveal after.</div>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Crash</div>
+          <div class="mono" id="pfCrashResult">—</div>
+          <button type="button" class="btn" id="pfCrashVerify">Verify last Crash</button>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Mines</div>
+          <div class="mono" id="pfMinesResult">—</div>
+          <button type="button" class="btn" id="pfMinesVerify">Verify last Mines</button>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Dice</div>
+          <div class="mono" id="pfDiceResult">—</div>
+          <button type="button" class="btn" id="pfDiceVerify">Verify last Dice</button>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Plinko</div>
+          <div class="mono" id="pfPlinkoResult">—</div>
+          <button type="button" class="btn" id="pfPlinkoVerify">Verify last Plinko</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WAITLIST ==================== -->
+    <div id="waitlist-section" class="section">
+      <h2>Join the waitlist</h2>
+      <div class="card pad">
+        <p class="sub" style="margin:0 0 10px">Get an email when the full app goes live on <strong>app.donutwin.shop</strong>.</p>
+        <form id="wlForm" class="waitlist">
+          <input class="input" id="email" type="email" placeholder="you@domain.com" required autocomplete="email">
+          <button class="btn primary" type="submit">Notify me</button>
+          <span class="mini" id="wlMsg"></span>
+        </form>
+        <p class="mini" style="margin:12px 0 0">By joining you agree to receive occasional updates. No spam.</p>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div>© <span id="y"></span> DonutWin • early experience</div>
+      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+        <a href="#" onclick="switchTab('crash');return false">Crash</a>
+        <a href="#" onclick="switchTab('mines');return false">Mines</a>
+        <a href="#" onclick="switchTab('dice');return false">Dice</a>
+        <a href="#" onclick="switchTab('plinko');return false">Plinko</a>
+        <a href="#" onclick="switchTab('blackjack');return false">Blackjack</a>
+        <a href="#provably-section">Verify</a>
+        <a href="#waitlist-section">Waitlist</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- toast container -->
+  <div class="toastContainer" id="toastContainer"></div>
+
+  <script>
+    // ==================== HELPERS ====================
+    const $ = (id) => document.getElementById(id);
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const haptic = (ms) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} };
+    $("y").textContent = new Date().getFullYear();
+
+    // ==================== TOAST ====================
+    function toast(msg, type = "info") {
+      const el = document.createElement("div");
+      el.className = "toast " + type;
+      el.textContent = msg;
+      $("toastContainer").appendChild(el);
+      setTimeout(() => { el.classList.add("fade-out"); setTimeout(() => el.remove(), 350); }, 2800);
+    }
+
+    // ==================== CLIPBOARD ====================
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("mono")) {
+        const txt = e.target.textContent;
+        if (txt && txt !== "—") {
+          navigator.clipboard.writeText(txt).then(() => toast("Copied!", "success")).catch(() => {});
+        }
+      }
+    });
+
+    // ==================== PARTICLES ====================
+    (function () {
+      const c = $("p"), ctx = c.getContext("2d");
+      const resize = () => { c.width = innerWidth; c.height = innerHeight; };
+      addEventListener("resize", resize); resize();
+      const pts = Array.from({ length: 70 }, () => ({
+        x: Math.random() * c.width, y: Math.random() * c.height,
+        r: Math.random() * 2.2 + 0.6, vx: (Math.random() - .5) * 0.22,
+        vy: (Math.random() - .5) * 0.22, a: Math.random() * 0.5 + 0.15
+      }));
+      (function step() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        for (const p of pts) {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0) p.x = c.width; if (p.x > c.width) p.x = 0;
+          if (p.y < 0) p.y = c.height; if (p.y > c.height) p.y = 0;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(234,240,255,${p.a})`; ctx.fill();
+        }
+        requestAnimationFrame(step);
+      })();
+    })();
+
+    // ==================== SOUND ====================
+    const SND = (() => {
+      let ctx = null;
+      const master = $("sndMaster");
+      function getCtx() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; }
+      function play(o) {
+        if (master && !master.checked) return;
+        try {
+          const ac = getCtx(), t = ac.currentTime;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(o.gain || 0.10, t + (o.attack || 0.01));
+          g.gain.exponentialRampToValueAtTime(0.0001, t + (o.dur || 0.12) + (o.release || 0.08));
+          g.connect(ac.destination);
+          if (o.noise) {
+            const bs = Math.floor(ac.sampleRate * ((o.dur||0.12) + (o.release||0.08)));
+            const buf = ac.createBuffer(1, bs, ac.sampleRate);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < bs; i++) d[i] = (Math.random() * 2 - 1) * 0.6;
+            const src = ac.createBufferSource(); src.buffer = buf;
+            const ftr = ac.createBiquadFilter(); ftr.type = "lowpass";
+            ftr.frequency.setValueAtTime(1200, t);
+            ftr.frequency.exponentialRampToValueAtTime(240, t + (o.dur||0.12) + (o.release||0.08));
+            src.connect(ftr); ftr.connect(g); src.start(t); src.stop(t + (o.dur||0.12) + (o.release||0.08));
+            return;
+          }
+          const osc = ac.createOscillator(); osc.type = o.type || "sine";
+          osc.frequency.setValueAtTime(o.f || 440, t);
+          if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t + (o.dur||0.12));
+          osc.connect(g); osc.start(t); osc.stop(t + (o.dur||0.12) + (o.release||0.08));
+        } catch (_) {}
+      }
+      return {
+        tick()  { play({ type:"sine", f:420, f2:460, dur:0.05, gain:0.05, attack:0.004, release:0.05 }); },
+        cash()  { play({ type:"triangle", f:520, f2:740, dur:0.10, gain:0.09, attack:0.008, release:0.10 }); },
+        click() { play({ type:"sine", f:740, f2:820, dur:0.04, gain:0.06, attack:0.002, release:0.05 }); },
+        pop()   { play({ type:"triangle", f:640, f2:880, dur:0.06, gain:0.07, attack:0.004, release:0.06 }); },
+        win()   { play({ type:"triangle", f:523, f2:784, dur:0.15, gain:0.10, attack:0.01, release:0.12 }); play({ type:"sine", f:659, f2:1047, dur:0.12, gain:0.07, attack:0.05, release:0.15 }); },
+        bust()  { play({ type:"sawtooth", f:180, f2:95, dur:0.12, gain:0.12, attack:0.004, release:0.14 }); play({ noise:true, dur:0.10, gain:0.08, attack:0.002, release:0.14 }); }
+      };
+    })();
+
+    // ==================== CRYPTO ====================
+    const enc = new TextEncoder();
+    const toHex = (buf) => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+    async function sha256Hex(str) { return toHex(await crypto.subtle.digest("SHA-256", enc.encode(str))); }
+    async function hmac256Hex(keyStr, msgStr) {
+      const key = await crypto.subtle.importKey("raw", enc.encode(keyStr), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      return toHex(await crypto.subtle.sign("HMAC", key, enc.encode(msgStr)));
+    }
+    function u32FromHex(hex) { return parseInt(hex.slice(0, 8), 16) >>> 0; }
+    function randSeed(len = 24) {
+      const abc = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+      let s = ""; crypto.getRandomValues(new Uint8Array(len)).forEach(v => s += abc[v % abc.length]); return s;
+    }
+
+    // ==================== SEED STATE ====================
+    let clientSeed = randSeed(16);
+    let serverSeed = randSeed(32);
+    let nonce = 0;
+    let lastRevealedSeed = null;
+    let lastRevealedNonce = null;
+    let lastGame = null;
+
+    async function refreshCommit() {
+      $("pfClientSeed").value = clientSeed;
+      $("pfCommit").textContent = await sha256Hex(serverSeed);
+      $("pfReveal").textContent = "—";
+      $("pfNonce").textContent = "—";
+    }
+    function revealSeed(game) {
+      lastRevealedSeed = serverSeed;
+      lastRevealedNonce = nonce;
+      lastGame = game;
+      $("pfReveal").textContent = serverSeed;
+      $("pfNonce").textContent = nonce;
+      serverSeed = randSeed(32);
+      nonce++;
+      refreshCommit();
+    }
+
+    // ==================== PROVABLY FAIR COMPUTE ====================
+    async function computeCrashPoint(ss, cs, n) {
+      const hmac = await hmac256Hex(ss, cs + ":" + n);
+      const h = u32FromHex(hmac);
+      const e = 2 ** 32;
+      const r = (100 * e - h) / (e - h);
+      const cp = Math.max(1, Math.floor(r) / 100);
+      return { crashPoint: cp, hmac };
+    }
+    async function computeMines(ss, cs, n, count) {
+      const hmac = await hmac256Hex(ss, cs + ":" + n);
+      const all = Array.from({ length: 25 }, (_, i) => i);
+      for (let i = 24; i > 0; i--) {
+        const sub = hmac.slice((24 - i) * 2, (24 - i) * 2 + 8);
+        const v = parseInt(sub, 16) >>> 0;
+        const j = v % (i + 1);
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      return all.slice(0, count);
+    }
+    async function computeDice(ss, cs, n) {
+      const hmac = await hmac256Hex(ss, cs + ":" + n);
+      return (u32FromHex(hmac) % 10000) / 100;
+    }
+    async function computePlinko(ss, cs, n, rows) {
+      const hmac = await hmac256Hex(ss, cs + ":" + n);
+      const path = [];
+      let col = 0;
+      for (let r = 0; r < rows; r++) {
+        const byteIdx = r % 32;
+        const hexPair = hmac.slice(byteIdx * 2, byteIdx * 2 + 2);
+        const val = parseInt(hexPair, 16);
+        const bit = (val >> (r % 8)) & 1;
+        path.push(bit);
+        col += bit;
+      }
+      return { col, path, hmac };
+    }
+
+    // ==================== BALANCE ====================
+    let balance = parseInt(localStorage.getItem("dw_balance") || "1000", 10);
+    if (isNaN(balance) || balance < 0) balance = 1000;
+    const startingBalance = balance;
+    let sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
+
+    function saveBalance() { localStorage.setItem("dw_balance", balance); }
+    function updateBalDisplay() {
+      $("balDisplay").textContent = balance.toLocaleString();
+      $("ssRounds").textContent = sessionStats.rounds;
+      $("ssStreak").textContent = sessionStats.streak;
+      $("ssBest").textContent = sessionStats.bestMult > 0 ? sessionStats.bestMult.toFixed(2) + "×" : "-";
+      const pnl = balance - startingBalance;
+      $("ssPnl").textContent = (pnl >= 0 ? "+" : "") + pnl.toLocaleString();
+      $("ssPnl").style.color = pnl >= 0 ? "var(--good)" : "var(--bad)";
+    }
+    function flashBal(win) {
+      const el = $("balDisplay");
+      el.classList.remove("flash-green", "flash-red");
+      void el.offsetWidth;
+      el.classList.add(win ? "flash-green" : "flash-red");
+      setTimeout(() => el.classList.remove("flash-green", "flash-red"), 600);
+    }
+    function placeBet(amount) {
+      if (amount > balance || amount < 1) { toast("Insufficient balance!", "error"); return false; }
+      balance -= amount; saveBalance(); updateBalDisplay(); return true;
+    }
+    function creditWin(amount, mult) {
+      balance += amount; saveBalance();
+      sessionStats.wins++; sessionStats.streak++;
+      if (sessionStats.streak > sessionStats.bestStreak) sessionStats.bestStreak = sessionStats.streak;
+      if (mult > sessionStats.bestMult) sessionStats.bestMult = mult;
+      flashBal(true); updateBalDisplay();
+    }
+    function recordLoss(lostAmount) {
+      sessionStats.streak = 0;
+      flashBal(false); updateBalDisplay();
+    }
+
+    // ==================== BET HELPERS ====================
+    function setQBet(inputId, val) {
+      if (val === "max") $(inputId).value = balance;
+      else $(inputId).value = val;
+    }
+    function getBet(inputId) {
+      return clamp(Math.floor(parseFloat($(inputId).value) || 0), 1, balance);
+    }
+
+    // ==================== BALANCE RESET ====================
+    $("balReset").addEventListener("click", () => {
+      if (confirm("Reset balance to 1,000 🪙?")) {
+        balance = 1000; saveBalance();
+        sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
+        updateBalDisplay();
+        toast("Balance reset to 1,000 🪙", "info");
+        SND.click();
+      }
+    });
+
+    // ==================== TAB SYSTEM ====================
+    function switchTab(name) {
+      document.querySelectorAll(".tabBtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+      document.querySelectorAll(".gamePanel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+    }
+    document.querySelectorAll(".tabBtn").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+    // ==================== SPACE = CASH OUT ====================
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space" && !e.repeat) {
+        const activeTab = document.querySelector(".tabBtn.active");
+        if (activeTab && activeTab.dataset.tab === "crash" && !$("cCash").disabled) {
+          e.preventDefault();
+          $("cCash").click();
+        }
+      }
+    });
+
+    // ==================== CRASH GAME ====================
+    let cPlaying = false, cBusted = false, cMult = 1.0, cTarget = 1.0, cBetAmt = 0;
+    let cStartTime = 0, cAnimId = null;
+    const cHistory = [];
+
+    function setCStatus(t, col) { $("cStatus").textContent = t; $("cStatus").style.color = col || ""; }
+    function setOverlay(m, hint) { $("cOverlayMult").textContent = m; $("cOverlayHint").textContent = hint || ""; }
+
+    function pushCrashRound(mult) {
+      cHistory.unshift(mult);
+      if (cHistory.length > 20) cHistory.pop();
+      const el = $("cRounds"); el.innerHTML = "";
+      cHistory.forEach(m => {
+        const t = document.createElement("span");
+        t.className = "roundTag";
+        t.textContent = m.toFixed(2) + "×";
+        t.style.background = m >= 2 ? "rgba(124,255,107,0.15)" : "rgba(255,107,107,0.12)";
+        t.style.color = m >= 2 ? "var(--good)" : "var(--bad)";
+        el.appendChild(t);
+      });
+    }
+
+    function drawCrash() {
+      const canvas = $("crashCanvas");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      const W = rect.width, H = rect.height;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // y-axis labels
+      ctx.fillStyle = "rgba(234,240,255,0.25)";
+      ctx.font = "10px system-ui";
+      const labels = [1, 1.5, 2, 3, 5, 10];
+      const maxLabel = Math.max(cMult * 1.2, 2);
+      labels.forEach(l => {
+        if (l > maxLabel) return;
+        const y = H - ((l - 1) / (maxLabel - 1)) * (H - 30) - 15;
+        ctx.fillText(l + "×", 4, y + 3);
+        ctx.strokeStyle = "rgba(234,240,255,0.06)";
+        ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W, y); ctx.stroke();
+      });
+
+      if (cHistory.length < 2 && !cPlaying) return;
+
+      // draw curve
+      const pts = [];
+      const dur = cPlaying ? (Date.now() - cStartTime) / 1000 : 5;
+      const steps = 100;
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * dur;
+        const m = Math.pow(Math.E, 0.05 * t);
+        if (m > cMult && cPlaying) break;
+        const x = 30 + (i / steps) * (W - 40);
+        const y = H - ((m - 1) / (maxLabel - 1)) * (H - 30) - 15;
+        pts.push({ x, y });
+      }
+
+      if (pts.length > 1) {
+        // gradient fill under the curve
+        const grad = ctx.createLinearGradient(0, pts[pts.length - 1].y, 0, H);
+        grad.addColorStop(0, cBusted ? "rgba(255,107,107,0.15)" : "rgba(124,111,255,0.15)");
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, H);
+        for (let i = 0; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[pts.length - 1].x, H);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // curve line
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.strokeStyle = cBusted ? "#ff6b6b" : "#7c6fff";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // glow dot at tip
+        const last = pts[pts.length - 1];
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = cBusted ? "#ff6b6b" : "#7c6fff";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = cBusted ? "rgba(255,107,107,0.25)" : "rgba(124,111,255,0.25)";
+        ctx.fill();
+      }
+    }
+
+    async function startCrash() {
+      if (cPlaying) return;
+      cBetAmt = getBet("cBet");
+      if (!placeBet(cBetAmt)) return;
+
+      sessionStats.rounds++;
+      const ss = serverSeed, cs = clientSeed, n = nonce;
+      const result = await computeCrashPoint(ss, cs, n);
+      cTarget = result.crashPoint;
+
+      cPlaying = true; cBusted = false; cMult = 1.0;
+      cStartTime = Date.now();
+      $("cStart").disabled = true;
+      $("cCash").disabled = false;
+      $("cOverlayMult").classList.remove("crashed");
+      setCStatus("Flying…", "var(--accent2)");
+      $("cMsg").textContent = "";
+
+      const autoVal = parseFloat($("cAuto").value) || 99999;
+
+      function tick() {
+        const elapsed = (Date.now() - cStartTime) / 1000;
+        cMult = Math.pow(Math.E, 0.05 * elapsed);
+
+        if (cMult >= cTarget) {
+          // busted
+          cMult = cTarget; cBusted = true; cPlaying = false;
+          $("cCash").disabled = true; $("cStart").disabled = false;
+          setOverlay(cMult.toFixed(2) + "×", "Crashed!");
+          $("cOverlayMult").classList.add("crashed");
+          setCStatus("Crashed", "var(--bad)");
+          $("cMult").textContent = cMult.toFixed(2) + "×";
+          $("cMult").style.color = "var(--bad)";
+          $("cPotential").textContent = "-";
+          document.title = "DonutWin – Casino";
+          pushCrashRound(cMult);
+          recordLoss(cBetAmt);
+          revealSeed("crash");
+          SND.bust(); haptic(60);
+          toast("Crashed at " + cMult.toFixed(2) + "×", "error");
+          drawCrash();
+          if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
+          return;
+        }
+
+        // auto cash out
+        if (cMult >= autoVal) {
+          cashOutCrash();
+          return;
+        }
+
+        $("cMult").textContent = cMult.toFixed(2) + "×";
+        $("cMult").style.color = "var(--accent2)";
+        setOverlay(cMult.toFixed(2) + "×", "");
+        $("cPotential").textContent = Math.floor(cBetAmt * cMult).toLocaleString();
+        document.title = cMult.toFixed(2) + "× – DonutWin";
+        drawCrash();
+        SND.tick();
+        cAnimId = requestAnimationFrame(tick);
+      }
+      cAnimId = requestAnimationFrame(tick);
+    }
+
+    function cashOutCrash() {
+      if (!cPlaying || cBusted) return;
+      cPlaying = false;
+      if (cAnimId) cancelAnimationFrame(cAnimId);
+      $("cCash").disabled = true; $("cStart").disabled = false;
+
+      const winAmt = Math.floor(cBetAmt * cMult);
+      creditWin(winAmt, cMult);
+      setOverlay(cMult.toFixed(2) + "×", "Cashed out!");
+      setCStatus("Won!", "var(--good)");
+      $("cPotential").textContent = "-";
+      document.title = "DonutWin – Casino";
+      pushCrashRound(cMult);
+      revealSeed("crash");
+      SND.cash(); haptic(30);
+      toast("Cashed out at " + cMult.toFixed(2) + "× for " + winAmt + " 🪙", "success");
+      drawCrash();
+      if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
+    }
+
+    $("cStart").addEventListener("click", startCrash);
+    $("cCash").addEventListener("click", cashOutCrash);
+
+    // ==================== MINES GAME ====================
+    let mPlaying = false, mBusted = false, mSafe = 0, mMult = 1.0;
+    let mMines = new Set(), mRevealed = new Set(), mBetAmt = 0;
+
+    function setMStatus(t, col) { $("mStatus").textContent = t; $("mStatus").style.color = col || ""; }
+    function updateMinesHUD() {
+      $("mSafe").textContent = mSafe;
+      $("mMult").textContent = mMult.toFixed(2) + "×";
+    }
+
+    function renderMinesGrid() {
+      const grid = $("mGrid"); grid.innerHTML = "";
+      for (let i = 0; i < 25; i++) {
+        const tile = document.createElement("div");
+        tile.className = "mTile";
+        if (mRevealed.has(i)) {
+          tile.classList.add(mMines.has(i) ? "mine" : "safe");
+          tile.textContent = mMines.has(i) ? "💣" : "💎";
+          tile.classList.add("disabled");
+        } else if (!mPlaying || mBusted) {
+          tile.classList.add("disabled");
+        }
+        tile.addEventListener("click", () => revealTile(i));
+        grid.appendChild(tile);
+      }
+    }
+
+    function pushMineWin(who, mult) {
+      const el = $("mWins");
+      const tag = document.createElement("div");
+      tag.className = "roundTag";
+      tag.textContent = (who === "you" ? "You " : "Bot ") + mult.toFixed(2) + "×";
+      tag.style.background = "rgba(124,255,107,0.15)"; tag.style.color = "var(--good)";
+      el.prepend(tag);
+      if (el.children.length > 15) el.lastChild.remove();
+    }
+    function fakeMineWin() {
+      pushMineWin("bot", (1 + Math.random() * 4));
+    }
+
+    async function revealTile(i) {
+      if (!mPlaying || mBusted || mRevealed.has(i)) return;
+      mRevealed.add(i);
+      if (mMines.has(i)) {
+        // hit mine
+        mBusted = true; mPlaying = false;
+        setMStatus("Busted!", "var(--bad)");
+        $("mMsg").textContent = "💥 You hit a mine!";
+        recordLoss(mBetAmt);
+        revealSeed("mines");
+        SND.bust(); haptic(60);
+        toast("Hit a mine!", "error");
+        // reveal all mines
+        mMines.forEach(m => mRevealed.add(m));
+        renderMinesGrid();
+        return;
+      }
+      // safe
+      mSafe++;
+      const mc = parseInt($("mMineCount").value) || 5;
+      const total = 25, remaining = total - mSafe - mc;
+      const MINES_HOUSE_EDGE = 0.97;
+      mMult = mSafe === 0 ? 1 : parseFloat(((total / (total - mc)) ** mSafe * MINES_HOUSE_EDGE).toFixed(2));
+      SND.pop(); haptic(15);
+      setMStatus("Playing", "var(--accent2)");
+      $("mCash").disabled = false;
+      updateMinesHUD();
+      renderMinesGrid();
+    }
+
+    $("mStart").addEventListener("click", async () => {
+      if (mPlaying) return;
+      mBetAmt = getBet("mBet");
+      if (!placeBet(mBetAmt)) return;
+
+      sessionStats.rounds++;
+      const mc = clamp(parseInt($("mMineCount").value) || 5, 1, 24);
+      const ss = serverSeed, cs = clientSeed, n = nonce;
+      const mines = await computeMines(ss, cs, n, mc);
+      mMines = new Set(mines);
+      mRevealed = new Set();
+      mSafe = 0; mMult = 1.0; mPlaying = true; mBusted = false;
+      $("mCash").disabled = true;
+      setMStatus("Playing", "var(--accent2)");
+      $("mMsg").textContent = "";
+      updateMinesHUD();
+      renderMinesGrid();
+      SND.click();
+    });
+
+    $("mCash").addEventListener("click", () => {
+      if (!mPlaying || mBusted || mSafe === 0) return;
+      mPlaying = false;
+      const winAmt = Math.floor(mBetAmt * mMult);
+      creditWin(winAmt, mMult);
+      $("mCash").disabled = true;
+      setMStatus("Cashed out!", "var(--good)");
+      $("mMsg").textContent = "Won " + winAmt + " 🪙 at " + mMult.toFixed(2) + "×";
+      toast("Mines cashed out: " + winAmt + " 🪙", "success");
+      revealSeed("mines");
+      SND.cash(); haptic(30);
+      pushMineWin("you", mMult);
+      renderMinesGrid();
+    });
+
+    $("mReset").addEventListener("click", () => {
+      if (mPlaying && mSafe === 0) {
+        // refund bet if no tiles revealed
+        balance += mBetAmt; saveBalance(); updateBalDisplay();
+        toast("Bet refunded", "info");
+      }
+      mPlaying = false; mBusted = false; mSafe = 0; mMult = 1.0;
+      mMines = new Set(); mRevealed = new Set();
+      $("mMsg").textContent = ""; $("mCash").disabled = true;
+      setMStatus("Ready", "");
+      updateMinesHUD(); renderMinesGrid();
+    });
+
+    // ==================== DICE GAME ====================
+    const DICE_PAYOUT_FACTOR = 99; // 1% house edge (99/100)
+    let dStreak = 0;
+    const dHistoryArr = [];
+
+    function updateDiceUI() {
+      const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
+      const chance = 100 - target;
+      const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
+      $("dChance").textContent = chance + "%";
+      $("dPayoutLabel").textContent = payout.toFixed(2) + "×";
+      $("dBar").style.setProperty("--target", target + "%");
+    }
+
+    $("dTarget").addEventListener("input", updateDiceUI);
+
+    function pushDiceHistory(roll, won) {
+      dHistoryArr.unshift({ roll, won });
+      if (dHistoryArr.length > 20) dHistoryArr.pop();
+      const el = $("dHistory"); el.innerHTML = "";
+      dHistoryArr.forEach(h => {
+        const t = document.createElement("span");
+        t.className = "roundTag";
+        t.textContent = h.roll.toFixed(2);
+        t.style.background = h.won ? "rgba(124,255,107,0.15)" : "rgba(255,107,107,0.12)";
+        t.style.color = h.won ? "var(--good)" : "var(--bad)";
+        el.appendChild(t);
+      });
+    }
+
+    $("dRoll").addEventListener("click", async () => {
+      const bet = getBet("dBet");
+      if (!placeBet(bet)) return;
+
+      sessionStats.rounds++;
+      const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
+      const chance = 100 - target;
+      const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
+
+      const ss = serverSeed, cs = clientSeed, n = nonce;
+      const roll = await computeDice(ss, cs, n);
+      revealSeed("dice");
+
+      // animate marker
+      $("dMarker").style.left = roll + "%";
+      const resultEl = $("dResult");
+      resultEl.classList.remove("pop");
+      void resultEl.offsetWidth; // force reflow to restart CSS animation
+      resultEl.textContent = roll.toFixed(2);
+      resultEl.classList.add("pop");
+      $("dLast").textContent = roll.toFixed(2);
+
+      const won = roll > target;
+      if (won) {
+        const winAmt = Math.floor(bet * payout);
+        creditWin(winAmt, payout);
+        dStreak++;
+        $("dResult").style.color = "var(--good)";
+        $("dStatus").textContent = "Win!";
+        $("dStatus").style.color = "var(--good)";
+        $("dMsg").textContent = "Won " + winAmt + " 🪙";
+        toast("Dice win: " + roll.toFixed(2) + " → " + winAmt + " 🪙", "success");
+        SND.win(); haptic(20);
+      } else {
+        dStreak = 0;
+        recordLoss(bet);
+        $("dResult").style.color = "var(--bad)";
+        $("dStatus").textContent = "Loss";
+        $("dStatus").style.color = "var(--bad)";
+        $("dMsg").textContent = "";
+        toast("Dice: " + roll.toFixed(2) + " ≤ " + target, "error");
+        SND.bust(); haptic(40);
+      }
+      $("dStreak").textContent = dStreak;
+      pushDiceHistory(roll, won);
+    });
+
+    // ==================== PLINKO GAME ====================
+    const PLINKO_MULTS = {
+      low:    { 8: [5.6,2.1,1.1,1,0.5,1,1.1,2.1,5.6],
+                12: [10,3,1.6,1.4,1.1,1,0.5,1,1.1,1.4,1.6,3,10],
+                16: [16,9,2,1.4,1.4,1.2,1.1,1,0.5,1,1.1,1.2,1.4,1.4,2,9,16] },
+      medium: { 8: [13,3,1.3,0.7,0.4,0.7,1.3,3,13],
+                12: [33,11,4,2,1.1,0.6,0.3,0.6,1.1,2,4,11,33],
+                16: [110,41,10,5,3,1.5,1,0.5,0.3,0.5,1,1.5,3,5,10,41,110] },
+      high:   { 8: [29,5.2,1.5,0.3,0.2,0.3,1.5,5.2,29],
+                12: [170,24,8.1,2,0.7,0.2,0.2,0.2,0.7,2,8.1,24,170],
+                16: [1000,130,26,9,4,2,0.2,0.2,0.2,0.2,0.2,2,4,9,26,130,1000] }
+    };
+    let plDropCount = 0, plAnimating = false;
+    const plHistoryArr = [];
+
+    function getBucketColor(m) {
+      if (m >= 10) return "#ff4444";
+      if (m >= 3) return "#ff8800";
+      if (m >= 1.5) return "#ffcc00";
+      if (m >= 1) return "#66dd55";
+      return "#888";
+    }
+
+    function renderPlinkoBuckets() {
+      const risk = $("plRisk").value;
+      const rows = parseInt($("plRows").value);
+      const mults = PLINKO_MULTS[risk][rows];
+      const el = $("plBuckets"); el.innerHTML = "";
+      mults.forEach(m => {
+        const b = document.createElement("div");
+        b.className = "plinkoBucket";
+        b.textContent = m + "×";
+        b.style.background = getBucketColor(m);
+        b.style.color = m >= 3 ? "#fff" : "#111";
+        el.appendChild(b);
+      });
+    }
+
+    function drawPlinkoBoard(highlightCol, animProgress) {
+      const canvas = $("plinkoCanvas");
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+      const W = rect.width, H = rect.height;
+      const rows = parseInt($("plRows").value);
+      const padTop = 20, padBot = 20, padX = 20;
+      const rowH = (H - padTop - padBot) / (rows + 1);
+
+      ctx.clearRect(0, 0, W, H);
+
+      // draw pegs
+      for (let r = 0; r < rows; r++) {
+        const pegsInRow = r + 2;
+        const rowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+        const startX = (W - rowWidth) / 2;
+        const y = padTop + (r + 1) * rowH;
+        for (let c = 0; c < pegsInRow; c++) {
+          const x = startX + c * ((W - padX * 2) / (rows + 1));
+          // peg glow
+          ctx.beginPath();
+          ctx.arc(x, y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(124,111,255,0.08)";
+          ctx.fill();
+          // peg dot
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
+          ctx.fill();
+        }
+      }
+
+      // draw animated ball if animating
+      if (animProgress !== undefined && animProgress.path) {
+        const path = animProgress.path;
+        const progress = animProgress.t;
+        const currentRow = Math.min(Math.floor(progress * rows), rows - 1);
+        const frac = (progress * rows) - currentRow;
+
+        let col = 0;
+        for (let r = 0; r < currentRow; r++) col += path[r];
+        const nextCol = col + (currentRow < path.length ? path[currentRow] : 0);
+
+        // compute positions
+        const pegsInRow = currentRow + 2;
+        const nextPegsInRow = currentRow + 3;
+        const rowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+        const nextRowWidth = (nextPegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+        const startX = (W - rowWidth) / 2;
+        const nextStartX = (W - nextRowWidth) / 2;
+
+        const bx = startX + col * ((W - padX * 2) / (rows + 1));
+        const nbx = nextStartX + nextCol * ((W - padX * 2) / (rows + 1));
+        const by = padTop + (currentRow + 1) * rowH;
+        const nby = padTop + (currentRow + 2) * rowH;
+
+        const cx = bx + (nbx - bx) * frac;
+        const cy = by + (nby - by) * frac - Math.sin(frac * Math.PI) * 12;
+
+        // ball glow
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,136,0,0.15)";
+        ctx.fill();
+        // ball
+        ctx.beginPath();
+        ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+        const ballGrad = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 7);
+        ballGrad.addColorStop(0, "#ffcc00");
+        ballGrad.addColorStop(1, "#ff8800");
+        ctx.fillStyle = ballGrad;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    function pushPlinkoHistory(mult, won) {
+      plHistoryArr.unshift(mult);
+      if (plHistoryArr.length > 20) plHistoryArr.pop();
+      const el = $("plHistory"); el.innerHTML = "";
+      plHistoryArr.forEach(m => {
+        const t = document.createElement("span");
+        t.className = "roundTag";
+        t.textContent = m.toFixed(2) + "×";
+        t.style.background = getBucketColor(m);
+        t.style.color = m >= 3 ? "#fff" : "#111";
+        el.appendChild(t);
+      });
+    }
+
+    $("plDrop").addEventListener("click", async () => {
+      if (plAnimating) return;
+      const bet = getBet("plBet");
+      if (!placeBet(bet)) return;
+
+      sessionStats.rounds++;
+      plAnimating = true;
+      $("plDrop").disabled = true;
+      $("plStatus").textContent = "Dropping…";
+      $("plStatus").style.color = "var(--accent2)";
+
+      const rows = parseInt($("plRows").value);
+      const risk = $("plRisk").value;
+      const ss = serverSeed, cs = clientSeed, n = nonce;
+      const result = await computePlinko(ss, cs, n, rows);
+      revealSeed("plinko");
+
+      const mults = PLINKO_MULTS[risk][rows];
+      const mult = mults[result.col];
+
+      // animate ball dropping
+      const animDuration = 1500;
+      const startTime = Date.now();
+      const animState = { path: result.path, t: 0 };
+
+      function animate() {
+        const elapsed = Date.now() - startTime;
+        // quadratic ease-in-out: accelerates then decelerates for natural motion
+        const rawT = Math.min(elapsed / animDuration, 1);
+        animState.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+        drawPlinkoBoard(result.col, animState);
+
+        if (rawT < 1) {
+          requestAnimationFrame(animate);
+          if (Math.random() < 0.3) SND.tick();
+        } else {
+          // animation done
+          plAnimating = false;
+          $("plDrop").disabled = false;
+          plDropCount++;
+          $("plDropped").textContent = plDropCount;
+          $("plLastMult").textContent = mult.toFixed(2) + "×";
+
+          const winAmt = Math.floor(bet * mult);
+          if (winAmt > 0) {
+            creditWin(winAmt, mult);
+            $("plStatus").textContent = mult >= 1 ? "Win!" : "Low";
+            $("plStatus").style.color = mult >= 1 ? "var(--good)" : "var(--bad)";
+            toast("Plinko: " + mult + "× → " + winAmt + " 🪙", mult >= 1 ? "success" : "info");
+            if (mult >= 2) SND.win(); else SND.pop();
+          } else {
+            recordLoss(bet);
+            $("plStatus").textContent = "Miss";
+            $("plStatus").style.color = "var(--bad)";
+          }
+          pushPlinkoHistory(mult, winAmt > bet);
+          haptic(20);
+
+          // highlight winning bucket
+          const bucketEls = $("plBuckets").children;
+          if (bucketEls[result.col]) {
+            bucketEls[result.col].style.transform = "scale(1.3)";
+            setTimeout(() => { if (bucketEls[result.col]) bucketEls[result.col].style.transform = ""; }, 800);
+          }
+        }
+      }
+      requestAnimationFrame(animate);
+    });
+
+    $("plRisk").addEventListener("change", () => { renderPlinkoBuckets(); drawPlinkoBoard(); });
+    $("plRows").addEventListener("change", () => { renderPlinkoBuckets(); drawPlinkoBoard(); });
+
+    // ==================== BLACKJACK GAME ====================
+    const SUITS = ["♠","♥","♦","♣"];
+    const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+    let bjDeck = [], bjPlayer = [], bjDealer = [], bjBetAmt = 0, bjActive = false;
+    let bjWinCount = 0, bjLossCount = 0, bjPushCount = 0;
+
+    function createDeck() {
+      const d = [];
+      for (const s of SUITS) for (const r of RANKS) d.push({ rank: r, suit: s });
+      // shuffle
+      for (let i = d.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [d[i], d[j]] = [d[j], d[i]];
+      }
+      return d;
+    }
+
+    function cardValue(card) {
+      if (["J","Q","K"].includes(card.rank)) return 10;
+      if (card.rank === "A") return 11;
+      return parseInt(card.rank);
+    }
+
+    function handTotal(hand) {
+      let total = 0, aces = 0;
+      for (const c of hand) {
+        total += cardValue(c);
+        if (c.rank === "A") aces++;
+      }
+      while (total > 21 && aces > 0) { total -= 10; aces--; }
+      return total;
+    }
+
+    function isRed(suit) { return suit === "♥" || suit === "♦"; }
+
+    function renderCard(card, facedown) {
+      if (facedown) return '<div class="bjCard facedown"></div>';
+      const red = isRed(card.suit) ? " red" : "";
+      return '<div class="bjCard' + red + '">' +
+        '<span class="rank">' + card.rank + card.suit + '</span>' +
+        '<span class="suit">' + card.suit + '</span>' +
+        '<span class="rank-br">' + card.rank + card.suit + '</span></div>';
+    }
+
+    function renderBJHands(revealDealer) {
+      let ph = "", dh = "";
+      bjPlayer.forEach(c => ph += renderCard(c, false));
+      bjDealer.forEach((c, i) => dh += renderCard(c, !revealDealer && i === 1));
+      $("bjPlayerHand").innerHTML = ph;
+      $("bjDealerHand").innerHTML = dh;
+      $("bjPlayerScore").textContent = "(" + handTotal(bjPlayer) + ")";
+      $("bjDealerScore").textContent = revealDealer ? "(" + handTotal(bjDealer) + ")" : "(" + cardValue(bjDealer[0]) + " + ?)";
+    }
+
+    function bjSetButtons(deal, hit, stand, dbl) {
+      $("bjDeal").disabled = !deal;
+      $("bjHit").disabled = !hit;
+      $("bjStand").disabled = !stand;
+      $("bjDouble").disabled = !dbl;
+    }
+
+    function bjDrawCard() {
+      if (bjDeck.length < 5) bjDeck = createDeck();
+      return bjDeck.pop();
+    }
+
+    function pushBJHistory(result, amount) {
+      const el = $("bjHistory");
+      const t = document.createElement("div");
+      t.className = "roundTag";
+      t.textContent = result + (amount ? " " + amount + "🪙" : "");
+      t.style.background = result === "Win" || result === "Blackjack!" ? "rgba(124,255,107,0.15)" :
+                           result === "Push" ? "rgba(255,255,255,0.08)" : "rgba(255,107,107,0.12)";
+      t.style.color = result === "Win" || result === "Blackjack!" ? "var(--good)" :
+                      result === "Push" ? "var(--text)" : "var(--bad)";
+      el.prepend(t);
+      if (el.children.length > 20) el.lastChild.remove();
+    }
+
+    function bjResolve() {
+      bjActive = false;
+      const pt = handTotal(bjPlayer), dt = handTotal(bjDealer);
+      const playerBJ = bjPlayer.length === 2 && pt === 21;
+      const dealerBJ = bjDealer.length === 2 && dt === 21;
+
+      renderBJHands(true);
+      let msg = "", result = "";
+
+      if (playerBJ && dealerBJ) {
+        msg = "Push – both Blackjack!"; result = "Push";
+        balance += bjBetAmt; saveBalance(); updateBalDisplay();
+        bjPushCount++;
+      } else if (playerBJ) {
+        const winAmt = Math.floor(bjBetAmt * 2.5);
+        msg = "🎉 Blackjack! +" + winAmt + " 🪙"; result = "Blackjack!";
+        creditWin(winAmt, 2.5); bjWinCount++;
+        SND.win();
+      } else if (pt > 21) {
+        msg = "💥 Bust!"; result = "Bust";
+        recordLoss(bjBetAmt); bjLossCount++;
+        SND.bust();
+      } else if (dt > 21) {
+        const winAmt = bjBetAmt * 2;
+        msg = "Dealer busts! +" + winAmt + " 🪙"; result = "Win";
+        creditWin(winAmt, 2); bjWinCount++;
+        SND.win();
+      } else if (pt > dt) {
+        const winAmt = bjBetAmt * 2;
+        msg = "You win! +" + winAmt + " 🪙"; result = "Win";
+        creditWin(winAmt, 2); bjWinCount++;
+        SND.win();
+      } else if (pt < dt) {
+        msg = "Dealer wins."; result = "Loss";
+        recordLoss(bjBetAmt); bjLossCount++;
+        SND.bust();
+      } else {
+        msg = "Push!"; result = "Push";
+        balance += bjBetAmt; saveBalance(); updateBalDisplay();
+        bjPushCount++;
+      }
+
+      $("bjMsg").textContent = msg;
+      $("bjMsg").className = "bjMsg" + (result === "Win" || result === "Blackjack!" ? " win-anim" : "");
+      $("bjWins").textContent = bjWinCount;
+      $("bjLosses").textContent = bjLossCount;
+      $("bjPushes").textContent = bjPushCount;
+      bjSetButtons(true, false, false, false);
+      pushBJHistory(result, result === "Win" || result === "Blackjack!" ? bjBetAmt * 2 : 0);
+      haptic(20);
+    }
+
+    function dealerPlay() {
+      renderBJHands(true);
+      function dealerStep() {
+        if (handTotal(bjDealer) < 17) {
+          bjDealer.push(bjDrawCard());
+          renderBJHands(true);
+          SND.click();
+          setTimeout(dealerStep, 400);
+        } else {
+          bjResolve();
+        }
+      }
+      setTimeout(dealerStep, 400);
+    }
+
+    $("bjDeal").addEventListener("click", () => {
+      if (bjActive) return;
+      bjBetAmt = getBet("bjBet");
+      if (!placeBet(bjBetAmt)) return;
+
+      sessionStats.rounds++;
+      if (bjDeck.length < 15) bjDeck = createDeck();
+      bjPlayer = [bjDrawCard(), bjDrawCard()];
+      bjDealer = [bjDrawCard(), bjDrawCard()];
+      bjActive = true;
+      $("bjMsg").textContent = "";
+      renderBJHands(false);
+      SND.click();
+
+      // check instant blackjack
+      if (handTotal(bjPlayer) === 21) {
+        bjResolve();
+        return;
+      }
+      bjSetButtons(false, true, true, bjPlayer.length === 2 && balance >= bjBetAmt);
+    });
+
+    $("bjHit").addEventListener("click", () => {
+      if (!bjActive) return;
+      bjPlayer.push(bjDrawCard());
+      renderBJHands(false);
+      SND.click();
+      if (handTotal(bjPlayer) > 21) {
+        bjResolve();
+      } else if (handTotal(bjPlayer) === 21) {
+        dealerPlay();
+      } else {
+        bjSetButtons(false, true, true, false);
+      }
+    });
+
+    $("bjStand").addEventListener("click", () => {
+      if (!bjActive) return;
+      dealerPlay();
+    });
+
+    $("bjDouble").addEventListener("click", () => {
+      if (!bjActive || bjPlayer.length !== 2) return;
+      if (!placeBet(bjBetAmt)) return;
+      bjBetAmt *= 2;
+      bjPlayer.push(bjDrawCard());
+      renderBJHands(false);
+      SND.click();
+      if (handTotal(bjPlayer) > 21) {
+        bjResolve();
+      } else {
+        dealerPlay();
+      }
+    });
+
+    // ==================== PROVABLY FAIR VERIFICATION ====================
+    $("pfNewSeeds").addEventListener("click", async () => {
+      clientSeed = $("pfClientSeed").value.trim() || "donutwin-client";
+      serverSeed = randSeed(32);
+      nonce = 0;
+      await refreshCommit();
+      toast("New seeds generated!", "success");
+      SND.click();
+    });
+
+    $("pfClientSeed").addEventListener("change", () => {
+      clientSeed = $("pfClientSeed").value.trim() || clientSeed;
+    });
+
+    $("pfCrashVerify").addEventListener("click", async () => {
+      if (!lastRevealedSeed || lastGame !== "crash") {
+        $("pfCrashResult").textContent = "No completed crash round to verify.";
+        return;
+      }
+      const cs = $("pfClientSeed").value.trim() || clientSeed;
+      const res = await computeCrashPoint(lastRevealedSeed, cs, lastRevealedNonce);
+      $("pfCrashResult").textContent = res.crashPoint.toFixed(8) + "×  |  HMAC: " + res.hmac.slice(0, 32) + "…";
+    });
+
+    $("pfMinesVerify").addEventListener("click", async () => {
+      if (!lastRevealedSeed || lastGame !== "mines") {
+        $("pfMinesResult").textContent = "No completed mines round to verify.";
+        return;
+      }
+      const cs = $("pfClientSeed").value.trim() || clientSeed;
+      const mc = clamp(parseInt($("mMineCount").value) || 5, 1, 24);
+      const pos = await computeMines(lastRevealedSeed, cs, lastRevealedNonce, mc);
+      $("pfMinesResult").textContent = "Mines at: " + pos.join(", ");
+    });
+
+    $("pfDiceVerify").addEventListener("click", async () => {
+      if (!lastRevealedSeed || lastGame !== "dice") {
+        $("pfDiceResult").textContent = "No completed dice round to verify.";
+        return;
+      }
+      const cs = $("pfClientSeed").value.trim() || clientSeed;
+      const roll = await computeDice(lastRevealedSeed, cs, lastRevealedNonce);
+      $("pfDiceResult").textContent = "Roll: " + roll.toFixed(2);
+    });
+
+    $("pfPlinkoVerify").addEventListener("click", async () => {
+      if (!lastRevealedSeed || lastGame !== "plinko") {
+        $("pfPlinkoResult").textContent = "No completed plinko round to verify.";
+        return;
+      }
+      const cs = $("pfClientSeed").value.trim() || clientSeed;
+      const rows = parseInt($("plRows").value);
+      const res = await computePlinko(lastRevealedSeed, cs, lastRevealedNonce, rows);
+      $("pfPlinkoResult").textContent = "Bucket: " + res.col + "  |  Path: " + res.path.join("");
+    });
+
+    // ==================== WAITLIST ====================
+    const wlForm = $("wlForm");
+    const wlMsg = $("wlMsg");
+    wlForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = $("email").value.trim().toLowerCase();
+      if (!email) return;
+      const key = "donutwin_waitlist";
+      const arr = JSON.parse(localStorage.getItem(key) || "[]");
+      if (!arr.includes(email)) arr.push(email);
+      localStorage.setItem(key, JSON.stringify(arr));
+      wlMsg.textContent = "✅ Added! We'll email you at launch.";
+      wlForm.reset();
+      setTimeout(() => wlMsg.textContent = "", 3500);
+      haptic(18);
+      SND.click();
+      toast("You're on the waitlist!", "success");
+    });
+
+    // ==================== INIT ====================
+    (async function init() {
+      // initial data
+      for (let i = 0; i < 4; i++) fakeMineWin();
+      pushCrashRound(1.62); pushCrashRound(2.44); pushCrashRound(3.18); pushCrashRound(6.40);
+
+      // init games
+      renderMinesGrid();
+      updateMinesHUD();
+      updateDiceUI();
+      renderPlinkoBuckets();
+      drawPlinkoBoard();
+      bjDeck = createDeck();
+
+      // crash init
+      await refreshCommit();
+      setOverlay("1.00×", "Waiting for round…");
+      setCStatus("Ready", "");
+      drawCrash();
+      updateBalDisplay();
+    })();
+  </script>
 </body>
 </html>
