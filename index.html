@@ -2083,6 +2083,7 @@
       renderSlotReels(true);
       SND.click();
 
+      // Wait for all reels: last reel takes SLOT_SPIN_TIME + 0.8s stagger, plus 200ms buffer
       const spinWait = (SLOT_SPIN_TIME + 0.8) * 1000 + 200;
       setTimeout(() => {
         const { totalMult, winRows } = checkSlotWins();
