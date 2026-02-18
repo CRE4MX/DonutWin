@@ -1,3 +1,9 @@
+// Constants for game logic
+const HOUSE_EDGE_CRASH = 0.99; // 1% house edge for crash game
+const HOUSE_EDGE_MINES = 0.97; // 3% house edge for mines game
+const MAX_CRASH_POINT = 1000000;
+const CRASH_BASE_MULTIPLIER = 100;
+
 // Utility functions for provably fair gaming
 class ProvablyFair {
   static generateClientSeed() {
@@ -32,8 +38,8 @@ class ProvablyFair {
     const random = num / max;
     
     // Calculate crash point with house edge
-    const crashPoint = Math.max(1, Math.floor((100 / (1 - random)) / 100 * 100) / 100);
-    return Math.min(crashPoint, 1000000); // Cap at 1 million
+    const crashPoint = Math.max(1, Math.floor((CRASH_BASE_MULTIPLIER / (1 - random)) / CRASH_BASE_MULTIPLIER * CRASH_BASE_MULTIPLIER) / CRASH_BASE_MULTIPLIER);
+    return Math.min(crashPoint, MAX_CRASH_POINT);
   }
 
   static async generateMinePositions(serverSeed, clientSeed, nonce, mineCount) {
@@ -168,7 +174,7 @@ class CrashGame {
     document.getElementById('crashStart').disabled = true;
     document.getElementById('crashCashout').disabled = false;
     document.getElementById('crashStatus').textContent = 'Running';
-    document.getElementById('crashStatusText').textContent = 'Game in progress...';
+    document.getElementById('crashStatusText').textContent = 'Game in progress…';
     
     this.showMessage('Round started! Cash out before it crashes!', 'info');
     
@@ -432,7 +438,7 @@ class MinesGame {
     }
     
     // Apply house edge
-    return multiplier * 0.97;
+    return multiplier * HOUSE_EDGE_MINES;
   }
 
   cashout() {
