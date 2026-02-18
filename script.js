@@ -4,6 +4,17 @@ const HOUSE_EDGE_MINES = 0.97; // 3% house edge for mines game
 const MAX_CRASH_POINT = 1000000;
 const CRASH_BASE_MULTIPLIER = 100;
 
+// Utility function for formatting numbers with consistent precision
+function formatMultiplier(value) {
+  if (value >= 100) {
+    return value.toFixed(0) + '×';
+  } else if (value >= 10) {
+    return value.toFixed(1) + '×';
+  } else {
+    return value.toFixed(2) + '×';
+  }
+}
+
 // Utility functions for provably fair gaming
 class ProvablyFair {
   static generateClientSeed() {
@@ -273,8 +284,8 @@ class CrashGame {
   }
 
   updateUI() {
-    document.getElementById('crashMultiplier').textContent = this.multiplier.toFixed(2) + '×';
-    document.getElementById('crashMultiplierDisplay').textContent = this.multiplier.toFixed(2) + '×';
+    document.getElementById('crashMultiplier').textContent = formatMultiplier(this.multiplier);
+    document.getElementById('crashMultiplierDisplay').textContent = formatMultiplier(this.multiplier);
   }
 
   updateHistory() {
@@ -492,7 +503,7 @@ class MinesGame {
 
   updateUI() {
     document.getElementById('minesSafePicks').textContent = this.safePicks;
-    document.getElementById('minesMultiplier').textContent = this.multiplier.toFixed(2) + '×';
+    document.getElementById('minesMultiplier').textContent = formatMultiplier(this.multiplier);
   }
 
   updateHistory() {
