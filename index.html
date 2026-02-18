@@ -1746,6 +1746,7 @@
       $("plAutoStop").style.display = "";
       $("plDrop").disabled = true;
 
+      const delay = totalBalls > 50 ? 5 : 150;
       for (let i = 0; i < totalBalls; i++) {
         if (!plAutoRunning) break;
         if (!placeBet(bet)) {
@@ -1754,10 +1755,9 @@
         }
         sessionStats.rounds++;
         plAutoRemaining--;
-        await dropOneBall(bet);
-        // short pause between drops for fast sequential play
+        dropOneBall(bet);
         if (plAutoRunning && plAutoRemaining > 0) {
-          await new Promise(r => setTimeout(r, 20));
+          await new Promise(r => setTimeout(r, delay));
         }
       }
       stopAutobet();
