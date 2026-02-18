@@ -139,8 +139,8 @@
 
     /* mines */
     .minesWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
-    .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 340px; margin: 10px auto; }
-    .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all .25s ease; transform: scale(1); }
+    .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 520px; width: 100%; margin: 10px auto; }
+    .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: all .25s ease; transform: scale(1); min-width: 0; min-height: 48px; }
     .mTile:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); box-shadow: 0 0 12px rgba(124,111,255,0.15); }
     .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
     .mTile.mine { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
@@ -262,8 +262,8 @@
       .crashTop { gap: 8px; }
 
       /* mines grid mobile */
-      .mGrid { max-width: 100%; gap: 5px; }
-      .mTile { font-size: 20px; border-radius: 8px; }
+      .mGrid { max-width: 100%; gap: 6px; }
+      .mTile { font-size: 22px; border-radius: 8px; min-height: 44px; }
 
       /* blackjack mobile */
       .bjTable { padding: 16px 12px; min-height: 260px; }
@@ -440,7 +440,6 @@
               <button type="button" class="qBet" onclick="multiplyBet('mBet',2)">×2</button>
             </div>
             </div>
-          </div>
           <div class="crashTop">
             <input class="input" id="mMineCount" type="number" min="1" max="24" value="5" style="max-width:80px" title="Number of mines">
             <button type="button" class="btn primary" id="mStart">Start</button>
@@ -1018,13 +1017,14 @@
 
       // draw curve
       const pts = [];
-      const dur = cPlaying ? (Date.now() - cStartTime) / 1000 : 5;
-      const steps = 100;
+      const currentMult = cPlaying ? cMult : (cHistory.length ? cHistory[0] : 2);
+      const steps = 120;
       for (let i = 0; i <= steps; i++) {
-        const t = (i / steps) * dur;
-        const m = Math.pow(Math.E, 0.05 * t);
-        if (m > cMult && cPlaying) break;
-        const x = 30 + (i / steps) * (W - 40);
+        const frac = i / steps;
+        // use a power curve for x-mapping so the exponential shape is visually pronounced
+        const m = 1 + (currentMult - 1) * Math.pow(frac, 2.2);
+        if (m > currentMult) break;
+        const x = 30 + frac * (W - 40);
         const y = H - ((m - 1) / (maxLabel - 1)) * (H - 30) - 15;
         pts.push({ x, y });
       }
@@ -1042,10 +1042,15 @@
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // curve line
+        // smooth curve line using quadratic bezier segments
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        for (let i = 1; i < pts.length - 1; i++) {
+          const cpx = (pts[i].x + pts[i + 1].x) / 2;
+          const cpy = (pts[i].y + pts[i + 1].y) / 2;
+          ctx.quadraticCurveTo(pts[i].x, pts[i].y, cpx, cpy);
+        }
+        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
         ctx.strokeStyle = cBusted ? "#ff6b6b" : "#7c6fff";
         ctx.lineWidth = 2.5;
         ctx.stroke();
