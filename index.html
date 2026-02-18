@@ -139,7 +139,7 @@
 
     /* mines */
     .minesWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
-    .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 520px; width: 100%; margin: 10px auto; }
+    .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 420px; width: 100%; margin: 10px auto; }
     .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: all .25s ease; transform: scale(1); min-width: 0; min-height: 48px; }
     .mTile:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); box-shadow: 0 0 12px rgba(124,111,255,0.15); }
     .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
@@ -500,7 +500,6 @@
               <button type="button" class="qBet" onclick="multiplyBet('dBet',2)">×2</button>
             </div>
             </div>
-          </div>
           <div class="crashTop">
             <span class="mini" id="dModeLabel">Roll over</span>
             <input class="input" id="dTarget" type="number" min="1" max="98" value="50" style="max-width:80px">
@@ -544,7 +543,6 @@
               <button type="button" class="qBet" onclick="multiplyBet('plBet',2)">×2</button>
             </div>
             </div>
-          </div>
           <div class="crashTop">
             <span class="mini">Risk</span>
             <select class="input" id="plRisk"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
@@ -584,7 +582,6 @@
               <button type="button" class="qBet" onclick="multiplyBet('bjBet',2)">×2</button>
             </div>
             </div>
-          </div>
           <div class="bjTable">
             <div class="bjLabel">Dealer <span id="bjDealerScore"></span></div>
             <div class="bjHand" id="bjDealerHand"></div>
@@ -1064,6 +1061,7 @@
       document.querySelectorAll(".tabBtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
       document.querySelectorAll(".gamePanel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
     }
+    function isTabActive(name) { const b = document.querySelector('.tabBtn[data-tab="'+name+'"]'); return b && b.classList.contains("active"); }
     document.querySelectorAll(".tabBtn").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 
     // ==================== SPACE = CASH OUT ====================
@@ -2083,7 +2081,7 @@
       slGrid = result.grid;
 
       renderSlotReels(true);
-      SND.click();
+      if (isTabActive("slots")) SND.click();
 
       // last reel (index 2) finishes at SLOT_SPIN_TIME + 2*SLOT_REEL_STAGGER; add 200ms buffer
       const spinWait = (SLOT_SPIN_TIME + 2 * SLOT_REEL_STAGGER) * 1000 + 200;
@@ -2102,7 +2100,7 @@
             $("slResult").style.color = "var(--good)";
             $("slMsg").textContent = "🎉 Won " + winAmt + " 🪙 at " + totalMult.toFixed(2) + "×";
             toast("Slots win: " + winAmt + " 🪙 (" + totalMult.toFixed(2) + "×)", "success");
-            SND.cash(); haptic(30);
+            if (isTabActive("slots")) { SND.cash(); haptic(30); }
             pushSlotRound(topRow, totalMult, true);
           } else {
             recordLoss(slBetAmt);
@@ -2111,7 +2109,7 @@
             $("slResult").style.color = "var(--bad)";
             $("slMsg").textContent = "No matching symbols.";
             toast("Slots: no win", "error");
-            SND.bust(); haptic(60);
+            if (isTabActive("slots")) { SND.bust(); haptic(60); }
             pushSlotRound(topRow, 0, false);
           }
           revealSeed("slots");
