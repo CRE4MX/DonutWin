@@ -1682,7 +1682,7 @@
           path: result.path,
           t: 0,
           startTime: Date.now(),
-          duration: 1500,
+          duration: 1725,
           onDone: () => {
             plDropCount++;
             $("plDropped").textContent = plDropCount;
@@ -2193,7 +2193,8 @@
           line.setAttribute("stroke-linecap", "round");
           line.setAttribute("filter", "url(#slotLineGlow)");
           svg.appendChild(line);
-          const len = line.getTotalLength ? line.getTotalLength() : 1000;
+          let len = 1000;
+          try { if (line.getTotalLength) len = line.getTotalLength(); } catch(e) {}
           line.style.strokeDasharray = len;
           line.style.strokeDashoffset = len;
           line.style.animation = "slotLineDraw 0.6s ease forwards, slotLinePulse 1.2s ease-in-out 0.6s infinite";
