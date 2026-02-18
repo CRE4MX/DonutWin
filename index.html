@@ -1608,7 +1608,7 @@
       renderBJHands(false);
       SND.click();
 
-      // check instant blackjack (player or dealer natural 21)
+      // check for natural blackjack (21 with first 2 cards)
       const playerHas21 = handTotal(bjPlayer) === 21;
       const dealerHas21 = handTotal(bjDealer) === 21;
       if (playerHas21 || dealerHas21) {
