@@ -1873,8 +1873,16 @@
     
     function generateRandomBet() {
       const baseName = playerNames[Math.floor(Math.random() * playerNames.length)];
-      const playerNumber = Math.floor(Math.random() * 10000);
-      const player = baseName + playerNumber;
+      // 40% chance no number, 30% chance 1-2 digits, 30% chance 3-4 digits
+      const rand = Math.random();
+      let player;
+      if (rand < 0.4) {
+        player = baseName; // No number
+      } else if (rand < 0.7) {
+        player = baseName + Math.floor(Math.random() * 100); // 0-99
+      } else {
+        player = baseName + Math.floor(Math.random() * 10000); // 0-9999
+      }
       const game = gameNames[Math.floor(Math.random() * gameNames.length)];
       const betAmount = [5, 10, 25, 50, 100, 250, 500][Math.floor(Math.random() * 7)];
       const won = Math.random() > 0.48; // 52% win rate
