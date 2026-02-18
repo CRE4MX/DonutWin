@@ -205,26 +205,44 @@
 
     /* slots */
     .slotsWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
-    .slotMachine { position: relative; background: linear-gradient(180deg, #1a1040 0%, #0d0a25 100%); border: 2px solid rgba(124,111,255,0.3); border-radius: 16px; padding: 20px; margin: 12px 0; box-shadow: 0 0 40px rgba(124,111,255,0.15), inset 0 0 60px rgba(0,0,0,0.4); overflow: hidden; }
-    .slotMachine::after { content: ""; position: absolute; left: 12px; right: 12px; top: 50%; height: 2px; background: linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.35) 20%, rgba(255,215,0,0.5) 50%, rgba(255,215,0,0.35) 80%, transparent 100%); z-index: 4; pointer-events: none; box-shadow: 0 0 12px rgba(255,215,0,0.2); }
-    .slotMachine::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(124,111,255,0.08) 0%, transparent 70%); pointer-events: none; }
-    .slotReels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; position: relative; z-index: 1; }
-    .slotReel { background: rgba(0,0,0,0.5); border-radius: 12px; height: 216px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 4px 12px rgba(0,0,0,0.5), inset 0 0 30px rgba(124,111,255,0.06); }
-    .slotReel::before, .slotReel::after { content: ""; position: absolute; left: 0; right: 0; height: 30px; z-index: 2; pointer-events: none; }
-    .slotReel::before { top: 0; background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%); }
-    .slotReel::after { bottom: 0; background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%); }
+    .slotHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .slotTitle { display: flex; align-items: center; gap: 10px; }
+    .slotTitle h3 { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ffd700 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0; text-transform: uppercase; }
+    .slotTitle .slotIcon { font-size: 22px; filter: drop-shadow(0 2px 6px rgba(255,215,0,0.4)); }
+    .slotMachine { position: relative; background: linear-gradient(180deg, #1c1148 0%, #12082e 50%, #0d0620 100%); border: 2px solid transparent; border-image: linear-gradient(180deg, rgba(255,215,0,0.5) 0%, rgba(124,111,255,0.4) 50%, rgba(255,215,0,0.3) 100%) 1; border-radius: 0; padding: 0; margin: 8px 0; box-shadow: 0 0 50px rgba(124,111,255,0.12), 0 0 100px rgba(255,215,0,0.05), inset 0 0 80px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.6); overflow: hidden; }
+    .slotMachineInner { position: relative; border-radius: 14px; border: 2px solid rgba(255,215,0,0.2); margin: 3px; padding: 18px; background: linear-gradient(180deg, #1a1040 0%, #0d0a25 100%); overflow: hidden; }
+    .slotMachine::after { content: ""; position: absolute; left: 15px; right: 15px; top: 50%; height: 3px; background: linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.25) 10%, rgba(255,215,0,0.6) 50%, rgba(255,215,0,0.25) 90%, transparent 100%); z-index: 4; pointer-events: none; box-shadow: 0 0 16px rgba(255,215,0,0.3), 0 0 4px rgba(255,215,0,0.5); }
+    .slotMachineInner::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.04) 0%, transparent 60%), radial-gradient(ellipse at 50% 100%, rgba(124,111,255,0.06) 0%, transparent 60%); pointer-events: none; }
+    .slotReels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; position: relative; z-index: 1; }
+    .slotReel { background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(5,2,15,0.7) 50%, rgba(0,0,0,0.6) 100%); border-radius: 12px; height: 216px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,0.06); box-shadow: inset 0 6px 16px rgba(0,0,0,0.6), inset 0 -6px 16px rgba(0,0,0,0.4), inset 0 0 40px rgba(124,111,255,0.04), 0 0 1px rgba(255,255,255,0.1); }
+    .slotReel::before, .slotReel::after { content: ""; position: absolute; left: 0; right: 0; height: 40px; z-index: 2; pointer-events: none; }
+    .slotReel::before { top: 0; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 60%, transparent 100%); }
+    .slotReel::after { bottom: 0; background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 60%, transparent 100%); }
+    .slotReel.spinning .slotStrip { filter: blur(0.5px); }
     .slotStrip { display: flex; flex-direction: column; will-change: transform; }
-    .slotSymbol { width: 100%; height: 72px; display: flex; align-items: center; justify-content: center; font-size: 42px; transition: text-shadow 0.3s ease, transform 0.3s ease; user-select: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
-    .slotSymbol.winning { text-shadow: 0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.4); animation: slotWinPulse 0.6s ease-in-out infinite alternate; }
-    @keyframes slotWinPulse { 0% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 8px rgba(255,215,0,0.6)); } 100% { transform: scale(1.2); filter: brightness(1.4) drop-shadow(0 0 20px rgba(255,215,0,0.9)); } }
+    .slotSymbol { width: 100%; height: 72px; display: flex; align-items: center; justify-content: center; font-size: 42px; transition: text-shadow 0.3s ease, transform 0.3s ease, filter 0.3s ease; user-select: none; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); position: relative; }
+    .slotSymbol.winning { text-shadow: 0 0 24px rgba(255,215,0,0.9), 0 0 48px rgba(255,215,0,0.5), 0 0 72px rgba(255,215,0,0.2); animation: slotWinPulse 0.6s ease-in-out infinite alternate; z-index: 5; }
+    @keyframes slotWinPulse { 0% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 12px rgba(255,215,0,0.7)); } 100% { transform: scale(1.25); filter: brightness(1.5) drop-shadow(0 0 24px rgba(255,215,0,1)); } }
     .slotWinOverlay { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
     @keyframes slotLineDraw { 0% { stroke-dashoffset: 1000; } 100% { stroke-dashoffset: 0; } }
     @keyframes slotLinePulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-    .slotTimerWrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-top: 10px; }
-    .slotTimerBar { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%); border-radius: 3px; transition: width 0.1s linear; width: 100%; }
-    .slotPaytable { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border); }
-    .slotPayRow { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; font-size: 12px; color: var(--muted); border-radius: 6px; }
-    .slotPayRow span:last-child { color: var(--accent2); font-weight: 700; }
+    .slotBigWin { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+    .slotBigWin.show { opacity: 1; animation: bigWinEntry 0.5s ease-out; }
+    .slotBigWin .bigWinText { font-size: 32px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; background: linear-gradient(135deg, #ffd700 0%, #fff 30%, #ffd700 60%, #ff8c00 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-shadow: none; filter: drop-shadow(0 0 20px rgba(255,215,0,0.8)) drop-shadow(0 4px 8px rgba(0,0,0,0.6)); background-size: 200% 100%; animation: bigWinShimmer 1.5s linear infinite; }
+    @keyframes bigWinEntry { 0% { transform: scale(0.3) rotate(-5deg); opacity: 0; } 60% { transform: scale(1.15) rotate(2deg); } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+    @keyframes bigWinShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .slotTimerWrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin-top: 12px; border: 1px solid rgba(255,255,255,0.04); }
+    .slotTimerBar { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 50%, var(--accent) 100%); background-size: 200% 100%; border-radius: 4px; transition: width 0.1s linear; width: 100%; animation: timerShimmer 2s linear infinite; }
+    @keyframes timerShimmer { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
+    .slotPaytable { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; padding: 14px; background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(124,111,255,0.03) 100%); border-radius: 12px; border: 1px solid var(--border); }
+    .slotPayRow { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; font-size: 12px; color: var(--muted); border-radius: 8px; transition: background 0.2s ease, transform 0.15s ease; }
+    .slotPayRow:hover { background: rgba(255,255,255,0.04); transform: translateX(2px); }
+    .slotPayRow span:first-child { font-size: 13px; }
+    .slotPayRow span:last-child { color: var(--accent2); font-weight: 700; font-size: 13px; }
+    .slotResultBanner { text-align: center; margin-top: 10px; min-height: 28px; font-size: 14px; font-weight: 600; transition: all 0.3s ease; }
+    .slotResultBanner.win { color: var(--good); animation: resultPop 0.4s ease-out; }
+    .slotResultBanner.loss { color: var(--bad); }
+    @keyframes resultPop { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
 
     /* toast */
     .toastContainer { position: fixed; top: 18px; right: 18px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -628,9 +646,16 @@
     <div id="tab-slots" class="gamePanel">
       <div class="card pad slotsWrap">
         <div class="crashPanel">
+          <!-- Slot header -->
+          <div class="slotHeader">
+            <div class="slotTitle">
+              <span class="slotIcon">🎰</span>
+              <h3>Premium Slots</h3>
+            </div>
+            <span class="tag" id="slPhaseTag" style="font-size:11px"><span class="dot"></span> Waiting</span>
+          </div>
           <!-- Bet controls row -->
           <div class="crashTop">
-            <span class="tag" style="font-size:11px">Slots</span>
             <div class="betRow">
               <input class="input" id="slBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
               <button type="button" class="qBet" onclick="setQBet('slBet',10)">10</button>
@@ -645,7 +670,6 @@
           <div class="crashTop">
             <button type="button" class="btn primary" id="slPlace">Place bet</button>
             <span class="mini" id="slTimerText">Next round in <b id="slCountdown">--</b>s</span>
-            <span class="tag" id="slPhaseTag" style="font-size:11px"><span class="dot"></span> Waiting</span>
           </div>
           <!-- Stats -->
           <div class="stats3">
@@ -655,12 +679,15 @@
           </div>
           <!-- Slot machine -->
           <div class="slotMachine" id="slotMachine">
-            <div class="slotReels" id="slotReels">
-              <div class="slotReel"><div class="slotStrip" id="slReel0"></div></div>
-              <div class="slotReel"><div class="slotStrip" id="slReel1"></div></div>
-              <div class="slotReel"><div class="slotStrip" id="slReel2"></div></div>
+            <div class="slotMachineInner">
+              <div class="slotReels" id="slotReels">
+                <div class="slotReel"><div class="slotStrip" id="slReel0"></div></div>
+                <div class="slotReel"><div class="slotStrip" id="slReel1"></div></div>
+                <div class="slotReel"><div class="slotStrip" id="slReel2"></div></div>
+              </div>
+              <div class="slotWinOverlay" id="slWinOverlay"></div>
+              <div class="slotBigWin" id="slBigWin"><div class="bigWinText" id="slBigWinText"></div></div>
             </div>
-            <div class="slotWinOverlay" id="slWinOverlay"></div>
           </div>
           <!-- Timer bar -->
           <div class="slotTimerWrap">
@@ -675,7 +702,7 @@
             <div class="slotPayRow"><span>⭐⭐⭐</span><span>1.5×</span></div>
             <div class="slotPayRow"><span>Any 2 match</span><span>0.5×</span></div>
           </div>
-          <p class="mini" id="slMsg" style="margin-top:10px"></p>
+          <div class="slotResultBanner" id="slMsg"></div>
         </div>
         <div class="crashSide">
           <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Recent spins</h2><span class="tag" style="font-size:11px"><span class="dot"></span> live</span></div>
@@ -1682,7 +1709,7 @@
           path: result.path,
           t: 0,
           startTime: Date.now(),
-          duration: 1500,
+          duration: 1725,
           onDone: () => {
             plDropCount++;
             $("plDropped").textContent = plDropCount;
@@ -2072,10 +2099,13 @@
 
     function renderSlotReels(animate) {
       $("slWinOverlay").innerHTML = "";
+      const bigWin = $("slBigWin"); if (bigWin) bigWin.classList.remove("show");
       for (let c = 0; c < 3; c++) {
         const strip = $("slReel" + c);
+        const reel = strip.parentElement;
         strip.innerHTML = "";
         if (animate) {
+          reel.classList.add("spinning");
           const count = 12 + c * 4;
           for (let i = 0; i < count; i++) {
             const s = document.createElement("div");
@@ -2099,6 +2129,7 @@
           const dur = SLOT_SPIN_TIME + c * SLOT_REEL_STAGGER;
           strip.style.transition = "transform " + dur + "s cubic-bezier(0.15, 0.85, 0.25, 1)";
           strip.style.transform = "translateY(" + targetY + "px)";
+          setTimeout(() => reel.classList.remove("spinning"), dur * 1000);
         } else {
           for (let r = 0; r < 3; r++) {
             const s = document.createElement("div");
@@ -2193,7 +2224,8 @@
           line.setAttribute("stroke-linecap", "round");
           line.setAttribute("filter", "url(#slotLineGlow)");
           svg.appendChild(line);
-          const len = line.getTotalLength ? line.getTotalLength() : 1000;
+          let len = 1000;
+          try { if (line.getTotalLength) len = line.getTotalLength(); } catch(e) {}
           line.style.strokeDasharray = len;
           line.style.strokeDashoffset = len;
           line.style.animation = "slotLineDraw 0.6s ease forwards, slotLinePulse 1.2s ease-in-out 0.6s infinite";
@@ -2242,11 +2274,17 @@
           if (totalMult > 0) {
             const winAmt = Math.floor(slBetAmt * totalMult);
             creditWin(winAmt, totalMult);
-            setSlStatus("Won!", "var(--good)");
+            if (totalMult >= 1.5) {
+              setSlStatus("Big Win!", "var(--good)");
+              const bw = $("slBigWin");
+              if (bw) { $("slBigWinText").textContent = totalMult >= 5 ? "🏆 JACKPOT!" : "✨ BIG WIN!"; bw.classList.add("show"); setTimeout(() => bw.classList.remove("show"), 3000); }
+            } else {
+              setSlStatus("Won!", "var(--good)");
+            }
             $("slResult").textContent = totalMult.toFixed(2) + "×";
             $("slResult").style.color = "var(--good)";
-            $("slMsg").textContent = "🎉 Won " + winAmt + " 🪙 at " + totalMult.toFixed(2) + "×";
-            toast("Slots win: " + winAmt + " 🪙 (" + totalMult.toFixed(2) + "×)", "success");
+            const msg = $("slMsg"); msg.textContent = "🎉 Won " + winAmt.toLocaleString() + " 🪙 at " + totalMult.toFixed(2) + "×"; msg.className = "slotResultBanner win";
+            toast("Slots win: " + winAmt.toLocaleString() + " 🪙 (" + totalMult.toFixed(2) + "×)", "success");
             if (isTabActive("slots")) { SND.cash(); haptic(30); }
             pushSlotRound(topRow, totalMult, true);
           } else {
@@ -2254,7 +2292,7 @@
             setSlStatus("No win", "var(--bad)");
             $("slResult").textContent = "0×";
             $("slResult").style.color = "var(--bad)";
-            $("slMsg").textContent = "No matching symbols.";
+            const msg = $("slMsg"); msg.textContent = "No matching symbols"; msg.className = "slotResultBanner loss";
             toast("Slots: no win", "error");
             if (isTabActive("slots")) { SND.bust(); haptic(60); }
             pushSlotRound(topRow, 0, false);
@@ -2306,6 +2344,7 @@
       $("slYourBet").textContent = slBetAmt.toLocaleString() + " 🪙";
       setSlStatus("Bet placed!", "var(--accent2)");
       $("slMsg").textContent = "Waiting for spin…";
+      $("slMsg").className = "slotResultBanner";
       SND.click(); haptic(15);
       toast("Bet placed: " + slBetAmt + " 🪙", "info");
     });
