@@ -1232,7 +1232,7 @@
           SND.bust(); haptic(60);
           toast("Crashed at " + cMult.toFixed(2) + "×", "error");
           drawCrash();
-          if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
+          if ($("cAutoBet").checked) setTimeout(startCrash, 240);
           return;
         }
 
@@ -1271,7 +1271,7 @@
       SND.cash(); haptic(30);
       toast("Cashed out at " + cMult.toFixed(2) + "× for " + winAmt + " 🪙", "success");
       drawCrash();
-      if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
+      if ($("cAutoBet").checked) setTimeout(startCrash, 240);
     }
 
     $("cStart").addEventListener("click", startCrash);
@@ -1757,7 +1757,7 @@
         await dropOneBall(bet);
         // short pause between drops for fast sequential play
         if (plAutoRunning && plAutoRemaining > 0) {
-          await new Promise(r => setTimeout(r, 100));
+          await new Promise(r => setTimeout(r, 20));
         }
       }
       stopAutobet();
