@@ -55,31 +55,37 @@
     .brand h1 span { color: var(--accent); }
 
     /* balance bar */
-    .balanceBar { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; flex-wrap: wrap; }
-    .balanceBar .balAmt { font-size: 20px; font-weight: 700; color: var(--accent2); transition: color .3s; }
-    .balanceBar .balAmt.flash-green { color: var(--good); }
-    .balanceBar .balAmt.flash-red { color: var(--bad); }
+    .balanceBar { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: linear-gradient(135deg, var(--surface) 0%, rgba(124,111,255,0.06) 100%); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; flex-wrap: wrap; }
+    .balanceBar .balAmt { font-size: 22px; font-weight: 800; color: var(--accent2); transition: color .3s, transform .3s; letter-spacing: -0.3px; }
+    .balanceBar .balAmt.flash-green { color: var(--good); transform: scale(1.12); }
+    .balanceBar .balAmt.flash-red { color: var(--bad); transform: scale(0.95); }
     .balanceBar .sessionStat { font-size: 11px; color: var(--muted); }
     .balanceBar .sessionStat b { color: var(--text); }
+    .balResetBtn { padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; transition: all .2s; margin-left: auto; }
+    .balResetBtn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
 
     /* tabs */
     .tabBar { display: flex; gap: 6px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 18px; flex-wrap: wrap; }
-    .tabBtn { padding: 8px 18px; border: none; background: transparent; color: var(--muted); border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; }
-    .tabBtn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
-    .tabBtn.active { background: var(--accent); color: #fff; }
-    .gamePanel { display: none; }
-    .gamePanel.active { display: block; }
+    .tabBtn { padding: 8px 18px; border: none; background: transparent; color: var(--muted); border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .25s ease; position: relative; }
+    .tabBtn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .tabBtn.active { background: var(--accent); color: #fff; box-shadow: 0 0 16px rgba(124,111,255,0.35); }
+    .gamePanel { display: none; opacity: 0; transform: translateY(8px); }
+    .gamePanel.active { display: block; animation: panelIn .35s ease-out forwards; }
+    @keyframes panelIn { to { opacity: 1; transform: translateY(0); } }
 
     /* buttons */
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; text-decoration: none; }
-    .btn:hover { background: rgba(255,255,255,0.08); }
-    .btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
-    .btn.primary:hover { filter: brightness(1.15); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s ease; text-decoration: none; }
+    .btn:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0) scale(0.97); }
+    .btn.primary { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 2px 12px rgba(124,111,255,0.25); }
+    .btn.primary:hover { filter: brightness(1.15); box-shadow: 0 4px 20px rgba(124,111,255,0.4); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
     /* inputs */
-    .input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; outline: none; transition: border-color .2s; }
-    .input:focus { border-color: var(--accent); }
+    .input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; outline: none; transition: border-color .2s, box-shadow .2s; }
+    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,111,255,0.15); }
+    select.input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(234,240,255,0.55)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 26px; cursor: pointer; }
+    select.input option { background: var(--surface); color: var(--text); }
 
     /* bet row */
     .betRow { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -116,57 +122,68 @@
     .crashPanel { min-width: 0; }
     .crashSide { min-width: 0; }
     .crashTop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-    .crashCanvasWrap { position: relative; width: 100%; aspect-ratio: 2.2/1; background: rgba(0,0,0,0.25); border-radius: 10px; overflow: hidden; }
+    .crashCanvasWrap { position: relative; width: 100%; aspect-ratio: 2.2/1; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); }
     .crashCanvasWrap canvas { width: 100%; height: 100%; display: block; }
     .crashOverlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
-    .crashOverlay b { font-size: 42px; color: #fff; text-shadow: 0 2px 20px rgba(124,111,255,0.6); }
+    .crashOverlay b { font-size: 44px; color: #fff; text-shadow: 0 2px 24px rgba(124,111,255,0.7); transition: transform .15s ease; }
+    .crashOverlay b.crashed { color: #ff6b6b; text-shadow: 0 2px 24px rgba(255,107,107,0.7); animation: crashShake .4s ease-out; }
     .crashOverlay small { font-size: 12px; color: var(--muted); margin-top: 4px; }
-    .roundTag { display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin: 2px; }
+    @keyframes crashShake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+    .roundTag { display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; margin: 2px; transition: transform .2s; }
+    .roundTag:hover { transform: scale(1.05); }
 
     /* mines */
     .minesWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
     .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-width: 340px; margin: 10px auto; }
-    .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all .15s; }
-    .mTile:hover { background: rgba(255,255,255,0.1); }
-    .mTile.safe { background: rgba(124,255,107,0.15); border-color: rgba(124,255,107,0.3); }
-    .mTile.mine { background: rgba(255,107,107,0.15); border-color: rgba(255,107,107,0.3); }
-    .mTile.disabled { pointer-events: none; opacity: 0.6; }
+    .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all .25s ease; transform: scale(1); }
+    .mTile:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); box-shadow: 0 0 12px rgba(124,111,255,0.15); }
+    .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tileReveal .35s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
+    .mTile.mine { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.35); animation: tileReveal .35s ease-out; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
+    .mTile.disabled { pointer-events: none; opacity: 0.6; transform: none; }
+    @keyframes tileReveal { 0% { transform: rotateY(90deg) scale(0.8); opacity: 0.3; } 100% { transform: rotateY(0) scale(1); opacity: 1; } }
 
     /* dice */
     .diceWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
-    .diceBar { height: 18px; border-radius: 9px; background: linear-gradient(90deg, var(--bad) 0%, var(--bad) var(--target), var(--good) var(--target), var(--good) 100%); position: relative; margin: 16px 0; }
-    .diceBar .marker { position: absolute; top: -6px; width: 4px; height: 30px; background: #fff; border-radius: 2px; transform: translateX(-50%); transition: left .4s; }
-    .diceResult { font-size: 48px; font-weight: 800; text-align: center; margin: 20px 0; }
+    .diceBar { height: 20px; border-radius: 10px; background: linear-gradient(90deg, var(--bad) 0%, var(--bad) var(--target), var(--good) var(--target), var(--good) 100%); position: relative; margin: 16px 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+    .diceBar .marker { position: absolute; top: -8px; width: 4px; height: 36px; background: #fff; border-radius: 2px; transform: translateX(-50%); transition: left .5s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+    .diceResult { font-size: 52px; font-weight: 800; text-align: center; margin: 20px 0; transition: color .3s; }
+    .diceResult.pop { animation: resultPop .4s ease-out; }
+    @keyframes resultPop { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
 
     /* plinko */
     .plinkoWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
-    .plinkoCanvasWrap { position: relative; width: 100%; aspect-ratio: 1.3/1; background: rgba(0,0,0,0.25); border-radius: 10px; overflow: hidden; }
+    .plinkoCanvasWrap { position: relative; width: 100%; aspect-ratio: 1.3/1; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); }
     .plinkoCanvasWrap canvas { width: 100%; height: 100%; display: block; }
     .plinkoBuckets { display: flex; gap: 2px; margin-top: 8px; }
-    .plinkoBucket { flex: 1; text-align: center; padding: 4px 0; border-radius: 6px; font-size: 10px; font-weight: 700; }
+    .plinkoBucket { flex: 1; text-align: center; padding: 6px 0; border-radius: 6px; font-size: 10px; font-weight: 700; transition: transform .3s ease, box-shadow .3s ease; }
+    .plinkoBucket.hit { box-shadow: 0 0 16px currentColor; }
 
     /* blackjack */
     .bjWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
-    .bjTable { background: #1a5c2a; border-radius: var(--radius); padding: 24px; min-height: 300px; position: relative; }
-    .bjHand { display: flex; gap: 8px; justify-content: center; min-height: 100px; flex-wrap: wrap; margin: 12px 0; }
-    .bjCard { width: 60px; height: 84px; border-radius: 8px; background: #fff; color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); position: relative; }
+    .bjTable { background: linear-gradient(145deg, #1a5c2a 0%, #145222 50%, #1a5c2a 100%); border-radius: var(--radius); padding: 24px; min-height: 300px; position: relative; border: 3px solid #0d3518; box-shadow: inset 0 0 40px rgba(0,0,0,0.2); }
+    .bjHand { display: flex; gap: 8px; justify-content: center; min-height: 100px; flex-wrap: wrap; margin: 12px 0; perspective: 600px; }
+    .bjCard { width: 62px; height: 88px; border-radius: 8px; background: linear-gradient(145deg, #fff 0%, #f0f0f0 100%); color: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; box-shadow: 0 3px 12px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2); position: relative; animation: cardDeal .35s ease-out; }
+    @keyframes cardDeal { 0% { transform: translateY(-60px) rotateX(20deg) scale(0.7); opacity: 0; } 100% { transform: translateY(0) rotateX(0) scale(1); opacity: 1; } }
     .bjCard.red { color: #d32f2f; }
-    .bjCard.facedown { background: linear-gradient(135deg, #1a237e, #283593); color: transparent; }
+    .bjCard.facedown { background: linear-gradient(135deg, #1a237e, #283593); color: transparent; background-image: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.03) 8px, rgba(255,255,255,0.03) 16px); }
     .bjCard.facedown::after { content: "🍩"; position: absolute; font-size: 28px; }
     .bjCard .rank { font-size: 14px; position: absolute; top: 4px; left: 6px; }
     .bjCard .suit { font-size: 24px; }
     .bjCard .rank-br { font-size: 14px; position: absolute; bottom: 4px; right: 6px; transform: rotate(180deg); }
-    .bjLabel { text-align: center; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+    .bjLabel { text-align: center; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
     .bjActions { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
-    .bjMsg { text-align: center; font-size: 18px; font-weight: 700; margin-top: 12px; min-height: 28px; }
+    .bjMsg { text-align: center; font-size: 18px; font-weight: 700; margin-top: 12px; min-height: 28px; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    .bjMsg.win-anim { animation: winPop .5s ease-out; }
+    @keyframes winPop { 0% { transform: scale(0.7); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
 
     /* toast */
-    .toastContainer { position: fixed; top: 18px; right: 18px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
-    .toast { padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; animation: toastIn .3s ease-out; max-width: 320px; }
+    .toastContainer { position: fixed; top: 18px; right: 18px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #fff; animation: toastIn .3s ease-out; max-width: 320px; transition: opacity .3s ease, transform .3s ease; backdrop-filter: blur(8px); }
     .toast.success { background: rgba(124,255,107,0.9); color: #111; }
     .toast.error { background: rgba(255,107,107,0.9); }
     .toast.info { background: rgba(124,111,255,0.9); }
-    @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .toast.fade-out { opacity: 0; transform: translateX(40px) scale(0.95); }
+    @keyframes toastIn { from { transform: translateX(100%) scale(0.9); opacity: 0; } to { transform: translateX(0) scale(1); opacity: 1; } }
 
     /* hero */
     .hero { display: grid; grid-template-columns: 1fr 280px; gap: 18px; margin-bottom: 24px; }
@@ -253,6 +270,7 @@
       <span class="sessionStat">Streak: <b id="ssStreak">0</b></span>
       <span class="sessionStat">Best: <b id="ssBest">-</b></span>
       <span class="sessionStat">P&L: <b id="ssPnl">0</b></span>
+      <button type="button" class="balResetBtn" id="balReset" title="Reset balance to 1,000">↻ Reset</button>
     </div>
 
     <!-- tab bar -->
@@ -540,7 +558,7 @@
       el.className = "toast " + type;
       el.textContent = msg;
       $("toastContainer").appendChild(el);
-      setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 2800);
+      setTimeout(() => { el.classList.add("fade-out"); setTimeout(() => el.remove(), 350); }, 2800);
     }
 
     // ==================== CLIPBOARD ====================
@@ -699,7 +717,8 @@
     // ==================== BALANCE ====================
     let balance = parseInt(localStorage.getItem("dw_balance") || "1000", 10);
     if (isNaN(balance) || balance < 0) balance = 1000;
-    let sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0, pnl: 0 };
+    const startingBalance = balance;
+    let sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
 
     function saveBalance() { localStorage.setItem("dw_balance", balance); }
     function updateBalDisplay() {
@@ -707,8 +726,9 @@
       $("ssRounds").textContent = sessionStats.rounds;
       $("ssStreak").textContent = sessionStats.streak;
       $("ssBest").textContent = sessionStats.bestMult > 0 ? sessionStats.bestMult.toFixed(2) + "×" : "-";
-      $("ssPnl").textContent = (sessionStats.pnl >= 0 ? "+" : "") + sessionStats.pnl.toLocaleString();
-      $("ssPnl").style.color = sessionStats.pnl >= 0 ? "var(--good)" : "var(--bad)";
+      const pnl = balance - startingBalance;
+      $("ssPnl").textContent = (pnl >= 0 ? "+" : "") + pnl.toLocaleString();
+      $("ssPnl").style.color = pnl >= 0 ? "var(--good)" : "var(--bad)";
     }
     function flashBal(win) {
       const el = $("balDisplay");
@@ -726,12 +746,10 @@
       sessionStats.wins++; sessionStats.streak++;
       if (sessionStats.streak > sessionStats.bestStreak) sessionStats.bestStreak = sessionStats.streak;
       if (mult > sessionStats.bestMult) sessionStats.bestMult = mult;
-      sessionStats.pnl += amount;
       flashBal(true); updateBalDisplay();
     }
     function recordLoss(lostAmount) {
       sessionStats.streak = 0;
-      sessionStats.pnl -= lostAmount;
       flashBal(false); updateBalDisplay();
     }
 
@@ -743,6 +761,17 @@
     function getBet(inputId) {
       return clamp(Math.floor(parseFloat($(inputId).value) || 0), 1, balance);
     }
+
+    // ==================== BALANCE RESET ====================
+    $("balReset").addEventListener("click", () => {
+      if (confirm("Reset balance to 1,000 🪙?")) {
+        balance = 1000; saveBalance();
+        sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
+        updateBalDisplay();
+        toast("Balance reset to 1,000 🪙", "info");
+        SND.click();
+      }
+    });
 
     // ==================== TAB SYSTEM ====================
     function switchTab(name) {
@@ -825,18 +854,35 @@
       }
 
       if (pts.length > 1) {
+        // gradient fill under the curve
+        const grad = ctx.createLinearGradient(0, pts[pts.length - 1].y, 0, H);
+        grad.addColorStop(0, cBusted ? "rgba(255,107,107,0.15)" : "rgba(124,111,255,0.15)");
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, H);
+        for (let i = 0; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[pts.length - 1].x, H);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // curve line
         ctx.beginPath();
         ctx.moveTo(pts[0].x, pts[0].y);
         for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-        ctx.strokeStyle = cBusted ? "var(--bad)" : "var(--accent)";
+        ctx.strokeStyle = cBusted ? "#ff6b6b" : "#7c6fff";
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // glow
+        // glow dot at tip
         const last = pts[pts.length - 1];
         ctx.beginPath();
-        ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = cBusted ? "var(--bad)" : "var(--accent)";
+        ctx.arc(last.x, last.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = cBusted ? "#ff6b6b" : "#7c6fff";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = cBusted ? "rgba(255,107,107,0.25)" : "rgba(124,111,255,0.25)";
         ctx.fill();
       }
     }
@@ -855,6 +901,7 @@
       cStartTime = Date.now();
       $("cStart").disabled = true;
       $("cCash").disabled = false;
+      $("cOverlayMult").classList.remove("crashed");
       setCStatus("Flying…", "var(--accent2)");
       $("cMsg").textContent = "";
 
@@ -869,6 +916,7 @@
           cMult = cTarget; cBusted = true; cPlaying = false;
           $("cCash").disabled = true; $("cStart").disabled = false;
           setOverlay(cMult.toFixed(2) + "×", "Crashed!");
+          $("cOverlayMult").classList.add("crashed");
           setCStatus("Crashed", "var(--bad)");
           $("cMult").textContent = cMult.toFixed(2) + "×";
           $("cMult").style.color = "var(--bad)";
@@ -1088,7 +1136,11 @@
 
       // animate marker
       $("dMarker").style.left = roll + "%";
-      $("dResult").textContent = roll.toFixed(2);
+      const resultEl = $("dResult");
+      resultEl.classList.remove("pop");
+      void resultEl.offsetWidth;
+      resultEl.textContent = roll.toFixed(2);
+      resultEl.classList.add("pop");
       $("dLast").textContent = roll.toFixed(2);
 
       const won = roll > target;
@@ -1177,9 +1229,15 @@
         const y = padTop + (r + 1) * rowH;
         for (let c = 0; c < pegsInRow; c++) {
           const x = startX + c * ((W - padX * 2) / (rows + 1));
+          // peg glow
+          ctx.beginPath();
+          ctx.arc(x, y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(124,111,255,0.08)";
+          ctx.fill();
+          // peg dot
           ctx.beginPath();
           ctx.arc(x, y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(255,255,255,0.5)";
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
           ctx.fill();
         }
       }
@@ -1209,14 +1267,23 @@
         const nby = padTop + (currentRow + 2) * rowH;
 
         const cx = bx + (nbx - bx) * frac;
-        const cy = by + (nby - by) * frac - Math.sin(frac * Math.PI) * 10;
+        const cy = by + (nby - by) * frac - Math.sin(frac * Math.PI) * 12;
 
+        // ball glow
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,136,0,0.15)";
+        ctx.fill();
+        // ball
         ctx.beginPath();
         ctx.arc(cx, cy, 7, 0, Math.PI * 2);
-        ctx.fillStyle = "#ff8800";
+        const ballGrad = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 7);
+        ballGrad.addColorStop(0, "#ffcc00");
+        ballGrad.addColorStop(1, "#ff8800");
+        ctx.fillStyle = ballGrad;
         ctx.fill();
-        ctx.strokeStyle = "#ffcc00";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.lineWidth = 1;
         ctx.stroke();
       }
     }
@@ -1262,10 +1329,12 @@
 
       function animate() {
         const elapsed = Date.now() - startTime;
-        animState.t = Math.min(elapsed / animDuration, 1);
+        // ease-in-out for smoother motion
+        const rawT = Math.min(elapsed / animDuration, 1);
+        animState.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
         drawPlinkoBoard(result.col, animState);
 
-        if (animState.t < 1) {
+        if (rawT < 1) {
           requestAnimationFrame(animate);
           if (Math.random() < 0.3) SND.tick();
         } else {
@@ -1427,6 +1496,7 @@
       }
 
       $("bjMsg").textContent = msg;
+      $("bjMsg").className = "bjMsg" + (result === "Win" || result === "Blackjack!" ? " win-anim" : "");
       $("bjWins").textContent = bjWinCount;
       $("bjLosses").textContent = bjLossCount;
       $("bjPushes").textContent = bjPushCount;
