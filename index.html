@@ -154,12 +154,14 @@
     .diceResult { font-size: 52px; font-weight: 800; text-align: center; margin: 20px 0; transition: color .3s; }
     .diceResult.pop { animation: resultPop .4s ease-out; }
     @keyframes resultPop { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+    .diceSliderWrap { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .diceSliderWrap input[type="range"] { flex: 1; accent-color: var(--accent); height: 6px; cursor: pointer; }
 
     /* plinko */
     .plinkoWrap { display: grid; grid-template-columns: 1fr 220px; gap: 18px; }
     .plinkoCanvasWrap { position: relative; width: 100%; aspect-ratio: 1.3/1; background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 100%); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.04); }
     .plinkoCanvasWrap canvas { width: 100%; height: 100%; display: block; }
-    .plinkoBuckets { display: flex; gap: 2px; margin-top: 8px; }
+    .plinkoBuckets { display: flex; gap: 2px; margin-top: 2px; }
     .plinkoBucket { flex: 1; text-align: center; padding: 6px 0; border-radius: 6px; font-size: 10px; font-weight: 700; transition: transform .3s ease, box-shadow .3s ease; }
     .plinkoBucket.hit { box-shadow: 0 0 16px currentColor; }
 
@@ -512,6 +514,11 @@
             </label>
           </div>
           <div class="diceBar" id="dBar" style="--target:50%"><div class="marker" id="dMarker" style="left:50%"></div></div>
+          <div class="diceSliderWrap">
+            <span class="mini">1</span>
+            <input type="range" id="dTargetSlider" min="1" max="98" value="50">
+            <span class="mini">98</span>
+          </div>
           <div class="diceResult" id="dResult">-</div>
           <div class="stats3">
             <div class="stat3"><div class="k">Last roll</div><div class="v" id="dLast">-</div></div>
@@ -549,6 +556,13 @@
             <span class="mini">Rows</span>
             <select class="input" id="plRows"><option value="8">8</option><option value="12" selected>12</option><option value="16">16</option></select>
             <button type="button" class="btn primary" id="plDrop">Drop ball</button>
+          </div>
+          <div class="crashTop">
+            <span class="mini">Auto-bet</span>
+            <input class="input" id="plAutoBalls" type="number" min="1" max="500" value="10" style="max-width:70px" placeholder="Balls">
+            <span class="mini">balls</span>
+            <button type="button" class="btn" id="plAutoStart" style="background:var(--accent2)">▶ Start</button>
+            <button type="button" class="btn" id="plAutoStop" style="display:none; background:var(--bad)">⏹ Stop</button>
           </div>
           <div class="plinkoCanvasWrap"><canvas id="plinkoCanvas"></canvas></div>
           <div class="plinkoBuckets" id="plBuckets"></div>
@@ -1392,6 +1406,9 @@
       const swapped = $("dSwapMode").checked;
       dSwapMode = swapped;
       
+      // Sync slider with text field
+      $("dTargetSlider").value = target;
+      
       // Update label based on mode
       $("dModeLabel").textContent = swapped ? "Roll under" : "Roll over";
       
@@ -1412,6 +1429,10 @@
     }
 
     $("dTarget").addEventListener("input", updateDiceUI);
+    $("dTargetSlider").addEventListener("input", () => {
+      $("dTarget").value = $("dTargetSlider").value;
+      updateDiceUI();
+    });
     $("dSwapMode").addEventListener("change", updateDiceUI);
 
     function pushDiceHistory(roll, won) {
@@ -1492,6 +1513,9 @@
     };
     let plDropCount = 0, plAnimating = false;
     const plHistoryArr = [];
+    const plActiveBalls = [];
+    let plAnimLoop = null;
+    let plAutoRunning = false, plAutoRemaining = 0;
 
     function getBucketColor(m) {
       if (m >= 10) return "#ff4444";
@@ -1516,7 +1540,7 @@
       });
     }
 
-    function drawPlinkoBoard(highlightCol, animProgress) {
+    function drawPlinkoBoard() {
       const canvas = $("plinkoCanvas");
       const rect = canvas.parentElement.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
@@ -1526,7 +1550,7 @@
       ctx.scale(dpr, dpr);
       const W = rect.width, H = rect.height;
       const rows = parseInt($("plRows").value);
-      const padTop = 20, padBot = 20, padX = 20;
+      const padTop = 20, padBot = 6, padX = 20;
       const rowH = (H - padTop - padBot) / (rows + 1);
 
       ctx.clearRect(0, 0, W, H);
@@ -1539,12 +1563,10 @@
         const y = padTop + (r + 1) * rowH;
         for (let c = 0; c < pegsInRow; c++) {
           const x = startX + c * ((W - padX * 2) / (rows + 1));
-          // peg glow
           ctx.beginPath();
           ctx.arc(x, y, 6, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(124,111,255,0.08)";
           ctx.fill();
-          // peg dot
           ctx.beginPath();
           ctx.arc(x, y, 3, 0, Math.PI * 2);
           ctx.fillStyle = "rgba(255,255,255,0.6)";
@@ -1552,10 +1574,11 @@
         }
       }
 
-      // draw animated ball if animating
-      if (animProgress !== undefined && animProgress.path) {
-        const path = animProgress.path;
-        const progress = animProgress.t;
+      // draw all active balls
+      for (const ball of plActiveBalls) {
+        if (!ball.path || ball.t === undefined) continue;
+        const path = ball.path;
+        const progress = ball.t;
         const currentRow = Math.min(Math.floor(progress * rows), rows - 1);
         const frac = (progress * rows) - currentRow;
 
@@ -1563,15 +1586,14 @@
         for (let r = 0; r < currentRow; r++) col += path[r];
         const nextCol = col + (currentRow < path.length ? path[currentRow] : 0);
 
-        // compute positions
         const pegsInRow = currentRow + 2;
         const nextPegsInRow = currentRow + 3;
-        const rowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+        const rowWidth2 = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
         const nextRowWidth = (nextPegsInRow - 1) * ((W - padX * 2) / (rows + 1));
-        const startX = (W - rowWidth) / 2;
+        const startX2 = (W - rowWidth2) / 2;
         const nextStartX = (W - nextRowWidth) / 2;
 
-        const bx = startX + col * ((W - padX * 2) / (rows + 1));
+        const bx = startX2 + col * ((W - padX * 2) / (rows + 1));
         const nbx = nextStartX + nextCol * ((W - padX * 2) / (rows + 1));
         const by = padTop + (currentRow + 1) * rowH;
         const nby = padTop + (currentRow + 2) * rowH;
@@ -1579,12 +1601,10 @@
         const cx = bx + (nbx - bx) * frac;
         const cy = by + (nby - by) * frac - Math.sin(frac * Math.PI) * 12;
 
-        // ball glow
         ctx.beginPath();
         ctx.arc(cx, cy, 14, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(255,136,0,0.15)";
         ctx.fill();
-        // ball
         ctx.beginPath();
         ctx.arc(cx, cy, 7, 0, Math.PI * 2);
         const ballGrad = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 7);
@@ -1596,6 +1616,35 @@
         ctx.lineWidth = 1;
         ctx.stroke();
       }
+    }
+
+    function startPlinkoBallLoop() {
+      if (plAnimLoop) return;
+      function loop() {
+        const now = Date.now();
+        for (let i = plActiveBalls.length - 1; i >= 0; i--) {
+          const b = plActiveBalls[i];
+          const elapsed = now - b.startTime;
+          const rawT = Math.min(elapsed / b.duration, 1);
+          b.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+          if (Math.random() < 0.1) SND.tick();
+          if (rawT >= 1) {
+            plActiveBalls.splice(i, 1);
+            b.onDone();
+          }
+        }
+        drawPlinkoBoard();
+        if (plActiveBalls.length > 0) {
+          plAnimLoop = requestAnimationFrame(loop);
+        } else {
+          plAnimLoop = null;
+          plAnimating = false;
+          $("plDrop").disabled = false;
+          $("plStatus").textContent = "Ready";
+          $("plStatus").style.color = "";
+        }
+      }
+      plAnimLoop = requestAnimationFrame(loop);
     }
 
     function pushPlinkoHistory(mult, won) {
@@ -1612,17 +1661,7 @@
       });
     }
 
-    $("plDrop").addEventListener("click", async () => {
-      if (plAnimating) return;
-      const bet = getBet("plBet");
-      if (!placeBet(bet)) return;
-
-      sessionStats.rounds++;
-      plAnimating = true;
-      $("plDrop").disabled = true;
-      $("plStatus").textContent = "Dropping…";
-      $("plStatus").style.color = "var(--accent2)";
-
+    async function dropOneBall(bet) {
       const rows = parseInt($("plRows").value);
       const risk = $("plRisk").value;
       const ss = serverSeed, cs = clientSeed, n = nonce;
@@ -1632,25 +1671,12 @@
       const mults = PLINKO_MULTS[risk][rows];
       const mult = mults[result.col];
 
-      // animate ball dropping
-      const animDuration = 1500;
-      const startTime = Date.now();
-      const animState = { path: result.path, t: 0 };
-
-      function animate() {
-        const elapsed = Date.now() - startTime;
-        // quadratic ease-in-out: accelerates then decelerates for natural motion
-        const rawT = Math.min(elapsed / animDuration, 1);
-        animState.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
-        drawPlinkoBoard(result.col, animState);
-
-        if (rawT < 1) {
-          requestAnimationFrame(animate);
-          if (Math.random() < 0.3) SND.tick();
-        } else {
-          // animation done
-          plAnimating = false;
-          $("plDrop").disabled = false;
+      const ball = {
+        path: result.path,
+        t: 0,
+        startTime: Date.now(),
+        duration: 1500,
+        onDone: () => {
           plDropCount++;
           $("plDropped").textContent = plDropCount;
           $("plLastMult").textContent = mult.toFixed(2) + "×";
@@ -1670,15 +1696,71 @@
           pushPlinkoHistory(mult, winAmt > bet);
           haptic(20);
 
-          // highlight winning bucket
           const bucketEls = $("plBuckets").children;
           if (bucketEls[result.col]) {
             bucketEls[result.col].style.transform = "scale(1.3)";
             setTimeout(() => { if (bucketEls[result.col]) bucketEls[result.col].style.transform = ""; }, 800);
           }
         }
-      }
-      requestAnimationFrame(animate);
+      };
+
+      plActiveBalls.push(ball);
+      plAnimating = true;
+      $("plDrop").disabled = true;
+      $("plStatus").textContent = "Dropping…";
+      $("plStatus").style.color = "var(--accent2)";
+      startPlinkoBallLoop();
+    }
+
+    $("plDrop").addEventListener("click", async () => {
+      const bet = getBet("plBet");
+      if (!placeBet(bet)) return;
+      sessionStats.rounds++;
+      await dropOneBall(bet);
+    });
+
+    $("plAutoStart").addEventListener("click", () => {
+      if (plAutoRunning) return;
+      const totalBalls = clamp(parseInt($("plAutoBalls").value) || 10, 1, 500);
+      const bet = getBet("plBet");
+      if (!bet || bet <= 0) { toast("Set a valid bet first", "error"); return; }
+
+      plAutoRunning = true;
+      plAutoRemaining = totalBalls;
+      $("plAutoStart").style.display = "none";
+      $("plAutoStop").style.display = "";
+      $("plDrop").disabled = true;
+
+      const interval = setInterval(async () => {
+        if (!plAutoRunning || plAutoRemaining <= 0) {
+          clearInterval(interval);
+          plAutoRunning = false;
+          $("plAutoStart").style.display = "";
+          $("plAutoStop").style.display = "none";
+          if (plActiveBalls.length === 0) $("plDrop").disabled = false;
+          return;
+        }
+        if (!placeBet(bet)) {
+          clearInterval(interval);
+          plAutoRunning = false;
+          $("plAutoStart").style.display = "";
+          $("plAutoStop").style.display = "none";
+          toast("Auto-bet stopped: insufficient balance", "error");
+          if (plActiveBalls.length === 0) $("plDrop").disabled = false;
+          return;
+        }
+        sessionStats.rounds++;
+        plAutoRemaining--;
+        await dropOneBall(bet);
+      }, 200);
+    });
+
+    $("plAutoStop").addEventListener("click", () => {
+      plAutoRunning = false;
+      plAutoRemaining = 0;
+      $("plAutoStart").style.display = "";
+      $("plAutoStop").style.display = "none";
+      if (plActiveBalls.length === 0) $("plDrop").disabled = false;
     });
 
     $("plRisk").addEventListener("change", () => { renderPlinkoBuckets(); drawPlinkoBoard(); });
