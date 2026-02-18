@@ -218,6 +218,8 @@
     .slotSymbol.winning { text-shadow: 0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.4); animation: slotWinPulse 0.6s ease-in-out infinite alternate; }
     @keyframes slotWinPulse { 0% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 8px rgba(255,215,0,0.6)); } 100% { transform: scale(1.2); filter: brightness(1.4) drop-shadow(0 0 20px rgba(255,215,0,0.9)); } }
     .slotWinOverlay { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+    @keyframes slotLineDraw { 0% { stroke-dashoffset: 1000; } 100% { stroke-dashoffset: 0; } }
+    @keyframes slotLinePulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
     .slotTimerWrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; margin-top: 10px; }
     .slotTimerBar { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%); border-radius: 3px; transition: width 0.1s linear; width: 100%; }
     .slotPaytable { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border); }
@@ -1746,7 +1748,7 @@
       $("plAutoStop").style.display = "";
       $("plDrop").disabled = true;
 
-      const delay = totalBalls > 50 ? 5 : 150;
+      const delay = 150;
       for (let i = 0; i < totalBalls; i++) {
         if (!plAutoRunning) break;
         if (!placeBet(bet)) {
@@ -2069,6 +2071,7 @@
     function setSlStatus(t, col) { $("slStatus").textContent = t; $("slStatus").style.color = col || ""; }
 
     function renderSlotReels(animate) {
+      $("slWinOverlay").innerHTML = "";
       for (let c = 0; c < 3; c++) {
         const strip = $("slReel" + c);
         strip.innerHTML = "";
@@ -2140,6 +2143,64 @@
       }
     }
 
+    function drawWinLines(winRows) {
+      const overlay = $("slWinOverlay");
+      overlay.innerHTML = "";
+      if (winRows.length === 0) return;
+      const overlayRect = overlay.getBoundingClientRect();
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+      svg.style.position = "absolute";
+      svg.style.inset = "0";
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+      filter.setAttribute("id", "slotLineGlow");
+      const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+      blur.setAttribute("stdDeviation", "4");
+      blur.setAttribute("result", "glow");
+      const merge = document.createElementNS("http://www.w3.org/2000/svg", "feMerge");
+      const m1 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+      m1.setAttribute("in", "glow");
+      const m2 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+      m2.setAttribute("in", "SourceGraphic");
+      merge.appendChild(m1);
+      merge.appendChild(m2);
+      filter.appendChild(blur);
+      filter.appendChild(merge);
+      defs.appendChild(filter);
+      svg.appendChild(defs);
+      const colors = ["rgba(255,215,0,0.85)", "rgba(124,255,107,0.85)", "rgba(124,111,255,0.85)"];
+      winRows.forEach((row, idx) => {
+        const points = [];
+        for (let c = 0; c < 3; c++) {
+          const strip = $("slReel" + c);
+          const syms = strip.querySelectorAll(".slotSymbol");
+          for (const sym of syms) {
+            if (parseInt(sym.dataset.row) === row) {
+              const rect = sym.getBoundingClientRect();
+              points.push((rect.left + rect.width / 2 - overlayRect.left) + "," + (rect.top + rect.height / 2 - overlayRect.top));
+              break;
+            }
+          }
+        }
+        if (points.length >= 2) {
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+          line.setAttribute("points", points.join(" "));
+          line.setAttribute("fill", "none");
+          line.setAttribute("stroke", colors[idx % colors.length]);
+          line.setAttribute("stroke-width", "3");
+          line.setAttribute("stroke-linecap", "round");
+          line.setAttribute("filter", "url(#slotLineGlow)");
+          line.style.strokeDasharray = "1000";
+          line.style.strokeDashoffset = "1000";
+          line.style.animation = "slotLineDraw 0.6s ease forwards, slotLinePulse 1.2s ease-in-out 0.6s infinite";
+          svg.appendChild(line);
+        }
+      });
+      overlay.appendChild(svg);
+    }
+
     function pushSlotRound(symbols, mult, won) {
       slHistoryArr.unshift({ symbols, mult, won });
       if (slHistoryArr.length > 15) slHistoryArr.pop();
@@ -2172,8 +2233,9 @@
       setTimeout(() => {
         const { totalMult, winRows } = checkSlotWins();
         highlightWinningSymbols(winRows);
+        drawWinLines(winRows);
 
-        const topRow = slGrid[0].join("");
+        const topRow = slGrid[1].join("");
         if (slBetPlaced && slBetAmt > 0) {
           sessionStats.rounds++;
           if (totalMult > 0) {
