@@ -2192,10 +2192,11 @@
           line.setAttribute("stroke-width", "3");
           line.setAttribute("stroke-linecap", "round");
           line.setAttribute("filter", "url(#slotLineGlow)");
-          line.style.strokeDasharray = "1000";
-          line.style.strokeDashoffset = "1000";
-          line.style.animation = "slotLineDraw 0.6s ease forwards, slotLinePulse 1.2s ease-in-out 0.6s infinite";
           svg.appendChild(line);
+          const len = line.getTotalLength ? line.getTotalLength() : 1000;
+          line.style.strokeDasharray = len;
+          line.style.strokeDashoffset = len;
+          line.style.animation = "slotLineDraw 0.6s ease forwards, slotLinePulse 1.2s ease-in-out 0.6s infinite";
         }
       });
       overlay.appendChild(svg);
