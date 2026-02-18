@@ -1232,7 +1232,7 @@
           SND.bust(); haptic(60);
           toast("Crashed at " + cMult.toFixed(2) + "×", "error");
           drawCrash();
-          if ($("cAutoBet").checked) setTimeout(startCrash, 240);
+          if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
           return;
         }
 
@@ -1271,7 +1271,7 @@
       SND.cash(); haptic(30);
       toast("Cashed out at " + cMult.toFixed(2) + "× for " + winAmt + " 🪙", "success");
       drawCrash();
-      if ($("cAutoBet").checked) setTimeout(startCrash, 240);
+      if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
     }
 
     $("cStart").addEventListener("click", startCrash);
