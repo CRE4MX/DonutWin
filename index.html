@@ -2117,6 +2117,10 @@
           slBetAmt = 0;
           $("slYourBet").textContent = "-";
         } else {
+          // advance seed even without a bet so next round is different
+          serverSeed = randSeed(32);
+          nonce++;
+          refreshCommit();
           pushSlotRound(topRow, totalMult, totalMult > 0);
         }
 
