@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DonutWin – Early Casino Experience</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d0f1a;
+      --surface: #13162a;
+      --border:  rgba(255,255,255,0.08);
+      --accent:  #7c6fff;
+      --accent2: #6ee7ff;
+      --good:    #7cff6b;
+      --bad:     #ff6b6b;
+      --text:    rgba(234,240,255,0.92);
+      --muted:   rgba(234,240,255,0.55);
+      --radius:  14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ---------- particle canvas ---------- */
+    #p {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ---------- floating donuts ---------- */
+    .donuts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .donut {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      animation: floatDonut linear infinite;
+      opacity: 0;
+    }
+
+    .donut:nth-child(1) { left: 6%;  animation-duration: 18s; animation-delay: 0s;    animation-name: floatDonut; }
+    .donut:nth-child(2) { left: 20%; animation-duration: 24s; animation-delay: -5s;   animation-name: floatDonut; }
+    .donut:nth-child(3) { left: 40%; animation-duration: 20s; animation-delay: -10s;  animation-name: floatDonut; }
+    .donut:nth-child(4) { left: 60%; animation-duration: 26s; animation-delay: -3s;   animation-name: floatDonut; }
+    .donut:nth-child(5) { left: 78%; animation-duration: 22s; animation-delay: -8s;   animation-name: floatDonut; }
+    .donut:nth-child(6) { left: 92%; animation-duration: 19s; animation-delay: -14s;  animation-name: floatDonut; }
+
+    @keyframes floatDonut {
+      0%   { transform: translateY(110vh) rotate(0deg);   opacity: 0; }
+      5%   { opacity: 0.18; }
+      90%  { opacity: 0.12; }
+      100% { transform: translateY(-120px) rotate(540deg); opacity: 0; }
+    }
+
+    .donut .ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 14px solid #c2793a;
+    }
+
+    .donut .frost {
+      position: absolute;
+      top: 8px; left: 8px; right: 8px; bottom: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f9d0a0 0%, #e8956a 100%);
+      opacity: 0.85;
+    }
+
+    .donut .spr {
+      position: absolute;
+      top: 12px; left: 12px; right: 12px; bottom: 12px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(#f77 0% 12.5%, transparent 0% 25%);
+      opacity: 0.55;
+      animation: spinSpr 6s linear infinite;
+    }
+
+    @keyframes spinSpr { to { transform: rotate(360deg); } }
+
+    .donut .shine {
+      position: absolute;
+      top: 4px; left: 16px; width: 10px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      transform: rotate(-20deg);
+    }
+
+    /* ---------- layout wrap ---------- */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 0 18px 60px;
+    }
+
+    /* ---------- nav ---------- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 0;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color .2s;
+    }
+
+    .nav a:hover { color: var(--text); }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 1.5px;
+      color: var(--text);
+    }
+
+    .logo {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 5px solid #c2793a;
+      background: radial-gradient(circle, #f9d0a0 0%, #e8956a 100%);
+    }
+
+    /* ---------- buttons ---------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, transform .1s;
+      white-space: nowrap;
+    }
+
+    .btn:hover  { background: rgba(255,255,255,0.12); }
+    .btn:active { transform: scale(0.97); }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--accent), #5b4fd4);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .btn.primary:hover { background: linear-gradient(135deg, #9080ff, #6b5ee8); }
+
+    .btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ---------- cards ---------- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card.pad { padding: 22px 24px; }
+
+    /* ---------- hero ---------- */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin: 32px 0 40px;
+    }
+
+    @media (max-width: 640px) {
+      .hero { grid-template-columns: 1fr; }
+    }
+
+    /* ---------- tags / badges ---------- */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 6px var(--good);
+      animation: blink 1.6s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    /* ---------- typography ---------- */
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -.5px;
+      margin: 12px 0 10px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      letter-spacing: .2px;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .mini {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .ctaRow {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    /* ---------- pulse dot ---------- */
+    .pulse { display: inline-flex; align-items: center; }
+    .pulse i {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 0 0 rgba(110,231,255,0.6);
+      animation: ping 1.4s ease-out infinite;
+    }
+
+    @keyframes ping {
+      0%   { box-shadow: 0 0 0 0 rgba(110,231,255,0.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(110,231,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(110,231,255,0); }
+    }
+
+    /* ---------- stats grid (hero) ---------- */
+    .statGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .stat {
+      background: var(--surface);
+      padding: 16px 18px;
+    }
+
+    .k {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .v {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    /* ---------- toggle ---------- */
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    .toggle input { accent-color: var(--accent); cursor: pointer; }
+
+    /* ---------- inputs ---------- */
+    .input {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 7px 11px;
+      outline: none;
+      transition: border-color .2s;
+      width: 100%;
+    }
+
+    .input:focus { border-color: var(--accent); }
+
+    /* ---------- sections ---------- */
+    .section { margin-bottom: 48px; }
+
+    /* ---------- crash game ---------- */
+    .crashWrap {
+      display: grid;
+      grid-template-columns: 1fr 240px;
+      gap: 18px;
+    }
+
+    @media (max-width: 700px) {
+      .crashWrap, .minesWrap { grid-template-columns: 1fr; }
+    }
+
+    .crashPanel { display: flex; flex-direction: column; gap: 14px; }
+
+    .crashTop {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stats3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .stat3 {
+      background: rgba(255,255,255,0.04);
+      padding: 12px 14px;
+    }
+
+    .crashCanvasWrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/7;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.25);
+    }
+
+    #crashCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .crashOverlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(32px, 6vw, 52px);
+      font-weight: 900;
+      color: var(--text);
+      pointer-events: none;
+      gap: 4px;
+    }
+
+    .crashOverlay small {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .crashSide {
+      border-left: 1px solid var(--border);
+      padding-left: 18px;
+    }
+
+    @media (max-width: 700px) {
+      .crashSide { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 14px; }
+    }
+
+    .roundRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ---------- mines game ---------- */
+    .minesWrap {
+      display: grid;
+      grid-template-columns: 1fr 240px;
+      gap: 18px;
+    }
+
+    .mGrid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .mTile {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s, transform .1s;
+    }
+
+    .mTile:hover:not(.revealed) { background: rgba(255,255,255,0.12); transform: scale(1.04); }
+    .mTile:active:not(.revealed) { transform: scale(0.96); }
+
+    .mTile.revealed { cursor: default; pointer-events: none; }
+    .mTile.safe     { background: rgba(124,255,107,0.14); border-color: rgba(124,255,107,0.3); }
+    .mTile.mine     { background: rgba(255,107,107,0.14); border-color: rgba(255,107,107,0.3); }
+
+    .mIcon { font-size: 18px; line-height: 1; }
+
+    /* ---------- provably fair ---------- */
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 600px) {
+      .split { grid-template-columns: 1fr; }
+    }
+
+    .pf {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .lab {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .mono {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11.5px;
+      color: var(--accent2);
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      padding: 6px 10px;
+      word-break: break-all;
+      border: 1px solid var(--border);
+      min-height: 30px;
+    }
+
+    /* ---------- waitlist ---------- */
+    .waitlist {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .waitlist .input { max-width: 260px; }
+
+    /* ---------- footer ---------- */
+    .foot {
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .foot a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color .2s;
+    }
+
+    .foot a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <canvas id="p"></canvas>
+
+  <!-- DonutSMP floating donuts -->
+  <div class="donuts" aria-hidden="true">
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+  </div>
+
+  <div class="wrap">
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>DONUTWIN</div>
+      </div>
+
+      <div style="display:flex; gap:6px; align-items:center;">
+        <a href="#crash">Crash</a>
+        <a href="#mines">Mines</a>
+        <a href="#provably">Provably Fair</a>
+        <a class="btn primary" href="#waitlist">Join waitlist</a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="card pad">
+        <span class="tag"><span class="dot"></span> true experience • fast gameplay • verifiable</span>
+        <h1>DonutWin<br>Early Casino Experience</h1>
+        <p class="sub">
+          DonutWin is the highest-budget, dopamine-tuned gaming casino of 2026.
+          Sponsored by #HELL Energy Bulgaria EOOD
+        </p>
+
+        <div class="ctaRow">
+          <a class="btn primary" href="#crash">Play Crash</a>
+          <a class="btn" href="#mines">Play Mines</a>
+          <span class="mini"><span class="pulse"><i></i></span> building in public</span>
+        </div>
+
+        <p class="mini">Tip: enable sound, then spam rounds. It's tuned for "one more".</p>
+      </div>
+
+      <div class="card">
+        <div class="statGrid">
+          <div class="stat">
+            <div class="k">Games available</div>
+            <div class="v">2</div>
+          </div>
+          <div class="stat">
+            <div class="k">Mode</div>
+            <div class="v">Try-only</div>
+          </div>
+          <div class="stat">
+            <div class="k">Engagement</div>
+            <div class="v">High</div>
+          </div>
+          <div class="stat">
+            <div class="k">Fairness</div>
+            <div class="v">Verifiable</div>
+          </div>
+        </div>
+        <div style="padding:0 18px 18px">
+          <label class="toggle" title="Sound effects (all games)">
+            <input id="sndMaster" type="checkbox" checked>
+            Sound
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= CRASH ================= -->
+    <div id="crash" class="section">
+      <h2>Crash (demo)</h2>
+      <div class="card pad crashWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px"><span class="dot"></span> live</span>
+
+            <span class="tag" style="font-size:11px">Auto cashout</span>
+            <input class="input" id="cAuto" type="number" min="1.01" step="0.01" value="2.00" style="max-width:140px">
+
+            <button class="btn primary" id="cStart">Start round</button>
+            <button class="btn" id="cCash" disabled>Cash out</button>
+
+            <label class="toggle" title="Auto-bet (starts next round automatically)">
+              <input id="cAutoBet" type="checkbox">
+              Auto-bet
+            </label>
+          </div>
+
+          <div class="stats3">
+            <div class="stat3">
+              <div class="k">Multiplier</div>
+              <div class="v" id="cMult">1.00×</div>
+            </div>
+            <div class="stat3">
+              <div class="k">Status</div>
+              <div class="v" id="cStatus">Ready</div>
+            </div>
+            <div class="stat3">
+              <div class="k">Next round</div>
+              <div class="v" id="cNext">—</div>
+            </div>
+          </div>
+
+          <div class="crashCanvasWrap">
+            <canvas id="crashCanvas"></canvas>
+            <div class="crashOverlay" id="cOverlay">
+              1.00×
+              <small id="cHint">Waiting for round…</small>
+            </div>
+          </div>
+
+          <p class="mini" id="cMsg" style="margin-top:10px"></p>
+        </div>
+
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78); letter-spacing:.3px;">Recent rounds</h2>
+            <span class="tag" style="font-size:11px"><span class="dot"></span> updating</span>
+          </div>
+          <div id="cRounds" style="margin-top:10px"></div>
+
+          <div class="mini" style="margin-top:12px">
+            Activity has ±14.035s delay.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MINES ================= -->
+    <div id="mines" class="section">
+      <h2>Mines (demo)</h2>
+      <div class="card pad minesWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">Mines</span>
+            <input class="input" id="mMines" type="number" min="1" max="24" value="5" style="max-width:110px">
+            <button class="btn primary" id="mStart">Start</button>
+            <button class="btn" id="mCash" disabled>Cash out</button>
+            <button class="btn" id="mReset">Reset</button>
+          </div>
+
+          <div class="stats3">
+            <div class="stat3">
+              <div class="k">Safe picks</div>
+              <div class="v" id="mSafe">0</div>
+            </div>
+            <div class="stat3">
+              <div class="k">Multiplier</div>
+              <div class="v" id="mMult">1.00×</div>
+            </div>
+            <div class="stat3">
+              <div class="k">Status</div>
+              <div class="v" id="mStatus">Ready</div>
+            </div>
+          </div>
+
+          <div id="mGrid" class="mGrid" aria-label="Mines grid"></div>
+          <p class="mini" id="mMsg" style="margin-top:10px"></p>
+        </div>
+
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78); letter-spacing:.3px;">Recent wins</h2>
+            <span class="tag" style="font-size:11px"><span class="dot"></span> updating</span>
+          </div>
+          <div id="mWins" style="margin-top:10px"></div>
+          <div class="mini" style="margin-top:12px">Click tiles → cash out anytime.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PROVABLY FAIR ================= -->
+    <div id="provably" class="section">
+      <h2>Provably fair (verify locally)</h2>
+
+      <div class="split">
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Crash proof</div>
+
+          <div class="lab">Client seed</div>
+          <input class="input" id="pfClientSeed" value="donutsmp-client" style="max-width:100%">
+
+          <div class="lab">Server seed hash (commit)</div>
+          <div class="mono" id="pfCrashCommit">—</div>
+
+          <div class="lab">Server seed (reveal)</div>
+          <div class="mono" id="pfCrashReveal">—</div>
+
+          <div class="lab">Nonce</div>
+          <div class="mono" id="pfCrashNonce">—</div>
+
+          <div class="lab">Result (crash point)</div>
+          <div class="mono" id="pfCrashResult">—</div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <button class="btn" id="pfCrashVerify">Verify last Crash</button>
+            <button class="btn" id="pfNewSeeds">New seeds</button>
+          </div>
+
+          <div class="mini">We commit to a server seed hash before the round, then reveal the seed after.</div>
+        </div>
+
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Mines proof</div>
+
+          <div class="lab">Server seed hash (commit)</div>
+          <div class="mono" id="pfMinesCommit">—</div>
+
+          <div class="lab">Server seed (reveal)</div>
+          <div class="mono" id="pfMinesReveal">—</div>
+
+          <div class="lab">Nonce</div>
+          <div class="mono" id="pfMinesNonce">—</div>
+
+          <div class="lab">Mine positions (0–24)</div>
+          <div class="mono" id="pfMinesResult">—</div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <button class="btn" id="pfMinesVerify">Verify last Mines</button>
+          </div>
+
+          <div class="mini">Mines uses the same seed flow and derives mine positions deterministically.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= WAITLIST ================= -->
+    <div id="waitlist" class="section">
+      <h2>Join the waitlist</h2>
+      <div class="card pad">
+        <p class="sub" style="margin:0 0 10px">
+          Get an email when the full app goes live on <strong>app.donutwin.shop</strong>.
+        </p>
+        <form id="wlForm" class="waitlist">
+          <input class="input" id="email" type="email" placeholder="you@domain.com" required />
+          <button class="btn primary" type="submit">Notify me</button>
+          <span class="mini" id="wlMsg"></span>
+        </form>
+        <p class="mini" style="margin:12px 0 0">
+          By joining you agree to receive occasional updates. No spam.
+        </p>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div>© <span id="y"></span> DonutWin • early experience • patent pending design</div>
+      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+        <a href="#crash">Crash</a>
+        <a href="#mines">Mines</a>
+        <a href="#provably">Verify</a>
+        <a href="#waitlist">Waitlist</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- helpers ----------
+    const $ = (id) => document.getElementById(id);
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const haptic = (ms) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} };
+
+    $("y").textContent = new Date().getFullYear();
+
+    // ---------- particles ----------
+    (function () {
+      const c = document.getElementById("p");
+      const ctx = c.getContext("2d");
+      const resize = () => { c.width = innerWidth; c.height = innerHeight; };
+      addEventListener("resize", resize);
+      resize();
+      const pts = Array.from({ length: 70 }, () => ({
+        x: Math.random() * c.width,
+        y: Math.random() * c.height,
+        r: Math.random() * 2.2 + 0.6,
+        vx: (Math.random() - .5) * 0.22,
+        vy: (Math.random() - .5) * 0.22,
+        a: Math.random() * 0.5 + 0.15
+      }));
+      function step() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        for (const p of pts) {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0) p.x = c.width;
+          if (p.x > c.width) p.x = 0;
+          if (p.y < 0) p.y = c.height;
+          if (p.y > c.height) p.y = 0;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(234,240,255,${p.a})`;
+          ctx.fill();
+        }
+        requestAnimationFrame(step);
+      }
+      step();
+    })();
+
+    // ---------- sound pack (WebAudio synth) ----------
+    const SND = (() => {
+      let ctx = null;
+      const master = $("sndMaster");
+      function getCtx() {
+        if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return ctx;
+      }
+      function play({ type = "sine", f = 440, f2 = null, dur = 0.12, gain = 0.10, attack = 0.01, release = 0.08, noise = false }) {
+        if (master && !master.checked) return;
+        try {
+          const ac = getCtx();
+          const t = ac.currentTime;
+          const g = ac.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(gain, t + attack);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur + release);
+          g.connect(ac.destination);
+          if (noise) {
+            const bufferSize = Math.floor(ac.sampleRate * (dur + release));
+            const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+            const src = ac.createBufferSource();
+            src.buffer = buffer;
+            const ftr = ac.createBiquadFilter();
+            ftr.type = "lowpass";
+            ftr.frequency.setValueAtTime(1200, t);
+            ftr.frequency.exponentialRampToValueAtTime(240, t + dur + release);
+            src.connect(ftr);
+            ftr.connect(g);
+            src.start(t);
+            src.stop(t + dur + release);
+            return;
+          }
+          const o = ac.createOscillator();
+          o.type = type;
+          o.frequency.setValueAtTime(f, t);
+          if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+          o.connect(g);
+          o.start(t);
+          o.stop(t + dur + release);
+        } catch (_) {}
+      }
+      return {
+        tick()  { play({ type: "sine",     f: 420, f2: 460, dur: 0.05, gain: 0.05, attack: 0.004, release: 0.05 }); },
+        cash()  { play({ type: "triangle", f: 520, f2: 740, dur: 0.10, gain: 0.09, attack: 0.008, release: 0.10 }); },
+        click() { play({ type: "sine",     f: 740, f2: 820, dur: 0.04, gain: 0.06, attack: 0.002, release: 0.05 }); },
+        pop()   { play({ type: "triangle", f: 640, f2: 880, dur: 0.06, gain: 0.07, attack: 0.004, release: 0.06 }); },
+        bust()  {
+          play({ type: "sawtooth", f: 180, f2: 95, dur: 0.12, gain: 0.12, attack: 0.004, release: 0.14 });
+          play({ noise: true, dur: 0.10, gain: 0.08, attack: 0.002, release: 0.14 });
+        }
+      };
+    })();
+
+    // ---------- crypto helpers ----------
+    const enc = new TextEncoder();
+    const toHex = (buf) => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+
+    async function sha256Hex(str) {
+      const h = await crypto.subtle.digest("SHA-256", enc.encode(str));
+      return toHex(h);
+    }
+
+    async function hmac256Hex(keyStr, msgStr) {
+      const key = await crypto.subtle.importKey(
+        "raw", enc.encode(keyStr),
+        { name: "HMAC", hash: "SHA-256" },
+        false, ["sign"]
+      );
+      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(msgStr));
+      return toHex(sig);
+    }
+
+    function u32FromHex(hex) { return parseInt(hex.slice(0, 8), 16) >>> 0; }
+
+    // ---------- seed state ----------
+    function randSeed(len = 24) {
+      const abc = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+      let s = "";
+      crypto.getRandomValues(new Uint8Array(len)).forEach(v => s += abc[v % abc.length]);
+      return s;
+    }
+
+    let clientSeed = "donutsmp-client";
+    let crashServerSeed = randSeed(32);
+    let minesServerSeed = randSeed(32);
+    let crashNonce = 0;
+    let minesNonce = 0;
+
+    async function refreshCommits() {
+      $("pfClientSeed").value = clientSeed;
+      $("pfCrashCommit").textContent = await sha256Hex(crashServerSeed);
+      $("pfMinesCommit").textContent = await sha256Hex(minesServerSeed);
+      $("pfCrashReveal").textContent = "—";
+      $("pfMinesReveal").textContent = "—";
+      $("pfCrashNonce").textContent = "—";
+      $("pfMinesNonce").textContent = "—";
+      $("pfCrashResult").textContent = "—";
+      $("pfMinesResult").textContent = "—";
+    }
+
+    // ---------- Crash: engagement-tuned distribution + provably fair ----------
+    // We keep provably-fair structure but bias mapping so higher results appear more often.
+    // This is a DEMO engagement curve, not real-money math.
+    function crashFromU32(u) {
+      // u in [0..2^32-1], x in (0,1]
+      const x = (u + 1) / 4294967296;
+      // Engagement tuning:
+      // Use a softer heavy-tail (smaller exponent) and slightly higher scale.
+      // Result: fewer instant busts, more 2x–6x, still occasional big multipliers.
+      const raw = 1 + (Math.pow(1 / x, 0.45) - 1) * 0.75;
+      return clamp(raw, 1.05, 60);
+    }
+
+    async function computeCrashPoint({ serverSeed, clientSeed, nonce }) {
+      const msg = `crash:${clientSeed}:${nonce}`;
+      const hx = await hmac256Hex(serverSeed, msg);
+      const u = u32FromHex(hx);
+      return { crashPoint: crashFromU32(u), hmac: hx };
+    }
+
+    // ---------- Mines provably fair positions ----------
+    async function computeMines({ serverSeed, clientSeed, nonce, minesCount }) {
+      const positions = new Set();
+      let i = 0;
+      while (positions.size < minesCount && i < 999) {
+        const msg = `mines:${clientSeed}:${nonce}:${i}`;
+        const hx = await hmac256Hex(serverSeed, msg);
+        for (let off = 0; off < 64 && positions.size < minesCount; off += 8) {
+          const u = parseInt(hx.slice(off, off + 8), 16) >>> 0;
+          const idx = u % 25;
+          positions.add(idx);
+        }
+        i++;
+      }
+      return [...positions].sort((a, b) => a - b);
+    }
+
+    // ---------- Crash rendering ----------
+    const crashCanvas = $("crashCanvas");
+    const crashCtx = crashCanvas.getContext("2d");
+
+    function resizeCrash() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = crashCanvas.getBoundingClientRect();
+      crashCanvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+      crashCanvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    }
+    addEventListener("resize", resizeCrash);
+    resizeCrash();
+
+    let cRunning = false, cCrashed = false, cCashed = false;
+    let cT0 = 0, cMult = 1.0, cCrashAt = 0, cPoints = [];
+    let cCountdownTimer = null;
+    let cLastTick = 0;
+    let cRecent = [];
+
+    function setCStatus(text, kind) {
+      $("cStatus").textContent = text;
+      $("cStatus").style.color = kind === "good" ? "var(--good)" : kind === "bad" ? "var(--bad)" : "rgba(234,240,255,.88)";
+    }
+
+    function setOverlay(mult, sub) {
+      $("cOverlay").innerHTML = `${mult}<small>${sub}</small>`;
+    }
+
+    function updateCrashHUD() {
+      $("cMult").textContent = `${cMult.toFixed(2)}×`;
+      $("cCash").disabled  = !(cRunning && !cCrashed && !cCashed);
+      $("cStart").disabled = cRunning || $("cNext").textContent !== "—";
+    }
+
+    function drawCrash() {
+      const w = crashCanvas.width, h = crashCanvas.height;
+      crashCtx.clearRect(0, 0, w, h);
+      crashCtx.fillStyle = "rgba(0,0,0,0.10)";
+      crashCtx.fillRect(0, 0, w, h);
+
+      // grid
+      crashCtx.strokeStyle = "rgba(255,255,255,0.08)";
+      crashCtx.lineWidth = 1;
+      for (let i = 1; i < 6; i++) {
+        const x = (w / 6) * i, y = (h / 6) * i;
+        crashCtx.beginPath(); crashCtx.moveTo(x, 0); crashCtx.lineTo(x, h); crashCtx.stroke();
+        crashCtx.beginPath(); crashCtx.moveTo(0, y); crashCtx.lineTo(w, y); crashCtx.stroke();
+      }
+
+      const pad = 22 * (window.devicePixelRatio || 1);
+      const maxM = Math.max(2, ...cPoints.map(p => p.m), cMult, cCrashAt);
+      const maxT = Math.max(4, ...cPoints.map(p => p.t), (performance.now() - cT0) / 1000);
+      const X = (t) => pad + (w - pad * 2) * (t / maxT);
+      const Y = (m) => h - pad - (h - pad * 2) * ((m - 1) / (maxM - 1));
+
+      if (cPoints.length >= 2) {
+        // glow
+        crashCtx.strokeStyle = "rgba(155,124,255,0.22)";
+        crashCtx.lineWidth = 10;
+        crashCtx.beginPath();
+        crashCtx.moveTo(X(cPoints[0].t), Y(cPoints[0].m));
+        for (const p of cPoints) crashCtx.lineTo(X(p.t), Y(p.m));
+        crashCtx.stroke();
+
+        crashCtx.strokeStyle = "rgba(110,231,255,0.85)";
+        crashCtx.lineWidth = 3;
+        crashCtx.beginPath();
+        crashCtx.moveTo(X(cPoints[0].t), Y(cPoints[0].m));
+        for (const p of cPoints) crashCtx.lineTo(X(p.t), Y(p.m));
+        crashCtx.stroke();
+
+        const p = cPoints[cPoints.length - 1];
+        crashCtx.fillStyle = cCrashed ? "rgba(255,107,107,0.95)" : "rgba(124,255,107,0.95)";
+        crashCtx.beginPath();
+        crashCtx.arc(X(p.t), Y(p.m), 5 * (window.devicePixelRatio || 1), 0, Math.PI * 2);
+        crashCtx.fill();
+      }
+    }
+
+    function multAtTime(dt) { return 1 + (Math.exp(dt * 0.55) - 1) * 0.28; }
+
+    function pushCrashRound(m) {
+      cRecent.unshift(m);
+      cRecent = cRecent.slice(0, 10);
+      $("cRounds").innerHTML = cRecent.map(v => {
+        const col = v < 1.6 ? "var(--bad)" : v >= 2 ? "var(--good)" : "rgba(234,240,255,.85)";
+        return `<div class="roundRow"><div>Round</div><div><strong style="color:${col}">${v.toFixed(2)}×</strong></div></div>`;
+      }).join("");
+    }
+
+    function startCountdown(sec = 3) {
+      let t = sec;
+      $("cNext").textContent = `${t}s`;
+      setOverlay("1.00×", `Next round in ${t}s…`);
+      setCStatus("Waiting", "");
+      updateCrashHUD();
+      if (cCountdownTimer) clearInterval(cCountdownTimer);
+      cCountdownTimer = setInterval(() => {
+        t--;
+        if (t <= 0) {
+          clearInterval(cCountdownTimer);
+          cCountdownTimer = null;
+          $("cNext").textContent = "—";
+          startCrashRound();
+          return;
+        }
+        $("cNext").textContent = `${t}s`;
+        setOverlay("1.00×", `Next round in ${t}s…`);
+      }, 1000);
+    }
+
+    async function startCrashRound() {
+      crashNonce++;
+      const auto = clamp(parseFloat($("cAuto").value || "2.0"), 1.01, 100);
+      const res = await computeCrashPoint({ serverSeed: crashServerSeed, clientSeed, nonce: crashNonce });
+      cCrashAt  = res.crashPoint;
+      cRunning  = true;
+      cCrashed  = false;
+      cCashed   = false;
+      cPoints   = [{ t: 0, m: 1.0 }];
+      cMult     = 1.0;
+      cT0       = performance.now();
+      $("cMsg").textContent = "";
+      setCStatus("Running", "good");
+      setOverlay("1.00×", "Cash out before it crashes");
+      haptic(18);
+      SND.cash();
+      updateCrashHUD();
+      drawCrash();
+
+      // proof placeholders
+      $("pfCrashNonce").textContent  = String(crashNonce);
+      $("pfCrashResult").textContent = "—";
+      $("pfCrashReveal").textContent = "—";
+
+      const autoBetEnabled = $("cAutoBet").checked;
+
+      function loop() {
+        if (!cRunning) return;
+        const now = performance.now();
+        const dt  = (now - cT0) / 1000;
+        cMult = multAtTime(dt);
+
+        if (!cCashed && cMult >= auto) { cashCrash(true); return; }
+
+        cPoints.push({ t: dt, m: cMult });
+
+        if (cMult >= cCrashAt) {
+          cCrashed = true;
+          cRunning = false;
+          setCStatus("Crashed", "bad");
+          setOverlay(`${cCrashAt.toFixed(2)}×`, "CRASHED");
+          $("cMsg").textContent = "💥 The round crashed.";
+          pushCrashRound(cCrashAt);
+          haptic(120);
+          SND.bust();
+          drawCrash();
+          updateCrashHUD();
+          $("pfCrashReveal").textContent = crashServerSeed;
+          $("pfCrashResult").textContent = `${cCrashAt.toFixed(8)}×`;
+          if (autoBetEnabled) startCountdown(3);
+          return;
+        }
+
+        if ($("sndMaster").checked && now - cLastTick > 360) { cLastTick = now; SND.tick(); }
+        setOverlay(`${cMult.toFixed(2)}×`, "Cash out before it crashes");
+        drawCrash();
+        updateCrashHUD();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    function cashCrash(fromAuto = false) {
+      if (!cRunning || cCrashed || cCashed) return;
+      cCashed  = true;
+      cRunning = false;
+      setCStatus("Cashed out", "good");
+      setOverlay(`${cMult.toFixed(2)}×`, fromAuto ? "Auto cashout" : "Cashed out");
+      $("cMsg").textContent = `✅ Cashout at ${cMult.toFixed(2)}× (demo).`;
+      pushCrashRound(cMult);
+      haptic(40);
+      SND.cash();
+      updateCrashHUD();
+      drawCrash();
+      $("pfCrashReveal").textContent = crashServerSeed;
+      $("pfCrashResult").textContent = `${cCrashAt.toFixed(8)}×`;
+      if ($("cAutoBet").checked) startCountdown(3);
+    }
+
+    $("cStart").addEventListener("click", () => { if ($("cNext").textContent !== "—") return; startCountdown(3); });
+    $("cCash").addEventListener("click",  () => cashCrash(false));
+
+    // ---------- Mines ----------
+    let mMineCount = 5;
+    let mMines     = new Set();
+    let mRevealed  = new Set();
+    let mPlaying   = false;
+    let mBusted    = false;
+    let mSafe      = 0;
+    let mMult      = 1.0;
+    let mWins      = [];
+
+    const names = [
+      "alex","bori","c4rl","d3n","elio","f1nn","gogo","h4nk","ivan","j4ke","k1ra","l3o",
+      "mark","niko","oliv","p4ul","qu1n","r4yo","sami","t0ny","ugo","v1kt","w1ll","x4vi",
+      "yuri","z3d","andi","b3n","cami","d0ra","enzo","f4bi","g1li","hugo","i3an","juno",
+      "k4rl","luka","m4te","n0ah","ori","p3pe","qbit","r1ck","s3th","timi","ul1x","v4n",
+      "wade","x1on","y4ra","zane","a1ko","bobi","c0dy","d4ve","e1li","fede","g4ry","h1ro",
+      "ivan2","j4mes","kobi","l0rd","milo","n3ro","otto","p1er","q0ra","rune","s0lo","t4ro",
+      "u1go","vlad","w0lf","xeno2","y0shi","z4ck","arlo","b4rt","cleo","dimi2","e4rn","f0xy",
+      "glen","h4ze","ingo","j0el","k4im","lars","m0de","nash","o1af","p4x","quin","r4ms",
+      "sven","toby","u4lf","v1be","wren","x4rt","yves","z0ra","ares","b1rd","c4to","d0nk",
+      "ecko","f1re","g0ld","hans","iota","j4zz","k0re","l1me","m4x","n0te","onyx","p1xl"
+    ];
+
+    function calcMinesMult(safe, minesN) {
+      const risk  = minesN / 25;
+      const base  = 1 + safe * (0.16 + risk * 0.26);
+      const accel = 1 + (safe * safe) * (0.0018 + risk * 0.0052);
+      return Math.max(1, base * accel);
+    }
+
+    function setMStatus(text, kind) {
+      $("mStatus").textContent = text;
+      $("mStatus").style.color = kind === "good" ? "var(--good)" : kind === "bad" ? "var(--bad)" : "rgba(234,240,255,.88)";
+    }
+
+    function updateMinesHUD() {
+      $("mSafe").textContent = String(mSafe);
+      $("mMult").textContent = `${mMult.toFixed(2)}×`;
+      $("mCash").disabled    = !(mPlaying && !mBusted && mSafe > 0);
+    }
+
+    function renderMinesGrid() {
+      const grid = $("mGrid");
+      grid.innerHTML = "";
+      for (let i = 0; i < 25; i++) {
+        const b = document.createElement("button");
+        b.type      = "button";
+        b.className = "mTile";
+        b.dataset.i = String(i);
+        b.addEventListener("click", () => onMineTile(b));
+        grid.appendChild(b);
+      }
+    }
+
+    async function startMines() {
+      mMineCount = clamp(parseInt($("mMines").value || "5", 10), 1, 24);
+      minesNonce++;
+      mPlaying  = true;
+      mBusted   = false;
+      mSafe     = 0;
+      mMult     = 1.0;
+      mRevealed = new Set();
+      const pos = await computeMines({ serverSeed: minesServerSeed, clientSeed, nonce: minesNonce, minesCount: mMineCount });
+      mMines = new Set(pos);
+      $("mMsg").textContent = "";
+      setMStatus("Playing", "good");
+      renderMinesGrid();
+      updateMinesHUD();
+      haptic(18);
+      SND.cash();
+      $("pfMinesNonce").textContent  = String(minesNonce);
+      $("pfMinesReveal").textContent = "—";
+      $("pfMinesResult").textContent = "—";
+    }
+
+    function revealAllMines() {
+      [...$("mGrid").children].forEach((el) => {
+        const i = parseInt(el.dataset.i, 10);
+        if (mRevealed.has(i)) return;
+        if (mMines.has(i)) {
+          el.classList.add("revealed", "mine");
+          el.innerHTML = '<span class="mIcon">💣</span>';
+        } else {
+          el.classList.add("revealed", "safe");
+          el.innerHTML = '<span class="mIcon">💎</span>';
+        }
+      });
+    }
+
+    function onMineTile(el) {
+      if (!mPlaying || mBusted) return;
+      const i = parseInt(el.dataset.i, 10);
+      if (mRevealed.has(i)) return;
+      mRevealed.add(i);
+
+      if (mMines.has(i)) {
+        mBusted = true;
+        el.classList.add("revealed", "mine");
+        el.innerHTML = '<span class="mIcon">💣</span>';
+        setMStatus("Busted", "bad");
+        $("mMsg").textContent = "💥 You hit a mine. Reset or start again.";
+        revealAllMines();
+        updateMinesHUD();
+        haptic(120);
+        SND.bust();
+        $("pfMinesReveal").textContent = minesServerSeed;
+        $("pfMinesResult").textContent = [...mMines].sort((a, b) => a - b).join(", ");
+        return;
+      }
+
+      mSafe++;
+      mMult = calcMinesMult(mSafe, mMineCount);
+      el.classList.add("revealed", "safe");
+      el.innerHTML = '<span class="mIcon">💎</span>';
+      $("mMsg").textContent = mSafe === 1 ? "Nice. Cash out now or keep going." : "Keep going… or cash out.";
+      setMStatus("Playing", "good");
+      updateMinesHUD();
+      haptic(18);
+      SND.pop();
+
+      if (mSafe >= (25 - mMineCount)) {
+        setMStatus("Cleared!", "good");
+        $("mMsg").textContent = "✅ You cleared the board! (win)";
+        mPlaying = false;
+        revealAllMines();
+        updateMinesHUD();
+        haptic(80);
+        SND.cash();
+        $("pfMinesReveal").textContent = minesServerSeed;
+        $("pfMinesResult").textContent = [...mMines].sort((a, b) => a - b).join(", ");
+      }
+    }
+
+    function pushMineWin(user, mult) {
+      mWins.unshift({ user, mult });
+      mWins = mWins.slice(0, 8);
+      $("mWins").innerHTML = mWins.map(w => {
+        const col = w.mult >= 2 ? "var(--good)" : "rgba(234,240,255,.85)";
+        return `<div class="roundRow"><div><strong>${w.user}</strong></div><div><strong style="color:${col}">${w.mult.toFixed(2)}×</strong></div></div>`;
+      }).join("");
+    }
+
+    function fakeMineWin() {
+      const minesN = [3, 5, 8, 12][Math.floor(Math.random() * 4)];
+      const safe   = Math.floor(Math.random() * 7) + 1;
+      const m      = calcMinesMult(safe, minesN);
+      const user   = names[Math.floor(Math.random() * names.length)];
+      pushMineWin(user, m);
+    }
+
+    setInterval(() => { if (document.visibilityState === "visible") fakeMineWin(); }, 2300);
+
+    $("mStart").addEventListener("click", startMines);
+    $("mCash").addEventListener("click", () => {
+      if (!mPlaying || mBusted || mSafe === 0) return;
+      mPlaying = false;
+      setMStatus("Cashed out", "good");
+      $("mMsg").textContent = `✅ Cashout at ${mMult.toFixed(2)}× (demo).`;
+      revealAllMines();
+      updateMinesHUD();
+      haptic(40);
+      SND.cash();
+      pushMineWin("you", mMult);
+      $("pfMinesReveal").textContent = minesServerSeed;
+      $("pfMinesResult").textContent = [...mMines].sort((a, b) => a - b).join(", ");
+    });
+    $("mReset").addEventListener("click", () => {
+      mPlaying  = false;
+      mBusted   = false;
+      mSafe     = 0;
+      mMult     = 1.0;
+      mMines    = new Set();
+      mRevealed = new Set();
+      $("mMsg").textContent = "";
+      setMStatus("Ready", "");
+      renderMinesGrid();
+      updateMinesHUD();
+    });
+
+    // ---------- verification buttons ----------
+    $("pfNewSeeds").addEventListener("click", async () => {
+      clientSeed       = $("pfClientSeed").value.trim() || "donutsmp-client";
+      crashServerSeed  = randSeed(32);
+      minesServerSeed  = randSeed(32);
+      crashNonce       = 0;
+      minesNonce       = 0;
+      await refreshCommits();
+      $("cMsg").textContent = "✅ New seeds generated.";
+      $("mMsg").textContent = "✅ New seeds generated.";
+      setTimeout(() => { $("cMsg").textContent = ""; $("mMsg").textContent = ""; }, 1800);
+    });
+
+    $("pfCrashVerify").addEventListener("click", async () => {
+      if ($("pfCrashReveal").textContent === "—" || $("pfCrashNonce").textContent === "—") {
+        $("pfCrashResult").textContent = "No completed crash round to verify yet.";
+        return;
+      }
+      const s   = $("pfCrashReveal").textContent;
+      const n   = parseInt($("pfCrashNonce").textContent, 10);
+      const cs  = $("pfClientSeed").value.trim() || clientSeed;
+      const res = await computeCrashPoint({ serverSeed: s, clientSeed: cs, nonce: n });
+      $("pfCrashResult").textContent = `${res.crashPoint.toFixed(8)}×  |  HMAC: ${res.hmac}`;
+    });
+
+    $("pfMinesVerify").addEventListener("click", async () => {
+      if ($("pfMinesReveal").textContent === "—" || $("pfMinesNonce").textContent === "—") {
+        $("pfMinesResult").textContent = "No completed mines round to verify yet.";
+        return;
+      }
+      const s          = $("pfMinesReveal").textContent;
+      const n          = parseInt($("pfMinesNonce").textContent, 10);
+      const cs         = $("pfClientSeed").value.trim() || clientSeed;
+      const minesCount = clamp(parseInt($("mMines").value || "5", 10), 1, 24);
+      const pos        = await computeMines({ serverSeed: s, clientSeed: cs, nonce: n, minesCount });
+      $("pfMinesResult").textContent = pos.join(", ");
+    });
+
+    $("pfClientSeed").addEventListener("change", () => {
+      clientSeed = $("pfClientSeed").value.trim() || clientSeed;
+    });
+
+    // ---------- waitlist ----------
+    const form = $("wlForm");
+    const msg  = $("wlMsg");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = $("email").value.trim().toLowerCase();
+      if (!email) return;
+      const key = "donutwin_waitlist";
+      const arr = JSON.parse(localStorage.getItem(key) || "[]");
+      if (!arr.includes(email)) arr.push(email);
+      localStorage.setItem(key, JSON.stringify(arr));
+      msg.textContent = "✅ Added! We'll email you at launch.";
+      form.reset();
+      setTimeout(() => msg.textContent = "", 3500);
+      haptic(18);
+      SND.click();
+    });
+
+    // ---------- init ----------
+    (async function init() {
+      for (let i = 0; i < 4; i++) fakeMineWin();
+      // crash initial rounds list
+      pushCrashRound(1.62);
+      pushCrashRound(2.44);
+      pushCrashRound(3.18);
+      pushCrashRound(6.40);
+      renderMinesGrid();
+      updateMinesHUD();
+      await refreshCommits();
+      setOverlay("1.00×", "Waiting for round…");
+      setCStatus("Ready", "");
+      $("cNext").textContent = "—";
+      drawCrash();
+      updateCrashHUD();
+    })();
+  </script>
+</body>
+</html>
