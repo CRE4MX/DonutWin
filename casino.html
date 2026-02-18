@@ -1138,7 +1138,7 @@
       $("dMarker").style.left = roll + "%";
       const resultEl = $("dResult");
       resultEl.classList.remove("pop");
-      void resultEl.offsetWidth;
+      void resultEl.offsetWidth; // force reflow to restart CSS animation
       resultEl.textContent = roll.toFixed(2);
       resultEl.classList.add("pop");
       $("dLast").textContent = roll.toFixed(2);
@@ -1329,7 +1329,7 @@
 
       function animate() {
         const elapsed = Date.now() - startTime;
-        // ease-in-out for smoother motion
+        // quadratic ease-in-out: accelerates then decelerates for natural motion
         const rawT = Math.min(elapsed / animDuration, 1);
         animState.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
         drawPlinkoBoard(result.col, animState);
