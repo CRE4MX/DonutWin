@@ -50,7 +50,12 @@
     /* nav bar */
     .nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 0 18px; gap: 12px; flex-wrap: wrap; }
     .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .logo { width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(var(--accent), var(--accent2), var(--accent)); flex-shrink: 0; }
+    .logo { position: relative; width: 36px; height: 36px; flex-shrink: 0; }
+    .logo .ring { position: absolute; inset: 0; border-radius: 50%; border: 9px solid #d4894f; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2); }
+    .logo .frost { position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; background: linear-gradient(135deg, #ff8cd9 0%, #ff6bb5 50%, #ff4d9f 100%); box-shadow: inset 0 1px 3px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.2); }
+    .logo .spr { position: absolute; top: 8px; left: 8px; right: 8px; bottom: 8px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, #fff 0deg 20deg, transparent 20deg 40deg, #ffeb3b 40deg 60deg, transparent 60deg 80deg, #7c6fff 80deg 100deg, transparent 100deg 120deg); opacity: 0.7; }
+    .logo .shine { position: absolute; top: 3px; left: 9px; width: 12px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.6); transform: rotate(-35deg); }
+    .logo .center { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.6) 100%); transform: translate(-50%, -50%); }
     .brand h1 { font-size: 20px; letter-spacing: -0.4px; line-height: 1; }
     .brand h1 span { color: var(--accent); }
 
@@ -296,7 +301,13 @@
     <!-- nav -->
     <div class="nav">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <div class="logo" aria-hidden="true">
+          <div class="ring"></div>
+          <div class="frost"></div>
+          <div class="spr"></div>
+          <div class="shine"></div>
+          <div class="center"></div>
+        </div>
         <h1>Donut<span>Win</span></h1>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
