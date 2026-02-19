@@ -262,6 +262,7 @@
     .stat { padding: 16px; background: var(--surface); text-align: center; }
     .stat .k { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
     .stat .v { font-size: 20px; font-weight: 700; }
+    .mobileOnly { display: none; }
     .sub { color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
     .ctaRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
     .pulse { display: inline-flex; align-items: center; gap: 4px; }
@@ -278,7 +279,8 @@
     @media (max-width: 760px) {
       .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap, .slotsWrap { grid-template-columns: 1fr; }
       .crashSide, .hero { grid-template-columns: 1fr; }
-      .hero > .card:last-child { order: -1; }
+      .hero > .card:last-child { display: none; }
+      .mobileOnly { display: grid; margin-top: 12px; }
 
       /* --- handheld improvements --- */
       body { font-size: 15px; -webkit-text-size-adjust: 100%; }
@@ -423,11 +425,15 @@
     <div class="hero section">
       <div class="card pad">
         <span class="tag"><span class="dot"></span> true experience • fast gameplay • verifiable</span>
+        <div class="statGrid mobileOnly">
+          <div class="stat"><div class="k">Games available</div><div class="v">6</div></div>
+          <div class="stat"><div class="k">Mode</div><div class="v">Virtual 🪙</div></div>
+          <div class="stat"><div class="k">Engagement</div><div class="v">High</div></div>
+          <div class="stat"><div class="k">Fairness</div><div class="v">Verifiable</div></div>
+        </div>
         <h2 style="font-size:22px; margin:12px 0 0;">DonutWin<br>Online Gambling Since 2026</h2>
         <p class="sub">Six provably-fair casino games with real-time verification. Built for adrenaline, designed for trust.</p>
         <div class="ctaRow">
-          <button type="button" class="btn primary" onclick="switchTab('crash')">Play Crash</button>
-          <button type="button" class="btn" onclick="switchTab('plinko')">Play Plinko</button>
           <span class="mini"><span class="pulse"><i></i></span> building in public</span>
         </div>
         <p class="mini">Tip: enable sound!</p>
