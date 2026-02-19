@@ -289,6 +289,7 @@
       .balanceBar { padding: 10px 14px; gap: 10px; flex-wrap: wrap; }
       .balanceBar .balAmt { font-size: 20px; }
       .balanceBar .sessionStat { font-size: 10px; }
+      .balResetBtn { display: none; }
 
       /* tab bar mobile */
       .tabBar { gap: 4px; padding: 5px; }
@@ -431,6 +432,7 @@
       <span class="sessionStat">Streak: <b id="ssStreak">0</b></span>
       <span class="sessionStat">Best: <b id="ssBest">-</b></span>
       <span class="sessionStat">P&L: <b id="ssPnl">0</b></span>
+      <span class="sessionStat">Wagered: <b id="ssWagered">0</b></span>
       <button type="button" class="balResetBtn" id="balReset" title="Reset balance to 1,000">↻ Reset</button>
     </div>
 
@@ -1102,6 +1104,8 @@
     let balance = parseInt(localStorage.getItem("dw_balance") || "1000", 10);
     if (isNaN(balance) || balance < 0) balance = 1000;
     const startingBalance = balance;
+    let totalWagered = parseInt(localStorage.getItem("dw_wagered") || "0", 10);
+    if (isNaN(totalWagered) || totalWagered < 0) totalWagered = 0;
     let sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
 
     function saveBalance() { localStorage.setItem("dw_balance", balance); }
@@ -1113,6 +1117,7 @@
       const pnl = balance - startingBalance;
       $("ssPnl").textContent = (pnl >= 0 ? "+" : "") + pnl.toLocaleString();
       $("ssPnl").style.color = pnl >= 0 ? "var(--good)" : "var(--bad)";
+      $("ssWagered").textContent = totalWagered.toLocaleString();
     }
     function flashBal(win) {
       const el = $("balDisplay");
@@ -1127,7 +1132,7 @@
         toast("Balance automatically reset to 1,000 🪙", "info");
       }
       if (amount > balance || amount < 1) { toast("Insufficient balance!", "error"); return false; }
-      balance -= amount; saveBalance(); updateBalDisplay(); return true;
+      balance -= amount; totalWagered += amount; localStorage.setItem("dw_wagered", totalWagered); saveBalance(); updateBalDisplay(); return true;
     }
     function creditWin(amount, mult) {
       balance += amount; saveBalance();
