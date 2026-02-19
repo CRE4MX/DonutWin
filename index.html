@@ -289,6 +289,7 @@
       .balanceBar { padding: 10px 14px; gap: 10px; flex-wrap: wrap; }
       .balanceBar .balAmt { font-size: 20px; }
       .balanceBar .sessionStat { font-size: 10px; }
+      .balResetBtn { display: none; }
 
       /* tab bar mobile */
       .tabBar { gap: 4px; padding: 5px; }
@@ -347,10 +348,10 @@
     }
 
     /* login gate */
-    #loginGate { position: fixed; inset: 0; z-index: 99999; background: #fff; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease; }
+    #loginGate { position: fixed; inset: 0; z-index: 99999; background: #0d0f1a; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease; }
     #loginGate.drop { transform: translateY(-110%); opacity: 0; pointer-events: none; }
     #loginGate .login-box { text-align: center; }
-    #loginGate .login-box input { padding: 12px 18px; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; outline: none; text-align: center; width: 220px; }
+    #loginGate .login-box input { padding: 12px 18px; font-size: 16px; border: 2px solid rgba(255,255,255,0.15); border-radius: 8px; outline: none; text-align: center; width: 220px; background: rgba(255,255,255,0.06); color: rgba(234,240,255,0.92); }
     #loginGate .login-box input:focus { border-color: #7c6fff; }
     #loginGate .login-box button { display: block; margin: 14px auto 0; padding: 10px 32px; font-size: 14px; font-weight: 700; border: none; border-radius: 8px; background: #7c6fff; color: #fff; cursor: pointer; }
     #loginGate .login-box button:hover { filter: brightness(1.15); }
@@ -431,6 +432,7 @@
       <span class="sessionStat">Streak: <b id="ssStreak">0</b></span>
       <span class="sessionStat">Best: <b id="ssBest">-</b></span>
       <span class="sessionStat">P&L: <b id="ssPnl">0</b></span>
+      <span class="sessionStat">Wagered: <b id="ssWagered">0</b></span>
       <button type="button" class="balResetBtn" id="balReset" title="Reset balance to 1,000">↻ Reset</button>
     </div>
 
@@ -825,6 +827,22 @@
   <div class="toastContainer" id="toastContainer"></div>
 
   <script>
+    // ==================== SOURCE PROTECTION ====================
+    // Disable right-click context menu
+    document.addEventListener("contextmenu", function(e) { e.preventDefault(); });
+    // Block keyboard shortcuts that expose source / DevTools
+    document.addEventListener("keydown", function(e) {
+      // F12
+      if (e.key === "F12" || e.keyCode === 123) { e.preventDefault(); return false; }
+      // Ctrl+U (View Source), Ctrl+Shift+I/J/C (DevTools)
+      if (e.ctrlKey && (
+        e.key === "u" || e.key === "U" ||
+        (e.shiftKey && (e.key === "I" || e.key === "i" ||
+                        e.key === "J" || e.key === "j" ||
+                        e.key === "C" || e.key === "c"))
+      )) { e.preventDefault(); return false; }
+    });
+
     // ==================== LOGIN GATE ====================
     function attemptLogin() {
       var pwd = document.getElementById("gatePwd").value;
@@ -1086,6 +1104,8 @@
     let balance = parseInt(localStorage.getItem("dw_balance") || "1000", 10);
     if (isNaN(balance) || balance < 0) balance = 1000;
     const startingBalance = balance;
+    let totalWagered = parseInt(localStorage.getItem("dw_wagered") || "0", 10);
+    if (isNaN(totalWagered) || totalWagered < 0) totalWagered = 0;
     let sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
 
     function saveBalance() { localStorage.setItem("dw_balance", balance); }
@@ -1097,6 +1117,7 @@
       const pnl = balance - startingBalance;
       $("ssPnl").textContent = (pnl >= 0 ? "+" : "") + pnl.toLocaleString();
       $("ssPnl").style.color = pnl >= 0 ? "var(--good)" : "var(--bad)";
+      $("ssWagered").textContent = totalWagered.toLocaleString();
     }
     function flashBal(win) {
       const el = $("balDisplay");
@@ -1111,7 +1132,7 @@
         toast("Balance automatically reset to 1,000 🪙", "info");
       }
       if (amount > balance || amount < 1) { toast("Insufficient balance!", "error"); return false; }
-      balance -= amount; saveBalance(); updateBalDisplay(); return true;
+      balance -= amount; totalWagered += amount; localStorage.setItem("dw_wagered", totalWagered); saveBalance(); updateBalDisplay(); return true;
     }
     function creditWin(amount, mult) {
       balance += amount; saveBalance();
@@ -1784,7 +1805,7 @@
             const bucketEls = $("plBuckets").children;
             if (bucketEls[result.col]) {
               bucketEls[result.col].style.transform = "scale(1.3)";
-              setTimeout(() => { if (bucketEls[result.col]) bucketEls[result.col].style.transform = ""; }, 800);
+              setTimeout(() => { if (bucketEls[result.col]) bucketEls[result.col].style.transform = ""; }, 250);
             }
             resolve();
           }
