@@ -345,9 +345,28 @@
       .crashCanvasWrap { aspect-ratio: 1.8/1; }
       .betRow .input { max-width: 80px; }
     }
+
+    /* login gate */
+    #loginGate { position: fixed; inset: 0; z-index: 99999; background: #fff; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease; }
+    #loginGate.drop { transform: translateY(-110%); opacity: 0; pointer-events: none; }
+    #loginGate .login-box { text-align: center; }
+    #loginGate .login-box input { padding: 12px 18px; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; outline: none; text-align: center; width: 220px; }
+    #loginGate .login-box input:focus { border-color: #7c6fff; }
+    #loginGate .login-box button { display: block; margin: 14px auto 0; padding: 10px 32px; font-size: 14px; font-weight: 700; border: none; border-radius: 8px; background: #7c6fff; color: #fff; cursor: pointer; }
+    #loginGate .login-box button:hover { filter: brightness(1.15); }
+    #loginGate .login-err { color: #ff4444; font-size: 13px; margin-top: 10px; min-height: 20px; font-family: sans-serif; }
   </style>
 </head>
 <body>
+  <!-- login gate -->
+  <div id="loginGate">
+    <div class="login-box">
+      <input type="password" id="gatePwd" placeholder="Enter password" autofocus>
+      <button id="gateBtn" onclick="attemptLogin()">Enter</button>
+      <div class="login-err" id="gateErr"></div>
+    </div>
+  </div>
+
   <canvas id="p"></canvas>
   <!-- floating donuts -->
   <div class="donuts" aria-hidden="true">
@@ -806,6 +825,41 @@
   <div class="toastContainer" id="toastContainer"></div>
 
   <script>
+    // ==================== LOGIN GATE ====================
+    function attemptLogin() {
+      var pwd = document.getElementById("gatePwd").value;
+      var err = document.getElementById("gateErr");
+      var adminPass = "dimitr";
+      var normalPass = "D107";
+
+      if (pwd === adminPass) {
+        document.getElementById("loginGate").classList.add("drop");
+        return;
+      }
+
+      if (pwd === normalPass) {
+        // Check time: allowed between 15:35 and 08:15 GMT+2 (i.e. 13:35–06:15 UTC)
+        var now = new Date();
+        var utcH = now.getUTCHours();
+        var utcM = now.getUTCMinutes();
+        var totalMin = utcH * 60 + utcM;
+        // 15:35 GMT+2 = 13:35 UTC = 815 min; 08:15 GMT+2 = 06:15 UTC = 375 min
+        // Allowed window wraps midnight: 815..1440 OR 0..375
+        var allowed = (totalMin >= 815) || (totalMin < 375);
+        if (allowed) {
+          document.getElementById("loginGate").classList.add("drop");
+        } else {
+          err.textContent = "Access not available at this time.";
+        }
+        return;
+      }
+
+      err.textContent = "Incorrect password.";
+    }
+    document.getElementById("gatePwd").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") attemptLogin();
+    });
+
     // ==================== HELPERS ====================
     const $ = (id) => document.getElementById(id);
     const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -1530,15 +1584,15 @@
 
     // ==================== PLINKO GAME ====================
     const PLINKO_MULTS = {
-      low:    { 8: [5,2,1.2,1,0.7,1,1.2,2,5],
+      low:    { 8: [4.6,1.8,1.1,0.9,0.6,0.9,1.1,1.8,4.6],
                 12: [9,3,1.5,1.2,1,0.9,0.7,0.9,1,1.2,1.5,3,9],
                 16: [13,8,2,1.5,1.3,1.1,0.9,0.8,0.7,0.8,0.9,1.1,1.3,1.5,2,8,13] },
-      medium: { 8: [11,3.5,1.5,1,0.6,1,1.5,3.5,11],
-                12: [25,9,4,2,1.2,0.8,0.5,0.8,1.2,2,4,9,25],
-                16: [88,33,9,4.5,2.5,1.5,1.2,0.8,0.5,0.8,1.2,1.5,2.5,4.5,9,33,88] },
-      high:   { 8: [29,7,2,0.7,0.4,0.7,2,7,29],
-                12: [170,26,9,2.5,1,0.4,0.3,0.4,1,2.5,9,26,170],
-                16: [1000,130,26,8,4,2,0.4,0.3,0.2,0.3,0.4,2,4,8,26,130,1000] }
+      medium: { 8: [8.6,2.8,1.2,0.8,0.5,0.8,1.2,2.8,8.6],
+                12: [21,7.5,3.5,1.7,1,0.7,0.4,0.7,1,1.7,3.5,7.5,21],
+                16: [75,28,7.5,3.8,2.1,1.3,1,0.7,0.4,0.7,1,1.3,2.1,3.8,7.5,28,75] },
+      high:   { 8: [18,4.5,1.3,0.4,0.3,0.4,1.3,4.5,18],
+                12: [130,20,7,1.9,0.7,0.3,0.2,0.3,0.7,1.9,7,20,130],
+                16: [920,120,24,7,3.5,1.8,0.4,0.3,0.2,0.3,0.4,1.8,3.5,7,24,120,920] }
     };
     let plDropCount = 0, plAnimating = false;
     const plHistoryArr = [];
