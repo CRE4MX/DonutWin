@@ -347,10 +347,10 @@
     }
 
     /* login gate */
-    #loginGate { position: fixed; inset: 0; z-index: 99999; background: #fff; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease; }
+    #loginGate { position: fixed; inset: 0; z-index: 99999; background: #0d0f1a; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease; }
     #loginGate.drop { transform: translateY(-110%); opacity: 0; pointer-events: none; }
     #loginGate .login-box { text-align: center; }
-    #loginGate .login-box input { padding: 12px 18px; font-size: 16px; border: 2px solid #ccc; border-radius: 8px; outline: none; text-align: center; width: 220px; }
+    #loginGate .login-box input { padding: 12px 18px; font-size: 16px; border: 2px solid rgba(255,255,255,0.15); border-radius: 8px; outline: none; text-align: center; width: 220px; background: rgba(255,255,255,0.06); color: rgba(234,240,255,0.92); }
     #loginGate .login-box input:focus { border-color: #7c6fff; }
     #loginGate .login-box button { display: block; margin: 14px auto 0; padding: 10px 32px; font-size: 14px; font-weight: 700; border: none; border-radius: 8px; background: #7c6fff; color: #fff; cursor: pointer; }
     #loginGate .login-box button:hover { filter: brightness(1.15); }
