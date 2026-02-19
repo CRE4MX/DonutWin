@@ -278,7 +278,7 @@
     @media (max-width: 760px) {
       .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap, .slotsWrap { grid-template-columns: 1fr; }
       .crashSide, .hero { grid-template-columns: 1fr; }
-      .hero > .card:last-child { order: -1; }
+      .hero > .card:last-child { order: 1; }
 
       /* --- handheld improvements --- */
       body { font-size: 15px; -webkit-text-size-adjust: 100%; }
@@ -426,8 +426,6 @@
         <h2 style="font-size:22px; margin:12px 0 0;">The highest-budget, dopamine-tuned<br>gaming experience of 2026.</h2>
         <p class="sub">Five provably-fair casino games with real-time verification. Built for adrenaline, designed for trust.</p>
         <div class="ctaRow">
-          <button type="button" class="btn primary" onclick="switchTab('crash')">Play Crash</button>
-          <button type="button" class="btn" onclick="switchTab('plinko')">Play Plinko</button>
           <span class="mini"><span class="pulse"><i></i></span> building in public</span>
         </div>
         <p class="mini">Tip: enable sound, then spam rounds. It's tuned for "one more".</p>
