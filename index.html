@@ -345,13 +345,9 @@
       .toast.fade-out { opacity: 0; transform: translateY(20px) scale(0.98); }
       @keyframes toastSlideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-      /* plinko mobile: stack controls vertically for better fit */
-      .plinkoWrap .crashTop { flex-direction: column; align-items: stretch; gap: 8px; }
+      /* plinko mobile: controls wrap naturally */
+      .plinkoWrap .crashTop { display: flex; flex-wrap: wrap; flex-direction: row; align-items: center; gap: 8px; }
       .plinkoWrap .crashTop > .betRow { width: 100%; }
-      .plinkoWrap .crashTop > .mini,
-      .plinkoWrap .crashTop > select.input,
-      .plinkoWrap .crashTop > .btn { width: 100%; text-align: center; box-sizing: border-box; }
-      .plinkoWrap .crashTop { display: flex; flex-wrap: wrap; flex-direction: row; }
       .plinkoWrap .crashTop > .mini { width: auto; flex-shrink: 0; }
       .plinkoWrap .crashTop > select.input { flex: 1; min-width: 0; max-width: none; }
       .plinkoWrap .crashTop > .btn { flex: 1; min-width: 80px; justify-content: center; }
