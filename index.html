@@ -825,6 +825,22 @@
   <div class="toastContainer" id="toastContainer"></div>
 
   <script>
+    // ==================== SOURCE PROTECTION ====================
+    // Disable right-click context menu
+    document.addEventListener("contextmenu", function(e) { e.preventDefault(); });
+    // Block keyboard shortcuts that expose source / DevTools
+    document.addEventListener("keydown", function(e) {
+      // F12
+      if (e.key === "F12" || e.keyCode === 123) { e.preventDefault(); return false; }
+      // Ctrl+U (View Source), Ctrl+Shift+I/J/C (DevTools)
+      if (e.ctrlKey && (
+        e.key === "u" || e.key === "U" ||
+        (e.shiftKey && (e.key === "I" || e.key === "i" ||
+                        e.key === "J" || e.key === "j" ||
+                        e.key === "C" || e.key === "c"))
+      )) { e.preventDefault(); return false; }
+    });
+
     // ==================== LOGIN GATE ====================
     function attemptLogin() {
       var pwd = document.getElementById("gatePwd").value;
