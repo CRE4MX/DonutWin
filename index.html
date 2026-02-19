@@ -263,6 +263,8 @@
     .stat .k { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
     .stat .v { font-size: 20px; font-weight: 700; }
     .mobileOnly { display: none; }
+    .mobileHeading { display: none; }
+    .sessionStats { display: contents; }
     .sub { color: var(--muted); font-size: 13px; margin: 10px 0 16px; }
     .ctaRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
     .pulse { display: inline-flex; align-items: center; gap: 4px; }
@@ -281,6 +283,8 @@
       .crashSide, .hero { grid-template-columns: 1fr; }
       .hero > .card:last-child { display: none; }
       .mobileOnly { display: grid; margin-top: 12px; }
+      .mobileHeading { display: block; }
+      .desktopHeading { display: none; }
 
       /* --- handheld improvements --- */
       body { font-size: 15px; -webkit-text-size-adjust: 100%; }
@@ -291,10 +295,11 @@
       .brand h1 { font-size: 18px; }
 
       /* balance bar mobile */
-      .balanceBar { padding: 10px 14px; gap: 10px; flex-wrap: wrap; }
-      .balanceBar .balAmt { font-size: 20px; }
+      .balanceBar { padding: 14px 14px 10px; gap: 8px; flex-wrap: wrap; }
+      .balanceBar .balAmt { font-size: 26px; flex: 1; }
       .balanceBar .sessionStat { font-size: 10px; }
       .balResetBtn { display: none; }
+      .sessionStats { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 2px; }
 
       /* tab bar mobile */
       .tabBar { gap: 4px; padding: 5px; }
@@ -425,18 +430,19 @@
     <div class="hero section">
       <div class="card pad">
         <span class="tag"><span class="dot"></span> true experience • fast gameplay • verifiable</span>
+        <h2 class="mobileHeading" style="font-size:22px; margin:12px 0 0;">All Your Favourite Games<br>in One Place</h2>
+        <h2 class="desktopHeading" style="font-size:22px; margin:12px 0 0;">DonutWin<br>Online Gambling Since 2026</h2>
+        <p class="sub">Six provably-fair casino games with real-time verification. Built for adrenaline, designed for trust.</p>
+        <div class="ctaRow">
+          <span class="mini"><span class="pulse"><i></i></span> building in public</span>
+        </div>
+        <p class="mini">Tip: enable sound!</p>
         <div class="statGrid mobileOnly">
           <div class="stat"><div class="k">Games available</div><div class="v">6</div></div>
           <div class="stat"><div class="k">Mode</div><div class="v">Virtual 🪙</div></div>
           <div class="stat"><div class="k">Engagement</div><div class="v">High</div></div>
           <div class="stat"><div class="k">Fairness</div><div class="v">Verifiable</div></div>
         </div>
-        <h2 style="font-size:22px; margin:12px 0 0;">DonutWin<br>Online Gambling Since 2026</h2>
-        <p class="sub">Six provably-fair casino games with real-time verification. Built for adrenaline, designed for trust.</p>
-        <div class="ctaRow">
-          <span class="mini"><span class="pulse"><i></i></span> building in public</span>
-        </div>
-        <p class="mini">Tip: enable sound!</p>
       </div>
       <div class="card">
         <div class="statGrid">
@@ -452,11 +458,13 @@
     <div class="balanceBar">
       <span>🪙</span>
       <span class="balAmt" id="balDisplay">1,000</span>
-      <span class="sessionStat">Rounds: <b id="ssRounds">0</b></span>
-      <span class="sessionStat">Streak: <b id="ssStreak">0</b></span>
-      <span class="sessionStat">Best: <b id="ssBest">-</b></span>
-      <span class="sessionStat">P&L: <b id="ssPnl">0</b></span>
-      <span class="sessionStat">Wagered: <b id="ssWagered">0</b></span>
+      <div class="sessionStats">
+        <span class="sessionStat">Rounds: <b id="ssRounds">0</b></span>
+        <span class="sessionStat">Streak: <b id="ssStreak">0</b></span>
+        <span class="sessionStat">Best: <b id="ssBest">-</b></span>
+        <span class="sessionStat">P&L: <b id="ssPnl">0</b></span>
+        <span class="sessionStat">Wagered: <b id="ssWagered">0</b></span>
+      </div>
       <button type="button" class="balResetBtn" id="balReset" title="Reset balance to 1,000">↻ Reset</button>
     </div>
 
