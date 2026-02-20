@@ -876,6 +876,22 @@
     });
 
     // ==================== LOGIN GATE ====================
+    var isD107Session = false; // track if user logged in with D107
+
+    function isD107TimeAllowed() {
+      var now = new Date();
+      // Determine day-of-week in GMT+2 (0=Sun, 6=Sat)
+      var gmt2 = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      var day = gmt2.getUTCDay();
+      if (day === 0 || day === 6) return true; // weekends: always allowed
+      var utcH = now.getUTCHours();
+      var utcM = now.getUTCMinutes();
+      var totalMin = utcH * 60 + utcM;
+      // 15:35 GMT+2 = 13:35 UTC = 815 min; 08:15 GMT+2 = 06:15 UTC = 375 min
+      // Allowed window wraps midnight: 815..1440 OR 0..375
+      return (totalMin >= 815) || (totalMin < 375);
+    }
+
     function attemptLogin() {
       var pwd = document.getElementById("gatePwd").value;
       var err = document.getElementById("gateErr");
@@ -883,20 +899,14 @@
       var normalPass = "D107";
 
       if (pwd === adminPass) {
+        isD107Session = false; // admin never gets kicked
         document.getElementById("loginGate").classList.add("drop");
         return;
       }
 
       if (pwd === normalPass) {
-        // Check time: allowed between 15:35 and 08:15 GMT+2 (i.e. 13:35–06:15 UTC)
-        var now = new Date();
-        var utcH = now.getUTCHours();
-        var utcM = now.getUTCMinutes();
-        var totalMin = utcH * 60 + utcM;
-        // 15:35 GMT+2 = 13:35 UTC = 815 min; 08:15 GMT+2 = 06:15 UTC = 375 min
-        // Allowed window wraps midnight: 815..1440 OR 0..375
-        var allowed = (totalMin >= 815) || (totalMin < 375);
-        if (allowed) {
+        if (isD107TimeAllowed()) {
+          isD107Session = true;
           document.getElementById("loginGate").classList.add("drop");
         } else {
           err.textContent = "Access not available at this time. Try between 15:35–08:15 GMT+2.";
@@ -906,6 +916,17 @@
 
       err.textContent = "Incorrect password.";
     }
+
+    // Check every 30 seconds — if D107 session and time expired, kick back to login
+    setInterval(function() {
+      if (isD107Session && !isD107TimeAllowed()) {
+        isD107Session = false;
+        var gate = document.getElementById("loginGate");
+        gate.classList.remove("drop");
+        document.getElementById("gatePwd").value = "";
+        document.getElementById("gateErr").textContent = "Session expired. Access window closed.";
+      }
+    }, 30000);
 
     // ==================== HELPERS ====================
     const $ = (id) => document.getElementById(id);
