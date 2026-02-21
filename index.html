@@ -301,8 +301,21 @@
     .btnRoyaleStart { width: 100%; padding: 14px; border-radius: 12px; border: 2px solid rgba(124,255,107,0.3); background: linear-gradient(135deg, rgba(124,255,107,0.12) 0%, rgba(124,255,107,0.04) 100%); color: var(--good); font-size: 15px; font-weight: 800; cursor: pointer; transition: all .3s; letter-spacing: 0.5px; }
     .btnRoyaleStart:hover { background: linear-gradient(135deg, rgba(124,255,107,0.22) 0%, rgba(124,255,107,0.08) 100%); box-shadow: 0 0 30px rgba(124,255,107,0.15); border-color: rgba(124,255,107,0.5); transform: translateY(-2px); }
     .btnRoyaleStart:active { transform: translateY(0) scale(0.97); }
-    .btnRoyaleCashout { width: 100%; padding: 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent2) 0%, #4dc8e0 100%); color: #000; font-size: 14px; font-weight: 800; cursor: pointer; transition: all .25s; box-shadow: 0 4px 16px rgba(110,231,255,0.2); letter-spacing: 0.3px; }
-    .btnRoyaleCashout:hover { filter: brightness(1.1); box-shadow: 0 6px 24px rgba(110,231,255,0.35); transform: translateY(-1px); }
+    .btnRoyaleCashout { width: 100%; padding: 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, #1a1c2e 0%, #12131f 100%); color: var(--accent2); font-size: 14px; font-weight: 800; cursor: pointer; transition: all .25s; box-shadow: 0 4px 16px rgba(0,0,0,0.5); letter-spacing: 0.3px; border: 1px solid rgba(110,231,255,0.15); }
+    .btnRoyaleCashout:hover { background: linear-gradient(135deg, #222440 0%, #181a2c 100%); box-shadow: 0 6px 24px rgba(0,0,0,0.6); transform: translateY(-1px); }
+    .btnRoyaleCashout .cashoutCoeff { display: block; font-size: 11px; color: var(--good); margin-top: 2px; font-weight: 600; }
+    .royaleSubTabs { display: flex; gap: 4px; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 10px; }
+    .royaleSubTab { flex: 1; padding: 7px 12px; border: none; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 700; transition: all .2s; text-align: center; }
+    .royaleSubTab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .royaleSubTab.active { background: var(--accent); color: #fff; box-shadow: 0 0 10px rgba(124,111,255,0.3); }
+    .royaleSubPanel { display: none; }
+    .royaleSubPanel.active { display: block; }
+    .miniCanvasWrap { position: relative; margin-bottom: 12px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(124,111,255,0.12); }
+    .miniCanvas { width: 100%; display: block; background: radial-gradient(circle at 50% 50%, #111428 0%, #0a0c18 100%); }
+    .marketGraph { width: 100%; height: 320px; background: rgba(10,12,24,0.9); border: 1px solid rgba(124,111,255,0.1); border-radius: 10px; }
+    .rebetWrap { display: flex; gap: 6px; margin-top: 6px; }
+    .btnRebet { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(124,111,255,0.2); background: rgba(124,111,255,0.08); color: var(--text); font-size: 12px; font-weight: 700; cursor: pointer; transition: all .25s; }
+    .btnRebet:hover { background: rgba(124,111,255,0.15); border-color: rgba(124,111,255,0.35); }
     .oddsPanel { background: linear-gradient(180deg, rgba(13,15,26,0.8) 0%, rgba(19,22,42,0.6) 100%); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(124,111,255,0.12); border-radius: var(--radius); padding: 16px; }
     .oddsPanel h3 { font-size: 12px; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
     .oddsPanel h3::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
@@ -839,49 +852,73 @@
           </div>
           <p class="royaleDesc">30 country balls battle inside a rotating arena. The gap eliminates — last one standing wins. Bet on the outcome, trade continent odds like a pro.</p>
           <div class="royaleDivider"></div>
-          <span class="sectionLabel">💰 Bet Amount</span>
-          <div class="betRow">
-            <input class="input" id="rBet" type="number" min="1" value="10" placeholder="Bet">
-            <button type="button" class="qBet" onclick="setQBet('rBet',10)">10</button>
-            <button type="button" class="qBet" onclick="setQBet('rBet',50)">50</button>
-            <button type="button" class="qBet" onclick="setQBet('rBet',100)">100</button>
-            <button type="button" class="qBet" onclick="setQBet('rBet','max')">Max</button>
+          <div class="royaleSubTabs">
+            <button type="button" class="royaleSubTab active" onclick="switchRoyaleTab('game')">🌍 Country Royale</button>
+            <button type="button" class="royaleSubTab" onclick="switchRoyaleTab('market')">📊 Market</button>
           </div>
-          <div class="betRow">
-            <button type="button" class="qBet" onclick="multiplyBet('rBet',0.5)">½</button>
-            <button type="button" class="qBet" onclick="multiplyBet('rBet',2)">2×</button>
-          </div>
-          <span class="sectionLabel">🎯 Bet Type</span>
-          <select id="royaleBetType" class="input" onchange="updateRoyaleSelectors()">
-            <option value="winner">🏆 Winner — 25× payout</option>
-            <option value="top3">🥇 Top 3 Finish — 8× payout</option>
-            <option value="continent">🌐 Continent — live odds</option>
-          </select>
-          <div id="royaleCountrySelect">
-            <span class="sectionLabel">🏳️ Pick Country</span>
-            <select id="royaleCountry" class="input"></select>
-          </div>
-          <div id="royaleContinentSelect" style="display:none;">
-            <span class="sectionLabel">🗺️ Pick Continent</span>
-            <select id="royaleContinent" class="input">
-              <option value="Africa">🌍 Africa</option>
-              <option value="Asia">🌏 Asia</option>
-              <option value="Europe">🌍 Europe</option>
-              <option value="North America">🌎 North America</option>
-              <option value="South America">🌎 South America</option>
-              <option value="Oceania">🌏 Oceania</option>
+          <!-- Game sub-tab -->
+          <div id="royaleGamePanel" class="royaleSubPanel active">
+            <span class="sectionLabel">💰 Bet Amount</span>
+            <div class="betRow">
+              <input class="input" id="rBet" type="number" min="1" value="10" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('rBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('rBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('rBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('rBet','max')">Max</button>
+            </div>
+            <div class="betRow">
+              <button type="button" class="qBet" onclick="multiplyBet('rBet',0.5)">½</button>
+              <button type="button" class="qBet" onclick="multiplyBet('rBet',2)">2×</button>
+            </div>
+            <span class="sectionLabel">🎯 Bet Type</span>
+            <select id="royaleBetType" class="input" onchange="updateRoyaleSelectors()">
+              <option value="winner">🏆 Winner — 25× payout</option>
+              <option value="top3">🥇 Top 3 Finish — 8× payout</option>
+              <option value="continent">🌐 Continent — live odds</option>
             </select>
+            <div id="royaleCountrySelect">
+              <span class="sectionLabel">🏳️ Pick Country</span>
+              <select id="royaleCountry" class="input"></select>
+            </div>
+            <div id="royaleContinentSelect" style="display:none;">
+              <span class="sectionLabel">🗺️ Pick Continent</span>
+              <select id="royaleContinent" class="input">
+                <option value="Africa">🌍 Africa</option>
+                <option value="Asia">🌏 Asia</option>
+                <option value="Europe">🌍 Europe</option>
+                <option value="North America">🌎 North America</option>
+                <option value="South America">🌎 South America</option>
+                <option value="Oceania">🌏 Oceania</option>
+              </select>
+            </div>
+            <button type="button" class="btnRoyalePlace" onclick="placeRoyaleBet()">Place Bet</button>
+            <div id="royaleActiveBets"></div>
+            <div class="royaleDivider"></div>
+            <button type="button" class="btnRoyaleStart" onclick="startRoyale()">▶&ensp;START ROUND</button>
+            <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()">💰 Cashout Position<span class="cashoutCoeff" id="cashoutCoeffDisplay">—</span></button>
+            <div class="rebetWrap" id="rebetWrap" style="display:none;">
+              <select id="rebetContinent" class="input" style="flex:1;padding:8px;">
+                <option value="Africa">🌍 Africa</option>
+                <option value="Asia">🌏 Asia</option>
+                <option value="Europe">🌍 Europe</option>
+                <option value="North America">🌎 North America</option>
+                <option value="South America">🌎 South America</option>
+                <option value="Oceania">🌏 Oceania</option>
+              </select>
+              <button type="button" class="btnRebet" onclick="rebetRoyale()">🔄 Re-bet</button>
+            </div>
           </div>
-          <button type="button" class="btnRoyalePlace" onclick="placeRoyaleBet()">Place Bet</button>
-          <div id="royaleActiveBets"></div>
-          <div class="royaleDivider"></div>
-          <button type="button" class="btnRoyaleStart" onclick="startRoyale()">▶&ensp;START ROUND</button>
-          <div class="oddsPanel">
-            <h3>Live Continent Odds</h3>
-            <div id="royaleOddsBars"></div>
-            <canvas id="oddsGraph" width="580" height="200" class="oddsGraph"></canvas>
+          <!-- Market sub-tab -->
+          <div id="royaleMarketPanel" class="royaleSubPanel">
+            <div class="miniCanvasWrap">
+              <canvas id="miniRoyaleCanvas" width="300" height="300" class="miniCanvas"></canvas>
+            </div>
+            <div class="oddsPanel">
+              <h3>Live Continent Odds</h3>
+              <div id="royaleOddsBars"></div>
+              <canvas id="oddsGraph" width="580" height="320" class="marketGraph"></canvas>
+            </div>
           </div>
-          <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()">💰 Cashout Position</button>
         </div>
       </div>
     </div>
@@ -2779,10 +2816,10 @@
     ];
     const CONTINENTS = ["Africa","Asia","Europe","North America","South America","Oceania"];
     const CONT_COLORS = { Africa:"#f4a460", Asia:"#ff6b6b", Europe:"#7c6fff", "North America":"#6ee7ff", "South America":"#7cff6b", Oceania:"#ffda6b" };
-    const R_CX = 300, R_CY = 300, R_ARENA = 250, R_BALL = 12;
+    const R_CX = 300, R_CY = 300, R_ARENA = 250, R_BALL = 30;
     const R_GAP_FRACTION = 10;
     const R_GAP_ARC = Math.PI * 2 / R_GAP_FRACTION;
-    const R_OMEGA = 0.3, R_GRAVITY = 30, R_DAMPING = 0.998, R_RESTITUTION = 0.85;
+    const R_OMEGA = 0.15, R_GRAVITY = 0, R_DAMPING = 0.999, R_RESTITUTION = 1.05;
 
     let royaleState = null;
     let royaleBets = [];
@@ -2790,17 +2827,149 @@
     let royaleOddsHistory = [];
     let royaleParticles = [];
     let royaleElimFlashes = [];
+    let royaleWallHits = [];
+    let royaleShake = { x: 0, y: 0, intensity: 0 };
+
+    function switchRoyaleTab(tab) {
+      document.querySelectorAll('.royaleSubTab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.royaleSubPanel').forEach(p => p.classList.remove('active'));
+      if (tab === 'market') {
+        document.querySelectorAll('.royaleSubTab')[1].classList.add('active');
+        $('royaleMarketPanel').classList.add('active');
+      } else {
+        document.querySelectorAll('.royaleSubTab')[0].classList.add('active');
+        $('royaleGamePanel').classList.add('active');
+      }
+    }
+
+    function renderMiniRoyale() {
+      const canvas = $("miniRoyaleCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width, h = canvas.height;
+      const scale = w / 600;
+      ctx.clearRect(0, 0, w, h);
+      const st = royaleState;
+      if (!st) return;
+
+      ctx.save();
+      ctx.scale(scale, scale);
+
+      // background
+      const bgGrad = ctx.createRadialGradient(R_CX, R_CY, 0, R_CX, R_CY, R_ARENA + 30);
+      bgGrad.addColorStop(0, "rgba(19,22,42,0.3)");
+      bgGrad.addColorStop(0.7, "rgba(13,15,26,0.1)");
+      bgGrad.addColorStop(1, "rgba(10,12,20,0)");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 600, 600);
+
+      let gapCenter = st.gapAngle % (Math.PI * 2);
+      const gapStart = gapCenter - R_GAP_ARC / 2;
+      const gapEnd = gapCenter + R_GAP_ARC / 2;
+
+      // arena wall
+      ctx.strokeStyle = "rgba(124,111,255,0.35)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+      ctx.stroke();
+
+      // gap indicator
+      ctx.strokeStyle = "rgba(255,107,107,0.3)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(R_CX, R_CY, R_ARENA, gapStart, gapEnd);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // draw balls (simplified)
+      st.balls.forEach(b => {
+        if (!b.alive) return;
+        const col = CONT_COLORS[b.continent] || "#fff";
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, R_BALL, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(20,22,40,0.85)";
+        ctx.fill();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.font = (R_BALL * 1.4) + "px serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(b.flag, b.x, b.y + 1);
+      });
+
+      ctx.restore();
+    }
+
+    function updateCashoutCoeff() {
+      const el = $("cashoutCoeffDisplay");
+      if (!el) return;
+      const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+      if (contBets.length === 0 || !royaleState || !royaleState.running) {
+        el.textContent = "—";
+        $("rebetWrap").style.display = "none";
+        return;
+      }
+      $("rebetWrap").style.display = "";
+      const parts = contBets.map(b => {
+        const alive = royaleState.balls.filter(x => x.alive);
+        const total = alive.length || 1;
+        const cnt = alive.filter(x => x.continent === b.target).length;
+        const curOdds = cnt > 0 ? (1 / (cnt / total)) : 0;
+        const coeff = curOdds > 0 ? (b.buyOdds / curOdds) : 0;
+        return coeff.toFixed(2) + "×";
+      });
+      el.textContent = "Live: " + parts.join(", ");
+    }
+
+    function rebetRoyale() {
+      if (!royaleState || !royaleState.running) { toast("No active round", "error"); return; }
+      const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+      if (contBets.length === 0) { toast("No active bets to re-bet", "error"); return; }
+      // Cashout current bets first
+      const remaining = royaleState.balls.filter(b => b.alive).length;
+      if (remaining <= 3) { toast("Bets locked in Top 3!", "error"); return; }
+      let totalCashout = 0;
+      contBets.forEach(b => {
+        const alive = royaleState.balls.filter(x => x.alive);
+        const total = alive.length || 1;
+        const cnt = alive.filter(x => x.continent === b.target).length;
+        const curOdds = cnt > 0 ? (1 / (cnt / total)) : 0;
+        if (curOdds <= 0.01) return;
+        const cashAmount = Math.min(Math.floor(b.amount * b.buyOdds / curOdds), b.amount * 100);
+        totalCashout += cashAmount;
+        b.active = false;
+      });
+      if (totalCashout === 0) { toast("Nothing to cashout", "error"); return; }
+      // Place new bet on selected continent
+      const newTarget = $("rebetContinent").value;
+      const alive = royaleState.balls.filter(b => b.alive);
+      const total = alive.length || 1;
+      const contCount = alive.filter(b => b.continent === newTarget).length;
+      const prob = contCount / total;
+      const payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length;
+      const bet = { id: Date.now(), type: "continent", target: newTarget, label: newTarget + " (Continent)", amount: totalCashout, payout, buyOdds: payout, active: true };
+      royaleBets.push(bet);
+      renderRoyaleActiveBets();
+      updateCashoutCoeff();
+      toast("Re-bet " + totalCashout + "🪙 on " + newTarget, "info");
+      SND.click();
+    }
 
     function initRoyale() {
       const balls = ROYALE_COUNTRIES.map((c, i) => {
         const angle = (i / ROYALE_COUNTRIES.length) * Math.PI * 2;
-        const r = 40 + Math.random() * 150;
-        return { ...c, x: R_CX + Math.cos(angle) * r, y: R_CY + Math.sin(angle) * r, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 60, alive: true, elimOrder: 0, trail: [] };
+        const r = 50 + Math.random() * 120;
+        return { ...c, x: R_CX + Math.cos(angle) * r, y: R_CY + Math.sin(angle) * r, vx: (Math.random() - 0.5) * 200, vy: (Math.random() - 0.5) * 200, alive: true, elimOrder: 0, trail: [] };
       });
       royaleState = { balls, gapAngle: 0, running: false, elapsed: 0, lastTime: 0, elimCount: 0, winner: null, settled: false, winnerAnim: 0 };
       royaleOddsHistory = [];
       royaleParticles = [];
       royaleElimFlashes = [];
+      royaleWallHits = [];
+      royaleShake = { x: 0, y: 0, intensity: 0 };
       updateRoyaleOdds();
       renderRoyale();
       updateRoyaleHUD();
@@ -2824,10 +2993,29 @@
     }
 
     function spawnElimParticles(x, y, color) {
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 28; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = 60 + Math.random() * 120;
-        royaleParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, color, size: 2 + Math.random() * 3 });
+        const speed = 80 + Math.random() * 200;
+        const type = Math.random() > 0.6 ? 'spark' : 'dot';
+        royaleParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, color, size: type === 'spark' ? 1 + Math.random() * 2 : 3 + Math.random() * 5, type });
+      }
+      royaleShake.intensity = 8;
+    }
+
+    function spawnWallSparks(x, y, color) {
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.atan2(y - R_CY, x - R_CX) + Math.PI + (Math.random() - 0.5) * 1.5;
+        const speed = 40 + Math.random() * 80;
+        royaleParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.6, color, size: 1 + Math.random() * 2, type: 'spark' });
+      }
+      royaleWallHits.push({ x, y, life: 1, color });
+    }
+
+    function spawnCollisionSparks(x, y) {
+      for (let i = 0; i < 4; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 30 + Math.random() * 60;
+        royaleParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.4, color: '#fff', size: 1 + Math.random(), type: 'spark' });
       }
     }
 
@@ -2855,12 +3043,24 @@
       const st = royaleState;
       st.gapAngle += R_OMEGA * dt;
       const alive = st.balls.filter(b => b.alive);
-      alive.forEach(b => { b.vy += R_GRAVITY * dt; });
+      // Random chaotic gusts to keep balls bouncing wildly
+      alive.forEach(b => {
+        b.vy += R_GRAVITY * dt;
+        // random impulse every frame
+        b.vx += (Math.random() - 0.5) * 120 * dt;
+        b.vy += (Math.random() - 0.5) * 120 * dt;
+        // periodic strong gust
+        if (Math.random() < 0.02) {
+          const gustAngle = Math.random() * Math.PI * 2;
+          b.vx += Math.cos(gustAngle) * 40;
+          b.vy += Math.sin(gustAngle) * 40;
+        }
+      });
       alive.forEach(b => {
         b.x += b.vx * dt; b.y += b.vy * dt;
         b.vx *= R_DAMPING; b.vy *= R_DAMPING;
         b.trail.push({ x: b.x, y: b.y });
-        if (b.trail.length > 8) b.trail.shift();
+        if (b.trail.length > 16) b.trail.shift();
       });
       // ball-ball collisions
       for (let i = 0; i < alive.length; i++) {
@@ -2879,6 +3079,9 @@
             if (dvn > 0) {
               a.vx -= dvn * nx * R_RESTITUTION; a.vy -= dvn * ny * R_RESTITUTION;
               bObj.vx += dvn * nx * R_RESTITUTION; bObj.vy += dvn * ny * R_RESTITUTION;
+              // collision sparks
+              const cx = (a.x + bObj.x) / 2, cy = (a.y + bObj.y) / 2;
+              if (dvn > 20) spawnCollisionSparks(cx, cy);
             }
           }
         }
@@ -2911,22 +3114,50 @@
             const nx = dx / dist, ny = dy / dist;
             b.x -= nx * pen; b.y -= ny * pen;
             const dvn = b.vx * nx + b.vy * ny;
-            if (dvn > 0) { b.vx -= 2 * dvn * nx * R_RESTITUTION; b.vy -= 2 * dvn * ny * R_RESTITUTION; }
+            if (dvn > 0) {
+              b.vx -= 2 * dvn * nx * R_RESTITUTION; b.vy -= 2 * dvn * ny * R_RESTITUTION;
+              const bounceImpulse = 30;
+              b.vx -= nx * bounceImpulse; b.vy -= ny * bounceImpulse;
+              // wall hit sparks
+              const hitX = R_CX + nx * R_ARENA, hitY = R_CY + ny * R_ARENA;
+              spawnWallSparks(hitX, hitY, CONT_COLORS[b.continent] || "#fff");
+            }
           }
         }
       });
       // update particles
-      royaleParticles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 2; p.vx *= 0.96; p.vy *= 0.96; });
+      royaleParticles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 2.5; p.vx *= 0.94; p.vy *= 0.94; });
       royaleParticles = royaleParticles.filter(p => p.life > 0);
       royaleElimFlashes.forEach(f => { f.life -= dt * 1.5; });
       royaleElimFlashes = royaleElimFlashes.filter(f => f.life > 0);
+      royaleWallHits.forEach(h => { h.life -= dt * 4; });
+      royaleWallHits = royaleWallHits.filter(h => h.life > 0);
+      // screen shake decay
+      royaleShake.intensity *= 0.88;
+      if (royaleShake.intensity > 0.2) {
+        royaleShake.x = (Math.random() - 0.5) * royaleShake.intensity;
+        royaleShake.y = (Math.random() - 0.5) * royaleShake.intensity;
+      } else { royaleShake.x = 0; royaleShake.y = 0; royaleShake.intensity = 0; }
       // winner animation
       if (st.winner) st.winnerAnim = Math.min(1, (st.winnerAnim || 0) + dt * 2);
       // check winner
       const remaining = st.balls.filter(b => b.alive);
       if (remaining.length <= 1 && st.elimCount > 0) {
         st.running = false;
-        st.winner = remaining.length === 1 ? remaining[0] : null;
+        if (remaining.length === 1) {
+          st.winner = remaining[0];
+        } else {
+          // 0 remaining: last eliminated ball is the winner
+          const lastElim = st.balls.filter(b => !b.alive).sort((a, b) => b.elimOrder - a.elimOrder)[0];
+          if (lastElim) {
+            lastElim.alive = true;
+            st.elimCount--;
+            lastElim.elimOrder = 0;
+            st.winner = lastElim;
+          } else {
+            st.winner = null;
+          }
+        }
         st.winnerAnim = 0;
         if (royaleAnimId) cancelAnimationFrame(royaleAnimId);
         // run winner celebration loop
@@ -2956,16 +3187,20 @@
       const st = royaleState;
       if (!st) return;
 
+      // screen shake
+      ctx.save();
+      ctx.translate(royaleShake.x, royaleShake.y);
+
       // background radial gradient
       const bgGrad = ctx.createRadialGradient(R_CX, R_CY, 0, R_CX, R_CY, R_ARENA + 30);
-      bgGrad.addColorStop(0, "rgba(19,22,42,0.3)");
-      bgGrad.addColorStop(0.7, "rgba(13,15,26,0.1)");
+      bgGrad.addColorStop(0, "rgba(19,22,42,0.4)");
+      bgGrad.addColorStop(0.7, "rgba(13,15,26,0.15)");
       bgGrad.addColorStop(1, "rgba(10,12,20,0)");
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, w, h);
 
       // subtle grid
-      ctx.strokeStyle = "rgba(124,111,255,0.03)";
+      ctx.strokeStyle = "rgba(124,111,255,0.025)";
       ctx.lineWidth = 1;
       for (let i = 0; i < w; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); }
       for (let i = 0; i < h; i += 30) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke(); }
@@ -2973,24 +3208,38 @@
       let gapCenter = st.gapAngle % (Math.PI * 2);
       const gapStart = gapCenter - R_GAP_ARC / 2;
       const gapEnd = gapCenter + R_GAP_ARC / 2;
+      const now = Date.now();
 
-      // arena outer glow
+      // arena outer glow (pulsing)
       ctx.save();
-      ctx.shadowColor = "rgba(124,111,255,0.25)";
-      ctx.shadowBlur = 30;
-      ctx.strokeStyle = "rgba(124,111,255,0.08)";
-      ctx.lineWidth = 12;
+      const glowPulse = 0.15 + Math.sin(now / 500) * 0.1;
+      ctx.shadowColor = "rgba(124,111,255," + glowPulse + ")";
+      ctx.shadowBlur = 40;
+      ctx.strokeStyle = "rgba(124,111,255,0.06)";
+      ctx.lineWidth = 16;
       ctx.beginPath();
       ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
+      // energy pulses traveling along the wall
+      for (let p = 0; p < 3; p++) {
+        const pulseAngle = ((now / (800 + p * 200)) % 1) * Math.PI * 2 + p * 2.1;
+        const px = R_CX + Math.cos(pulseAngle) * R_ARENA;
+        const py = R_CY + Math.sin(pulseAngle) * R_ARENA;
+        const pulseGlow = ctx.createRadialGradient(px, py, 0, px, py, 20);
+        pulseGlow.addColorStop(0, "rgba(124,111,255,0.3)");
+        pulseGlow.addColorStop(1, "rgba(124,111,255,0)");
+        ctx.fillStyle = pulseGlow;
+        ctx.fillRect(px - 20, py - 20, 40, 40);
+      }
+
       // arena wall (gradient stroke)
       ctx.save();
       const wallGrad = ctx.createLinearGradient(R_CX - R_ARENA, R_CY, R_CX + R_ARENA, R_CY);
-      wallGrad.addColorStop(0, "rgba(124,111,255,0.45)");
-      wallGrad.addColorStop(0.5, "rgba(110,231,255,0.4)");
-      wallGrad.addColorStop(1, "rgba(124,111,255,0.45)");
+      wallGrad.addColorStop(0, "rgba(124,111,255,0.5)");
+      wallGrad.addColorStop(0.5, "rgba(110,231,255,0.45)");
+      wallGrad.addColorStop(1, "rgba(124,111,255,0.5)");
       ctx.strokeStyle = wallGrad;
       ctx.lineWidth = 4;
       ctx.lineCap = "round";
@@ -3000,25 +3249,26 @@
       ctx.restore();
 
       // inner ring accent
-      ctx.strokeStyle = "rgba(124,111,255,0.06)";
+      ctx.strokeStyle = "rgba(124,111,255,0.05)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(R_CX, R_CY, R_ARENA - 8, 0, Math.PI * 2);
       ctx.stroke();
 
-      // gap danger zone glow
+      // gap danger zone glow (pulsing)
       ctx.save();
       const gapMidX = R_CX + Math.cos(gapCenter) * R_ARENA;
       const gapMidY = R_CY + Math.sin(gapCenter) * R_ARENA;
-      const dangerGlow = ctx.createRadialGradient(gapMidX, gapMidY, 0, gapMidX, gapMidY, 60);
-      dangerGlow.addColorStop(0, "rgba(255,107,107,0.2)");
+      const dangerPulse = 0.2 + Math.sin(now / 200) * 0.1;
+      const dangerGlow = ctx.createRadialGradient(gapMidX, gapMidY, 0, gapMidX, gapMidY, 80);
+      dangerGlow.addColorStop(0, "rgba(255,107,107," + dangerPulse + ")");
       dangerGlow.addColorStop(1, "rgba(255,107,107,0)");
       ctx.fillStyle = dangerGlow;
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
 
       // gap indicator arcs
-      ctx.strokeStyle = "rgba(255,107,107,0.35)";
+      ctx.strokeStyle = "rgba(255,107,107,0.45)";
       ctx.lineWidth = 3;
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
@@ -3026,44 +3276,85 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // gap chevrons
+      // gap chevrons (pulsing)
       for (let side = -1; side <= 1; side += 2) {
         const edgeAngle = gapCenter + side * R_GAP_ARC / 2;
         const ex = R_CX + Math.cos(edgeAngle) * R_ARENA;
         const ey = R_CY + Math.sin(edgeAngle) * R_ARENA;
+        const chevR = 5 + Math.sin(now / 150) * 2;
         ctx.beginPath();
-        ctx.arc(ex, ey, 5, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,107,107,0.6)";
+        ctx.arc(ex, ey, chevR, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,107,107,0.7)";
         ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ex, ey, chevR + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,107,107,0.2)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
 
-      // particles
-      royaleParticles.forEach(p => {
+      // wall hit flashes
+      royaleWallHits.forEach(hit => {
+        const r = 15 + (1 - hit.life) * 25;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life * 0.7;
+        ctx.arc(hit.x, hit.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = hit.color;
+        ctx.globalAlpha = hit.life * 0.35;
         ctx.fill();
         ctx.globalAlpha = 1;
       });
 
-      // elim flashes
-      royaleElimFlashes.forEach(f => {
-        ctx.globalAlpha = f.life * 0.5;
-        ctx.font = (20 + (1 - f.life) * 20) + "px serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(f.flag, f.x, f.y - (1 - f.life) * 30);
+      // particles (enhanced with spark streaks)
+      royaleParticles.forEach(p => {
+        ctx.globalAlpha = p.life * 0.8;
+        if (p.type === 'spark') {
+          const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+          const len = Math.min(speed * 0.03, 8);
+          const angle = Math.atan2(p.vy, p.vx);
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.size * p.life;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - Math.cos(angle) * len, p.y - Math.sin(angle) * len);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+        }
         ctx.globalAlpha = 1;
       });
 
-      // ball trails
+      // elim flashes (dramatic rising flag + shockwave)
+      royaleElimFlashes.forEach(f => {
+        const ringR = (1 - f.life) * 60;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, ringR, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,107,107," + (f.life * 0.4) + ")";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = f.life * 0.7;
+        ctx.font = (24 + (1 - f.life) * 24) + "px serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(f.flag, f.x, f.y - (1 - f.life) * 50);
+        ctx.font = "bold 14px sans-serif";
+        ctx.fillStyle = "rgba(255,107,107," + f.life + ")";
+        ctx.fillText("\u2715", f.x + 16, f.y - (1 - f.life) * 50 + 12);
+        ctx.globalAlpha = 1;
+      });
+
+      // ball trails (speed-based intensity)
       st.balls.forEach(b => {
         if (!b.alive || b.trail.length < 2) return;
         const col = CONT_COLORS[b.continent] || "#fff";
+        const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        const trailIntensity = Math.min(speed / 150, 1);
         for (let i = 0; i < b.trail.length - 1; i++) {
-          const alpha = (i / b.trail.length) * 0.15;
-          const size = R_BALL * (i / b.trail.length) * 0.6;
+          const t = i / b.trail.length;
+          const alpha = t * 0.25 * trailIntensity;
+          const size = R_BALL * t * 0.5;
           ctx.beginPath();
           ctx.arc(b.trail[i].x, b.trail[i].y, size, 0, Math.PI * 2);
           ctx.fillStyle = col;
@@ -3077,102 +3368,128 @@
       st.balls.forEach(b => {
         if (!b.alive) return;
         const col = CONT_COLORS[b.continent] || "#fff";
+        const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        const glowIntensity = Math.min(speed / 100, 1);
 
-        // ball glow
+        // speed-based outer glow
         ctx.save();
         ctx.shadowColor = col;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 14 + glowIntensity * 16;
         ctx.beginPath();
         ctx.arc(b.x, b.y, R_BALL, 0, Math.PI * 2);
-        const ballGrad = ctx.createRadialGradient(b.x - 3, b.y - 3, 1, b.x, b.y, R_BALL);
-        ballGrad.addColorStop(0, col);
-        ballGrad.addColorStop(1, "rgba(0,0,0,0.4)");
-        ctx.fillStyle = ballGrad;
-        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = "rgba(20,22,40,0.85)";
         ctx.fill();
-        ctx.globalAlpha = 1;
         ctx.restore();
 
-        // ball border
+        // ball border (brighter when fast)
         ctx.beginPath();
         ctx.arc(b.x, b.y, R_BALL, 0, Math.PI * 2);
         ctx.strokeStyle = col;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2.5 + glowIntensity;
         ctx.stroke();
 
-        // highlight
+        // clip for flag rendering
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(b.x - 3, b.y - 4, R_BALL * 0.35, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.25)";
-        ctx.fill();
+        ctx.arc(b.x, b.y, R_BALL - 2, 0, Math.PI * 2);
+        ctx.clip();
 
-        // flag
-        ctx.font = "14px serif";
+        // bright flag emoji (large)
+        ctx.font = (R_BALL * 1.6) + "px serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(b.flag, b.x, b.y + 1);
+        ctx.restore();
+
+        // highlight
+        ctx.beginPath();
+        ctx.arc(b.x - 5, b.y - 7, R_BALL * 0.3, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.fill();
       });
 
       // remaining count overlay (top)
       const alive = st.balls.filter(b => b.alive).length;
       if (st.running || st.winner) {
-        ctx.font = "bold 11px sans-serif";
+        ctx.font = "bold 12px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(234,240,255,0.4)";
+        ctx.fillStyle = "rgba(234,240,255,0.5)";
         ctx.fillText(alive + " / " + ROYALE_COUNTRIES.length + " remaining", R_CX, 22);
       }
 
-      // winner celebration
+      // winner celebration (dramatic)
       if (st.winner && st.winnerAnim > 0) {
         const t = st.winnerAnim;
 
+        // full screen darken
+        ctx.fillStyle = "rgba(0,0,0," + (0.3 * t) + ")";
+        ctx.fillRect(0, 0, w, h);
+
         // spotlight
-        const spotGrad = ctx.createRadialGradient(st.winner.x, st.winner.y, 0, st.winner.x, st.winner.y, 80 * t);
-        spotGrad.addColorStop(0, "rgba(124,255,107," + (0.15 * t) + ")");
+        const spotGrad = ctx.createRadialGradient(st.winner.x, st.winner.y, 0, st.winner.x, st.winner.y, 120 * t);
+        spotGrad.addColorStop(0, "rgba(124,255,107," + (0.25 * t) + ")");
+        spotGrad.addColorStop(0.5, "rgba(255,215,0," + (0.08 * t) + ")");
         spotGrad.addColorStop(1, "rgba(124,255,107,0)");
         ctx.fillStyle = spotGrad;
         ctx.fillRect(0, 0, w, h);
 
-        // pulsing ring
-        ctx.beginPath();
-        ctx.arc(st.winner.x, st.winner.y, R_BALL + 8 + Math.sin(Date.now() / 200) * 3, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(124,255,107," + (0.7 * t) + ")";
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        // multiple pulsing rings
+        for (let r = 0; r < 4; r++) {
+          const ringR = R_BALL + 10 + r * 14 + Math.sin(now / (180 + r * 50)) * 4;
+          ctx.beginPath();
+          ctx.arc(st.winner.x, st.winner.y, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(124,255,107," + (0.6 * t / (r + 1)) + ")";
+          ctx.lineWidth = 3 - r * 0.5;
+          ctx.stroke();
+        }
 
-        // second ring
-        ctx.beginPath();
-        ctx.arc(st.winner.x, st.winner.y, R_BALL + 16 + Math.sin(Date.now() / 300) * 4, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(124,255,107," + (0.3 * t) + ")";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        // golden sparkles around winner
+        for (let s = 0; s < 8; s++) {
+          const sparkAngle = (now / 400 + s * 0.785) % (Math.PI * 2);
+          const sparkR = 50 + Math.sin(now / 300 + s) * 10;
+          const sx = st.winner.x + Math.cos(sparkAngle) * sparkR;
+          const sy = st.winner.y + Math.sin(sparkAngle) * sparkR;
+          const sparkSize = 2 + Math.sin(now / 200 + s * 2) * 1;
+          ctx.beginPath();
+          ctx.arc(sx, sy, sparkSize * t, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255,215,0," + (0.8 * t) + ")";
+          ctx.fill();
+        }
 
         // winner banner
         ctx.globalAlpha = t;
-
-        // banner background
-        const bannerY = 48;
-        const bannerW = 260;
-        const bannerH = 44;
+        const bannerY = 52;
+        const bannerW = 280;
+        const bannerH = 50;
         const bx = R_CX - bannerW / 2;
-        ctx.fillStyle = "rgba(13,15,26,0.85)";
+        ctx.save();
+        ctx.shadowColor = "rgba(124,255,107,0.5)";
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = "rgba(13,15,26,0.92)";
         ctx.beginPath();
-        ctx.roundRect(bx, bannerY - bannerH / 2, bannerW, bannerH, 12);
+        ctx.roundRect(bx, bannerY - bannerH / 2, bannerW, bannerH, 14);
         ctx.fill();
-        ctx.strokeStyle = "rgba(124,255,107,0.5)";
-        ctx.lineWidth = 1.5;
+        ctx.restore();
+        ctx.strokeStyle = "rgba(124,255,107,0.6)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(bx, bannerY - bannerH / 2, bannerW, bannerH, 14);
         ctx.stroke();
 
-        ctx.font = "bold 18px sans-serif";
+        ctx.font = "bold 20px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#7cff6b";
-        ctx.fillText("🏆 " + st.winner.flag + " " + st.winner.name.toUpperCase(), R_CX, bannerY);
+        ctx.fillText("\uD83C\uDFC6 " + st.winner.flag + " " + st.winner.name.toUpperCase(), R_CX, bannerY);
 
         ctx.globalAlpha = 1;
       }
 
+      ctx.restore(); // end screen shake
+
       drawOddsGraph();
+      renderMiniRoyale();
+      updateCashoutCoeff();
     }
 
     function updateRoyaleHUD() {
@@ -3247,20 +3564,8 @@
 
       CONTINENTS.forEach(cont => {
         const col = CONT_COLORS[cont];
-        // filled area
-        ctx.beginPath();
-        hist.forEach((snap, i) => {
-          const x = plotL + i * step;
-          const y = plotB - (snap[cont] || 0) * plotH;
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        });
-        ctx.lineTo(plotL + (hist.length - 1) * step, plotB);
-        ctx.lineTo(plotL, plotB);
-        ctx.closePath();
-        ctx.fillStyle = col.slice(0, 7) + "0d";
-        ctx.fill();
 
-        // line
+        // line only (no filled area)
         ctx.beginPath();
         ctx.strokeStyle = col;
         ctx.lineWidth = 2;
