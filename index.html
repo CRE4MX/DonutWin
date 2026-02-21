@@ -2820,6 +2820,8 @@
     const R_GAP_FRACTION = 10;
     const R_GAP_ARC = Math.PI * 2 / R_GAP_FRACTION;
     const R_OMEGA = 0.15, R_GRAVITY = 0, R_DAMPING = 0.999, R_RESTITUTION = 1.05;
+    const R_WALL_BOUNCE_IMPULSE = 30;
+    const R_MAX_SPEED = 400;
 
     let royaleState = null;
     let royaleBets = [];
@@ -3059,6 +3061,9 @@
       alive.forEach(b => {
         b.x += b.vx * dt; b.y += b.vy * dt;
         b.vx *= R_DAMPING; b.vy *= R_DAMPING;
+        // cap velocity to prevent unbounded growth
+        const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+        if (spd > R_MAX_SPEED) { const sc = R_MAX_SPEED / spd; b.vx *= sc; b.vy *= sc; }
         b.trail.push({ x: b.x, y: b.y });
         if (b.trail.length > 16) b.trail.shift();
       });
@@ -3116,7 +3121,7 @@
             const dvn = b.vx * nx + b.vy * ny;
             if (dvn > 0) {
               b.vx -= 2 * dvn * nx * R_RESTITUTION; b.vy -= 2 * dvn * ny * R_RESTITUTION;
-              const bounceImpulse = 30;
+              const bounceImpulse = R_WALL_BOUNCE_IMPULSE;
               b.vx -= nx * bounceImpulse; b.vy -= ny * bounceImpulse;
               // wall hit sparks
               const hitX = R_CX + nx * R_ARENA, hitY = R_CY + ny * R_ARENA;
@@ -3151,6 +3156,8 @@
           const lastElim = st.balls.filter(b => !b.alive).sort((a, b) => b.elimOrder - a.elimOrder)[0];
           if (lastElim) {
             lastElim.alive = true;
+            lastElim.x = R_CX; lastElim.y = R_CY;
+            lastElim.vx = 0; lastElim.vy = 0;
             st.elimCount--;
             lastElim.elimOrder = 0;
             st.winner = lastElim;
