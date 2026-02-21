@@ -84,7 +84,8 @@
     .btn:active { transform: translateY(0) scale(0.97); }
     .btn.primary { background: var(--accent); border-color: transparent; color: #fff; box-shadow: 0 2px 12px rgba(124,111,255,0.25); }
     .btn.primary:hover { filter: brightness(1.15); box-shadow: 0 4px 20px rgba(124,111,255,0.4); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn:disabled, .btnRoyaleStart:disabled, .btnRoyalePlace:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; filter: brightness(0.5); }
+    .btn.primary:disabled { background: rgba(60,50,120,0.5); }
 
     /* inputs */
     .input { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); font-size: 13px; outline: none; transition: border-color .2s, box-shadow .2s; }
@@ -338,9 +339,29 @@
     .activeRoyaleBet .betInfo { flex: 1; color: var(--text); font-weight: 500; }
     .activeRoyaleBet .betOdds { color: var(--accent2); margin-left: 8px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
+    /* bet history */
+    .historyFilters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .historyFilters .filterBtn { padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .historyFilters .filterBtn:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+    .historyFilters .filterBtn.active { background: var(--accent); color: #fff; border-color: transparent; }
+    .historySort { margin-bottom: 12px; }
+    .historyList { max-height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .historyEntry { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; }
+    .historyEntry .heGame { font-weight: 700; color: var(--text); min-width: 90px; }
+    .historyEntry .heAmount { color: var(--muted); }
+    .historyEntry .heResult { font-weight: 700; }
+    .historyEntry .heResult.win { color: var(--good); }
+    .historyEntry .heResult.loss { color: var(--bad); }
+    .historyEntry .heTime { color: var(--muted); font-size: 10px; }
+    .tabBtn.hiddenTab { display: none; }
+
+    /* markets tab */
+    .marketsWrap { display: grid; grid-template-columns: 1fr 320px; gap: 18px; }
+    .marketsChart { width: 100%; aspect-ratio: 2/1; background: rgba(10,12,24,0.8); border: 1px solid rgba(124,111,255,0.1); border-radius: 10px; display: block; }
+
     /* responsive */
     @media (max-width: 760px) {
-      .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap, .slotsWrap, .royaleWrap { grid-template-columns: 1fr; }
+      .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap, .slotsWrap, .royaleWrap, .marketsWrap { grid-template-columns: 1fr; }
       .crashSide, .hero { grid-template-columns: 1fr; }
       .hero > .card:last-child { display: none; }
       .mobileOnly { display: grid; margin-top: 12px; }
@@ -360,10 +381,10 @@
       .balanceBar .balAmt { font-size: 26px; flex: 1; }
       .balanceBar .sessionStat { font-size: 10px; }
       .balResetBtn { display: none; }
-      .sessionStats { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 2px; }
+      .sessionStats { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 2px; justify-content: center; text-align: center; }
 
       /* tab bar mobile */
-      .tabBar { gap: 4px; padding: 5px; }
+      .tabBar { gap: 4px; padding: 5px; justify-content: center; }
       .tabBtn { padding: 10px 12px; font-size: 13px; min-height: 44px; }
 
       /* bigger touch targets */
@@ -420,6 +441,13 @@
       .plinkoWrap .crashTop > select.input { flex: 1; min-width: 0; max-width: none; }
       .plinkoWrap .crashTop > .btn { flex: 1; min-width: 80px; justify-content: center; }
       .plinkoWrap .crashTop > input.input { flex: 1; min-width: 60px; max-width: none; }
+
+      /* center taglines on mobile */
+      .hero .card.pad { text-align: center; }
+      .hero .card.pad .tag { justify-content: center; }
+      .hero .card.pad .ctaRow { justify-content: center; }
+      .hero .card.pad .mini { text-align: center; }
+      .mobileHeading { text-align: center; }
     }
 
     /* small phone extra tweaks */
@@ -518,6 +546,7 @@
     <!-- balance bar -->
     <div class="balanceBar">
       <span>🪙</span>
+      <span style="font-size:12px; color:var(--muted); font-weight:600;">Balance:</span>
       <span class="balAmt" id="balDisplay">1,000</span>
       <div class="sessionStats">
         <span class="sessionStat">Rounds: <b id="ssRounds">0</b></span>
@@ -538,7 +567,9 @@
       <button type="button" class="tabBtn" data-tab="blackjack">🃏 Blackjack</button>
       <button type="button" class="tabBtn" data-tab="slots">🎰 Slots</button>
       <button type="button" class="tabBtn" data-tab="royale">🌍 Country Royale</button>
+      <button type="button" class="tabBtn" data-tab="markets">📊 Markets</button>
       <button type="button" class="tabBtn" data-tab="livebets">📊 Live Bets</button>
+      <button type="button" class="tabBtn hiddenTab" data-tab="history">📜 Bet History</button>
     </div>
 
     <!-- ==================== CRASH PANEL ==================== -->
@@ -937,6 +968,79 @@
       </div>
     </div>
 
+    <!-- ==================== MARKETS PANEL ==================== -->
+    <div id="tab-markets" class="gamePanel">
+      <div class="card pad marketsWrap">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h2 style="margin:0; font-size:16px;">📊 Live Markets</h2>
+            <span class="tag" style="font-size:11px"><span class="dot"></span> live</span>
+          </div>
+          <p class="mini" style="margin-bottom:14px;">Trade continent odds during Country Royale rounds. Buy low, sell high.</p>
+          <canvas id="marketsChart" width="600" height="300" class="marketsChart"></canvas>
+          <div class="oddsPanel" style="margin-top:12px;">
+            <h3>Live Continent Odds</h3>
+            <div id="marketsOddsBars"></div>
+          </div>
+        </div>
+        <div>
+          <div class="royaleDivider" style="margin-bottom:12px;"></div>
+          <span class="sectionLabel">💰 Bet Amount</span>
+          <div class="betRow">
+            <input class="input" id="mktBet" type="number" min="1" value="10" placeholder="Bet">
+            <button type="button" class="qBet" onclick="setQBet('mktBet',10)">10</button>
+            <button type="button" class="qBet" onclick="setQBet('mktBet',50)">50</button>
+            <button type="button" class="qBet" onclick="setQBet('mktBet',100)">100</button>
+            <button type="button" class="qBet" onclick="setQBet('mktBet','max')">Max</button>
+          </div>
+          <span class="sectionLabel">🗺️ Pick Continent</span>
+          <select id="mktContinent" class="input" style="width:100%;margin-bottom:8px;">
+            <option value="Africa">🌍 Africa</option>
+            <option value="Asia">🌏 Asia</option>
+            <option value="Europe">🌍 Europe</option>
+            <option value="North America">🌎 North America</option>
+            <option value="South America">🌎 South America</option>
+            <option value="Oceania">🌏 Oceania</option>
+          </select>
+          <button type="button" class="btnRoyalePlace" onclick="placeMarketBet()">Buy Position</button>
+          <div id="marketsActiveBets" style="margin-top:10px;"></div>
+          <div class="royaleDivider" style="margin:10px 0;"></div>
+          <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()">💰 Cashout Position<span class="cashoutCoeff" id="mktCashoutDisplay">—</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== BET HISTORY PANEL ==================== -->
+    <div id="tab-history" class="gamePanel">
+      <div class="card pad">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 style="margin:0; font-size:16px;">📜 Bet History</h2>
+        </div>
+        <div class="historyFilters" id="historyFilters">
+          <button type="button" class="filterBtn active" data-filter="all">All</button>
+          <button type="button" class="filterBtn" data-filter="Crash">Crash</button>
+          <button type="button" class="filterBtn" data-filter="Mines">Mines</button>
+          <button type="button" class="filterBtn" data-filter="Dice">Dice</button>
+          <button type="button" class="filterBtn" data-filter="Plinko">Plinko</button>
+          <button type="button" class="filterBtn" data-filter="Blackjack">Blackjack</button>
+          <button type="button" class="filterBtn" data-filter="Slots">Slots</button>
+          <button type="button" class="filterBtn" data-filter="Country Royale">Country Royale</button>
+        </div>
+        <div class="historySort">
+          <select id="historySort" class="input" style="width:auto;" onchange="renderBetHistory()">
+            <option value="time">Most Recent</option>
+            <option value="winlose">Win/Lose</option>
+            <option value="betlow">Bet Amount (Low→High)</option>
+            <option value="bethigh">Bet Amount (High→Low)</option>
+            <option value="multhigh">Win Multiplier (High→Low)</option>
+          </select>
+        </div>
+        <div class="historyList" id="historyList">
+          <p class="mini" style="text-align:center;padding:20px;">No bets yet. Start playing!</p>
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== PROVABLY FAIR ==================== -->
     <div class="section" id="provably-section">
       <h2>Provably fair (verify locally)</h2>
@@ -1008,6 +1112,8 @@
         <a href="#" onclick="switchTab('blackjack');return false">Blackjack</a>
         <a href="#" onclick="switchTab('slots');return false">Slots</a>
         <a href="#" onclick="switchTab('royale');return false">Country Royale</a>
+        <a href="#" onclick="switchTab('markets');return false">Markets</a>
+        <a href="#" onclick="switchTab('history');return false">📜 Bet History</a>
         <a href="#provably-section">Verify</a>
         <a href="#waitlist-section">Waitlist</a>
       </div>
@@ -1358,17 +1464,55 @@
       if (amount > balance || amount < 1) { toast("Insufficient balance!", "error"); return false; }
       balance -= amount; totalWagered += amount; localStorage.setItem("dw_wagered", totalWagered); saveBalance(); updateBalDisplay(); return true;
     }
+    // ==================== BET HISTORY ====================
+    let betHistory = [];
+    let currentGame = "Unknown";
+
     function creditWin(amount, mult) {
       balance += amount; saveBalance();
       sessionStats.wins++; sessionStats.streak++;
       if (sessionStats.streak > sessionStats.bestStreak) sessionStats.bestStreak = sessionStats.streak;
       if (mult > sessionStats.bestMult) sessionStats.bestMult = mult;
       flashBal(true); updateBalDisplay();
+      betHistory.push({ game: currentGame, amount: Math.floor(amount / mult), won: true, multiplier: mult, payout: amount, timestamp: Date.now() });
     }
     function recordLoss(lostAmount) {
       sessionStats.streak = 0;
       flashBal(false); updateBalDisplay();
+      betHistory.push({ game: currentGame, amount: lostAmount, won: false, multiplier: 0, payout: 0, timestamp: Date.now() });
     }
+
+    function renderBetHistory() {
+      const list = $("historyList");
+      if (!list) return;
+      const activeFilter = document.querySelector("#historyFilters .filterBtn.active");
+      const filter = activeFilter ? activeFilter.dataset.filter : "all";
+      const sortVal = $("historySort") ? $("historySort").value : "time";
+      let items = filter === "all" ? [...betHistory] : betHistory.filter(h => h.game === filter);
+      if (sortVal === "winlose") items.sort((a, b) => (b.won ? 1 : 0) - (a.won ? 1 : 0));
+      else if (sortVal === "betlow") items.sort((a, b) => a.amount - b.amount);
+      else if (sortVal === "bethigh") items.sort((a, b) => b.amount - a.amount);
+      else if (sortVal === "multhigh") items.sort((a, b) => b.multiplier - a.multiplier);
+      else items.sort((a, b) => b.timestamp - a.timestamp);
+      if (items.length === 0) {
+        list.innerHTML = '<p class="mini" style="text-align:center;padding:20px;">No bets yet. Start playing!</p>';
+        return;
+      }
+      list.innerHTML = items.map(h => {
+        const time = new Date(h.timestamp).toLocaleTimeString();
+        const resultClass = h.won ? "win" : "loss";
+        const resultText = h.won ? "+" + h.payout + " 🪙 (" + h.multiplier.toFixed(2) + "×)" : "-" + h.amount + " 🪙";
+        return '<div class="historyEntry"><span class="heGame">' + h.game + '</span><span class="heAmount">' + h.amount + ' 🪙</span><span class="heResult ' + resultClass + '">' + resultText + '</span><span class="heTime">' + time + '</span></div>';
+      }).join("");
+    }
+
+    document.addEventListener("click", (e) => {
+      if (e.target.classList.contains("filterBtn") && e.target.closest("#historyFilters")) {
+        document.querySelectorAll("#historyFilters .filterBtn").forEach(b => b.classList.remove("active"));
+        e.target.classList.add("active");
+        renderBetHistory();
+      }
+    });
 
     // ==================== BET HELPERS ====================
     function setQBet(inputId, val) {
@@ -1399,6 +1543,12 @@
     function switchTab(name) {
       document.querySelectorAll(".tabBtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
       document.querySelectorAll(".gamePanel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+      if (name === "history") renderBetHistory();
+      if (name === "markets") updateMarketsPanel();
+      const panel = document.getElementById("tab-" + name);
+      if (panel) {
+        setTimeout(() => { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+      }
     }
     function isTabActive(name) { const b = document.querySelector('.tabBtn[data-tab="'+name+'"]'); return b && b.classList.contains("active"); }
     document.querySelectorAll(".tabBtn").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
@@ -1518,6 +1668,7 @@
 
     async function startCrash() {
       if (cPlaying) return;
+      currentGame = "Crash";
       cBetAmt = getBet("cBet");
       if (!placeBet(cBetAmt)) return;
 
@@ -1650,6 +1801,7 @@
         mBusted = true; mPlaying = false;
         setMStatus("Busted!", "var(--bad)");
         $("mMsg").textContent = "💥 You hit a mine!";
+        $("mStart").disabled = false;
         recordLoss(mBetAmt);
         revealSeed("mines");
         SND.bust(); haptic(60);
@@ -1674,6 +1826,7 @@
 
     $("mStart").addEventListener("click", async () => {
       if (mPlaying) return;
+      currentGame = "Mines";
       mBetAmt = getBet("mBet");
       if (!placeBet(mBetAmt)) return;
 
@@ -1684,6 +1837,7 @@
       mMines = new Set(mines);
       mRevealed = new Set();
       mSafe = 0; mMult = 1.0; mPlaying = true; mBusted = false;
+      $("mStart").disabled = true;
       $("mCash").disabled = true;
       setMStatus("Playing", "var(--accent2)");
       $("mMsg").textContent = "";
@@ -1698,6 +1852,7 @@
       const winAmt = Math.floor(mBetAmt * mMult);
       creditWin(winAmt, mMult);
       $("mCash").disabled = true;
+      $("mStart").disabled = false;
       setMStatus("Cashed out!", "var(--good)");
       $("mMsg").textContent = "Won " + winAmt + " 🪙 at " + mMult.toFixed(2) + "×";
       toast("Mines cashed out: " + winAmt + " 🪙", "success");
@@ -1716,6 +1871,7 @@
       mPlaying = false; mBusted = false; mSafe = 0; mMult = 1.0;
       mMines = new Set(); mRevealed = new Set();
       $("mMsg").textContent = ""; $("mCash").disabled = true;
+      $("mStart").disabled = false;
       setMStatus("Ready", "");
       updateMinesHUD(); renderMinesGrid();
     });
@@ -1775,6 +1931,7 @@
     }
 
     $("dRoll").addEventListener("click", async () => {
+      currentGame = "Dice";
       const bet = getBet("dBet");
       if (!placeBet(bet)) return;
 
@@ -2045,6 +2202,7 @@
     }
 
     $("plDrop").addEventListener("click", async () => {
+      currentGame = "Plinko";
       const bet = getBet("plBet");
       if (!placeBet(bet)) return;
       sessionStats.rounds++;
@@ -2252,6 +2410,7 @@
 
     $("bjDeal").addEventListener("click", () => {
       if (bjActive) return;
+      currentGame = "Blackjack";
       bjBetAmt = getBet("bjBet");
       if (!placeBet(bjBetAmt)) return;
 
@@ -2633,6 +2792,7 @@
         toast("Bet already placed for this round!", "info");
         return;
       }
+      currentGame = "Slots";
       slBetAmt = getBet("slBet");
       if (!placeBet(slBetAmt)) return;
       slBetPlaced = true;
@@ -2848,14 +3008,18 @@
       const canvas = $("miniRoyaleCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
-      const w = canvas.width, h = canvas.height;
-      const scale = w / 600;
-      ctx.clearRect(0, 0, w, h);
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const scale = rect.width / 600;
+      ctx.scale(dpr * scale, dpr * scale);
+      ctx.clearRect(0, 0, 600, 600);
       const st = royaleState;
       if (!st) return;
 
       ctx.save();
-      ctx.scale(scale, scale);
 
       // background
       const bgGrad = ctx.createRadialGradient(R_CX, R_CY, 0, R_CX, R_CY, R_ARENA + 30);
@@ -2992,6 +3156,18 @@
       const t = $("royaleBetType").value;
       $("royaleCountrySelect").style.display = t === "continent" ? "none" : "";
       $("royaleContinentSelect").style.display = t === "continent" ? "" : "none";
+      const isRunning = royaleState && royaleState.running;
+      const sel = $("royaleBetType");
+      for (let i = 0; i < sel.options.length; i++) {
+        const opt = sel.options[i];
+        if (isRunning && (opt.value === "winner" || opt.value === "top3")) {
+          opt.disabled = true; opt.textContent = opt.textContent.replace(/ 🔒$/, "") + " 🔒";
+        } else if (!isRunning && opt.value === "continent") {
+          opt.disabled = true; opt.textContent = opt.textContent.replace(/ 🔒$/, "") + " 🔒";
+        } else {
+          opt.disabled = false; opt.textContent = opt.textContent.replace(/ 🔒$/, "");
+        }
+      }
     }
 
     function spawnElimParticles(x, y, color) {
@@ -3026,6 +3202,8 @@
       initRoyale();
       royaleState.running = true;
       royaleState.lastTime = performance.now();
+      document.querySelectorAll(".btnRoyaleStart").forEach(b => b.disabled = true);
+      updateRoyaleSelectors();
       SND.click();
       royaleLoop();
     }
@@ -3166,14 +3344,34 @@
           }
         }
         st.winnerAnim = 0;
+        st.celebrating = true;
         if (royaleAnimId) cancelAnimationFrame(royaleAnimId);
-        // run winner celebration loop
+        document.querySelectorAll(".btnRoyaleStart").forEach(b => b.disabled = false);
+        // run winner celebration loop with bounce
         let celebFrame = 0;
         function celebLoop() {
           st.winnerAnim = Math.min(1, st.winnerAnim + 0.02);
+          // bounce winner inside closed arena
+          if (st.winner && st.winner.alive) {
+            const cdt = 0.016;
+            st.winner.vx += (Math.random() - 0.5) * 80 * cdt;
+            st.winner.vy += (Math.random() - 0.5) * 80 * cdt;
+            st.winner.x += st.winner.vx * cdt;
+            st.winner.y += st.winner.vy * cdt;
+            st.winner.vx *= 0.99; st.winner.vy *= 0.99;
+            const dx = st.winner.x - R_CX, dy = st.winner.y - R_CY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist + R_BALL > R_ARENA) {
+              const nx = dx / dist, ny = dy / dist;
+              const pen = dist + R_BALL - R_ARENA;
+              st.winner.x -= nx * pen; st.winner.y -= ny * pen;
+              const dvn = st.winner.vx * nx + st.winner.vy * ny;
+              if (dvn > 0) { st.winner.vx -= 2 * dvn * nx * 0.7; st.winner.vy -= 2 * dvn * ny * 0.7; }
+            }
+          }
           renderRoyale();
           celebFrame++;
-          if (celebFrame < 120) requestAnimationFrame(celebLoop);
+          if (celebFrame < 180) requestAnimationFrame(celebLoop);
         }
         celebLoop();
         updateRoyaleHUD();
@@ -3189,7 +3387,13 @@
       const canvas = $("royaleCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
-      const w = canvas.width, h = canvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr * rect.width / 600, dpr * rect.height / 600);
+      const w = 600, h = 600;
       ctx.clearRect(0, 0, w, h);
       const st = royaleState;
       if (!st) return;
@@ -3216,42 +3420,45 @@
       const gapStart = gapCenter - R_GAP_ARC / 2;
       const gapEnd = gapCenter + R_GAP_ARC / 2;
       const now = Date.now();
+      const isCelebrating = st.celebrating && st.winner && !st.running;
 
       // arena outer glow (pulsing)
       ctx.save();
       const glowPulse = 0.15 + Math.sin(now / 500) * 0.1;
-      ctx.shadowColor = "rgba(124,111,255," + glowPulse + ")";
+      ctx.shadowColor = isCelebrating ? "rgba(124,255,107," + glowPulse + ")" : "rgba(124,111,255," + glowPulse + ")";
       ctx.shadowBlur = 40;
-      ctx.strokeStyle = "rgba(124,111,255,0.06)";
+      ctx.strokeStyle = isCelebrating ? "rgba(124,255,107,0.06)" : "rgba(124,111,255,0.06)";
       ctx.lineWidth = 16;
       ctx.beginPath();
-      ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+      if (isCelebrating) {
+        ctx.arc(R_CX, R_CY, R_ARENA, 0, Math.PI * 2);
+      } else {
+        ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+      }
       ctx.stroke();
       ctx.restore();
-
-      // energy pulses traveling along the wall
-      for (let p = 0; p < 3; p++) {
-        const pulseAngle = ((now / (800 + p * 200)) % 1) * Math.PI * 2 + p * 2.1;
-        const px = R_CX + Math.cos(pulseAngle) * R_ARENA;
-        const py = R_CY + Math.sin(pulseAngle) * R_ARENA;
-        const pulseGlow = ctx.createRadialGradient(px, py, 0, px, py, 20);
-        pulseGlow.addColorStop(0, "rgba(124,111,255,0.3)");
-        pulseGlow.addColorStop(1, "rgba(124,111,255,0)");
-        ctx.fillStyle = pulseGlow;
-        ctx.fillRect(px - 20, py - 20, 40, 40);
-      }
 
       // arena wall (gradient stroke)
       ctx.save();
       const wallGrad = ctx.createLinearGradient(R_CX - R_ARENA, R_CY, R_CX + R_ARENA, R_CY);
-      wallGrad.addColorStop(0, "rgba(124,111,255,0.5)");
-      wallGrad.addColorStop(0.5, "rgba(110,231,255,0.45)");
-      wallGrad.addColorStop(1, "rgba(124,111,255,0.5)");
+      if (isCelebrating) {
+        wallGrad.addColorStop(0, "rgba(124,255,107,0.5)");
+        wallGrad.addColorStop(0.5, "rgba(255,215,0,0.45)");
+        wallGrad.addColorStop(1, "rgba(124,255,107,0.5)");
+      } else {
+        wallGrad.addColorStop(0, "rgba(124,111,255,0.5)");
+        wallGrad.addColorStop(0.5, "rgba(110,231,255,0.45)");
+        wallGrad.addColorStop(1, "rgba(124,111,255,0.5)");
+      }
       ctx.strokeStyle = wallGrad;
       ctx.lineWidth = 4;
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+      if (isCelebrating) {
+        ctx.arc(R_CX, R_CY, R_ARENA, 0, Math.PI * 2);
+      } else {
+        ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+      }
       ctx.stroke();
       ctx.restore();
 
@@ -3262,6 +3469,7 @@
       ctx.arc(R_CX, R_CY, R_ARENA - 8, 0, Math.PI * 2);
       ctx.stroke();
 
+      if (!isCelebrating) {
       // gap danger zone glow (pulsing)
       ctx.save();
       const gapMidX = R_CX + Math.cos(gapCenter) * R_ARENA;
@@ -3299,6 +3507,7 @@
         ctx.lineWidth = 1;
         ctx.stroke();
       }
+      } // end if (!isCelebrating)
 
       // wall hit flashes
       royaleWallHits.forEach(hit => {
@@ -3495,8 +3704,10 @@
       ctx.restore(); // end screen shake
 
       drawOddsGraph();
+      drawMarketsChart();
       renderMiniRoyale();
       updateCashoutCoeff();
+      updateMarketsPanel();
     }
 
     function updateRoyaleHUD() {
@@ -3532,7 +3743,14 @@
       const canvas = $("oddsGraph");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
-      const w = canvas.width, h = canvas.height;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const logicalW = 580, logicalH = 320;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr * rect.width / logicalW, dpr * rect.height / logicalH);
+      const w = logicalW, h = logicalH;
       ctx.clearRect(0, 0, w, h);
 
       // background
@@ -3610,8 +3828,16 @@
     }
 
     function placeRoyaleBet() {
+      currentGame = "Country Royale";
       const amount = getBet("rBet");
       const betType = $("royaleBetType").value;
+      const isRunning = royaleState && royaleState.running;
+      if (isRunning && (betType === "winner" || betType === "top3")) {
+        toast("Winner/Top3 bets locked after round starts!", "error"); return;
+      }
+      if (!isRunning && betType === "continent") {
+        toast("Market bets only available during a round!", "error"); return;
+      }
       if (!placeBet(amount)) return;
       SND.click();
       let target, label, payout;
@@ -3710,6 +3936,128 @@
         if (!won) recordLoss(b.amount);
       });
       renderRoyaleActiveBets();
+    }
+
+    // ==================== MARKETS ====================
+    function placeMarketBet() {
+      currentGame = "Country Royale";
+      if (!royaleState || !royaleState.running) { toast("Market bets only available during a round!", "error"); return; }
+      const amount = getBet("mktBet");
+      const target = $("mktContinent").value;
+      if (!placeBet(amount)) return;
+      SND.click();
+      const alive = royaleState.balls.filter(b => b.alive);
+      const total = alive.length || 1;
+      const contCount = alive.filter(b => b.continent === target).length;
+      const prob = contCount / total;
+      const payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length;
+      const label = target + " (Continent)";
+      const bet = { id: Date.now(), type: "continent", target, label, amount, payout, buyOdds: payout, active: true };
+      royaleBets.push(bet);
+      renderRoyaleActiveBets();
+      updateMarketsPanel();
+      toast("Bet placed: " + amount + "🪙 on " + label, "info");
+    }
+
+    function updateMarketsPanel() {
+      const barsEl = $("marketsOddsBars");
+      if (!barsEl) return;
+      if (!royaleState) {
+        barsEl.innerHTML = '<p class="mini">Start a Country Royale round to see live odds.</p>';
+        return;
+      }
+      const alive = royaleState.balls.filter(b => b.alive);
+      const total = alive.length || 1;
+      barsEl.innerHTML = CONTINENTS.map(c => {
+        const cnt = alive.filter(b => b.continent === c).length;
+        const pct = Math.round((cnt / total) * 100);
+        const col = CONT_COLORS[c];
+        const isElim = pct === 0;
+        return '<div class="oddBar" style="opacity:' + (isElim ? '0.3' : '1') + '"><span class="barLabel" style="color:' + col + '">' + c + '</span><div class="barTrack"><div class="barFill" style="width:' + pct + '%;background:linear-gradient(90deg,' + col + ',' + col + 'cc)"></div></div><span class="barPct" style="color:' + (pct > 0 ? col : 'var(--muted)') + '">' + pct + '%</span></div>';
+      }).join("");
+      // update active bets display
+      const abEl = $("marketsActiveBets");
+      if (abEl) {
+        abEl.innerHTML = royaleBets.filter(b => b.active && b.type === "continent").map(b => {
+          let curOdds = b.payout;
+          if (royaleState) {
+            const a2 = royaleState.balls.filter(x => x.alive);
+            const t2 = a2.length || 1;
+            const c2 = a2.filter(x => x.continent === b.target).length;
+            curOdds = c2 > 0 ? parseFloat((1 / (c2 / t2)).toFixed(2)) : 0;
+          }
+          const cashVal = curOdds > 0 ? Math.floor(b.amount * b.buyOdds / curOdds) : 0;
+          const pnl = cashVal - b.amount;
+          const pnlCol = pnl >= 0 ? "var(--good)" : "var(--bad)";
+          return '<div class="activeRoyaleBet"><span class="betInfo">' + b.amount + '🪙 ' + b.label + '</span><span class="betOdds">' + curOdds.toFixed(1) + '× <span style="color:' + pnlCol + ';font-size:11px">(' + (pnl >= 0 ? "+" : "") + pnl + ')</span></span></div>';
+        }).join("");
+      }
+      // update markets cashout display
+      const mktCashEl = $("mktCashoutDisplay");
+      if (mktCashEl) {
+        const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+        if (contBets.length === 0 || !royaleState.running) { mktCashEl.textContent = "—"; return; }
+        const parts = contBets.map(b => {
+          const a3 = royaleState.balls.filter(x => x.alive);
+          const t3 = a3.length || 1;
+          const c3 = a3.filter(x => x.continent === b.target).length;
+          const curOdds = c3 > 0 ? (1 / (c3 / t3)) : 0;
+          const coeff = curOdds > 0 ? (b.buyOdds / curOdds) : 0;
+          return coeff.toFixed(2) + "×";
+        });
+        mktCashEl.textContent = "Live: " + parts.join(", ");
+      }
+    }
+
+    function drawMarketsChart() {
+      const canvas = $("marketsChart");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const logicalW = 600, logicalH = 300;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr * rect.width / logicalW, dpr * rect.height / logicalH);
+      ctx.clearRect(0, 0, logicalW, logicalH);
+      ctx.fillStyle = "rgba(10,12,24,0.8)";
+      ctx.fillRect(0, 0, logicalW, logicalH);
+      const hist = royaleOddsHistory;
+      if (hist.length < 2) {
+        ctx.font = "12px sans-serif";
+        ctx.fillStyle = "rgba(234,240,255,0.2)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Odds chart updates when round starts", logicalW / 2, logicalH / 2);
+        return;
+      }
+      const plotL = 42, plotR = logicalW - 10, plotT = 15, plotB = logicalH - 15;
+      const plotW = plotR - plotL, plotH = plotB - plotT;
+      const step = plotW / Math.max(hist.length - 1, 1);
+      CONTINENTS.forEach(cont => {
+        const col = CONT_COLORS[cont];
+        ctx.beginPath();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "round";
+        hist.forEach((snap, i) => {
+          const x = plotL + i * step;
+          const y = plotB - (snap[cont] || 0) * plotH;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        const lastSnap = hist[hist.length - 1];
+        const lastVal = lastSnap[cont] || 0;
+        if (lastVal > 0) {
+          const ex = plotL + (hist.length - 1) * step;
+          const ey = plotB - lastVal * plotH;
+          ctx.beginPath();
+          ctx.arc(ex, ey, 3, 0, Math.PI * 2);
+          ctx.fillStyle = col;
+          ctx.fill();
+        }
+      });
     }
 
     // ==================== INIT ====================
