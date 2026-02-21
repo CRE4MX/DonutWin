@@ -1467,6 +1467,7 @@
     // ==================== BET HISTORY ====================
     let betHistory = [];
     let currentGame = "Unknown";
+    let currentBetAmount = 0;
 
     function creditWin(amount, mult) {
       balance += amount; saveBalance();
@@ -1474,7 +1475,7 @@
       if (sessionStats.streak > sessionStats.bestStreak) sessionStats.bestStreak = sessionStats.streak;
       if (mult > sessionStats.bestMult) sessionStats.bestMult = mult;
       flashBal(true); updateBalDisplay();
-      betHistory.push({ game: currentGame, amount: Math.floor(amount / mult), won: true, multiplier: mult, payout: amount, timestamp: Date.now() });
+      betHistory.push({ game: currentGame, amount: currentBetAmount || Math.floor(amount / mult), won: true, multiplier: mult, payout: amount, timestamp: Date.now() });
     }
     function recordLoss(lostAmount) {
       sessionStats.streak = 0;
@@ -1671,6 +1672,7 @@
       currentGame = "Crash";
       cBetAmt = getBet("cBet");
       if (!placeBet(cBetAmt)) return;
+      currentBetAmount = cBetAmt;
 
       sessionStats.rounds++;
       const ss = serverSeed, cs = clientSeed, n = nonce;
@@ -1829,6 +1831,7 @@
       currentGame = "Mines";
       mBetAmt = getBet("mBet");
       if (!placeBet(mBetAmt)) return;
+      currentBetAmount = mBetAmt;
 
       sessionStats.rounds++;
       const mc = clamp(parseInt($("mMineCount").value) || 5, 1, 24);
@@ -1934,6 +1937,7 @@
       currentGame = "Dice";
       const bet = getBet("dBet");
       if (!placeBet(bet)) return;
+      currentBetAmount = bet;
 
       sessionStats.rounds++;
       const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
@@ -2205,6 +2209,7 @@
       currentGame = "Plinko";
       const bet = getBet("plBet");
       if (!placeBet(bet)) return;
+      currentBetAmount = bet;
       sessionStats.rounds++;
       await dropOneBall(bet);
     });
@@ -2413,6 +2418,7 @@
       currentGame = "Blackjack";
       bjBetAmt = getBet("bjBet");
       if (!placeBet(bjBetAmt)) return;
+      currentBetAmount = bjBetAmt;
 
       sessionStats.rounds++;
       SND.chipPlace(); // Bet placed sound
@@ -2795,6 +2801,7 @@
       currentGame = "Slots";
       slBetAmt = getBet("slBet");
       if (!placeBet(slBetAmt)) return;
+      currentBetAmount = slBetAmt;
       slBetPlaced = true;
       $("slPlace").disabled = true;
       $("slYourBet").textContent = slBetAmt.toLocaleString() + " 🪙";
@@ -3130,7 +3137,7 @@
         const r = 50 + Math.random() * 120;
         return { ...c, x: R_CX + Math.cos(angle) * r, y: R_CY + Math.sin(angle) * r, vx: (Math.random() - 0.5) * 200, vy: (Math.random() - 0.5) * 200, alive: true, elimOrder: 0, trail: [] };
       });
-      royaleState = { balls, gapAngle: 0, running: false, elapsed: 0, lastTime: 0, elimCount: 0, winner: null, settled: false, winnerAnim: 0 };
+      royaleState = { balls, gapAngle: 0, running: false, elapsed: 0, lastTime: 0, elimCount: 0, winner: null, settled: false, winnerAnim: 0, celebrating: false };
       royaleOddsHistory = [];
       royaleParticles = [];
       royaleElimFlashes = [];
