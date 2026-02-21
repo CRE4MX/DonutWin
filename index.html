@@ -3357,8 +3357,8 @@
         const total = alive.length || 1;
         const cnt = alive.filter(x => x.continent === b.target).length;
         const curOdds = cnt > 0 ? (1 / (cnt / total)) : 0;
-        if (curOdds <= 0) { toast(b.target + " eliminated, no cashout", "error"); return; }
-        const cashAmount = Math.floor(b.amount * b.buyOdds / curOdds);
+        if (curOdds <= 0.01) { toast(b.target + " eliminated, no cashout", "error"); return; }
+        const cashAmount = Math.min(Math.floor(b.amount * b.buyOdds / curOdds), b.amount * 100);
         creditWin(cashAmount, parseFloat((cashAmount / b.amount).toFixed(2)));
         b.active = false;
         toast("Cashed out " + cashAmount + "🪙 from " + b.label, "success");
