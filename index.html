@@ -277,9 +277,29 @@
     .foot { text-align: center; padding: 24px 0; font-size: 11px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; align-items: center; }
     .foot a { color: var(--accent2); text-decoration: none; }
 
+    /* ==================== COUNTRY ROYALE ==================== */
+    .royaleWrap { display: grid; grid-template-columns: 1fr 340px; gap: 18px; }
+    .royaleCanvas { width: 100%; max-width: 600px; aspect-ratio: 1; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); display: block; }
+    .royaleControls { display: flex; flex-direction: column; gap: 12px; }
+    .royaleControls .input, .royaleControls select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; }
+    .royaleControls select option { background: var(--surface); }
+    .oddsPanel { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+    .oddsPanel h3 { font-size: 13px; margin-bottom: 10px; color: var(--muted); }
+    .oddBar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+    .oddBar .barLabel { width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .oddBar .barTrack { flex: 1; height: 14px; background: rgba(255,255,255,0.06); border-radius: 7px; overflow: hidden; }
+    .oddBar .barFill { height: 100%; border-radius: 7px; transition: width .3s; }
+    .oddBar .barPct { width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+    .oddsGraph { width: 100%; height: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-top: 10px; }
+    .countryList { font-size: 12px; max-height: 160px; overflow-y: auto; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+    .countryList span { display: inline-block; margin: 2px 4px; opacity: .7; }
+    .activeRoyaleBet { background: rgba(124,111,255,.12); border: 1px solid rgba(124,111,255,.3); border-radius: 8px; padding: 8px 10px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .activeRoyaleBet .betInfo { flex: 1; }
+    .activeRoyaleBet .betOdds { color: var(--accent2); margin-left: 8px; }
+
     /* responsive */
     @media (max-width: 760px) {
-      .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap, .slotsWrap { grid-template-columns: 1fr; }
+      .crashWrap, .minesWrap, .diceWrap, .plinkoWrap, .bjWrap, .slotsWrap, .royaleWrap { grid-template-columns: 1fr; }
       .crashSide, .hero { grid-template-columns: 1fr; }
       .hero > .card:last-child { display: none; }
       .mobileOnly { display: grid; margin-top: 12px; }
@@ -476,6 +496,7 @@
       <button type="button" class="tabBtn" data-tab="plinko">📍 Plinko</button>
       <button type="button" class="tabBtn" data-tab="blackjack">🃏 Blackjack</button>
       <button type="button" class="tabBtn" data-tab="slots">🎰 Slots</button>
+      <button type="button" class="tabBtn" data-tab="royale">🌍 Country Royale</button>
       <button type="button" class="tabBtn" data-tab="livebets">📊 Live Bets</button>
     </div>
 
@@ -765,6 +786,68 @@
       </div>
     </div>
 
+    <!-- ==================== COUNTRY ROYALE PANEL ==================== -->
+    <div id="tab-royale" class="gamePanel">
+      <div class="card pad royaleWrap">
+        <div>
+          <canvas id="royaleCanvas" width="600" height="600" class="royaleCanvas"></canvas>
+          <div class="countryList" style="margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <strong style="font-size:13px;">🏆 Remaining: <span id="royaleRemaining">0</span></strong>
+              <span class="tag" style="font-size:11px"><span class="dot"></span> live</span>
+            </div>
+            <div id="royaleElimList"></div>
+          </div>
+        </div>
+        <div class="royaleControls">
+          <h2 style="margin:0;font-size:15px;color:rgba(234,240,255,.88);">🌍 Country Royale</h2>
+          <p class="mini" style="color:var(--muted);">Balls bounce inside a rotating arena. Last country standing wins!</p>
+          <label class="mini" style="margin-bottom:-6px;">Bet Amount</label>
+          <div class="betRow">
+            <input class="input" id="rBet" type="number" min="1" value="10" placeholder="Bet">
+            <button type="button" class="qBet" onclick="setQBet('rBet',10)">10</button>
+            <button type="button" class="qBet" onclick="setQBet('rBet',50)">50</button>
+            <button type="button" class="qBet" onclick="setQBet('rBet',100)">100</button>
+            <button type="button" class="qBet" onclick="setQBet('rBet','max')">Max</button>
+          </div>
+          <div class="betRow">
+            <button type="button" class="qBet" onclick="multiplyBet('rBet',0.5)">½</button>
+            <button type="button" class="qBet" onclick="multiplyBet('rBet',2)">2×</button>
+          </div>
+          <label class="mini" style="margin-bottom:-6px;">Bet Type</label>
+          <select id="royaleBetType" class="input" onchange="updateRoyaleSelectors()">
+            <option value="winner">🏆 Winner (25×)</option>
+            <option value="top3">🥇 Top 3 (8×)</option>
+            <option value="continent">🌐 Continent (odds vary)</option>
+          </select>
+          <div id="royaleCountrySelect">
+            <label class="mini" style="margin-bottom:-6px;">Pick Country</label>
+            <select id="royaleCountry" class="input"></select>
+          </div>
+          <div id="royaleContinentSelect" style="display:none;">
+            <label class="mini" style="margin-bottom:-6px;">Pick Continent</label>
+            <select id="royaleContinent" class="input">
+              <option value="Africa">Africa</option>
+              <option value="Asia">Asia</option>
+              <option value="Europe">Europe</option>
+              <option value="North America">North America</option>
+              <option value="South America">South America</option>
+              <option value="Oceania">Oceania</option>
+            </select>
+          </div>
+          <button type="button" class="btn" style="width:100%;background:var(--accent);" onclick="placeRoyaleBet()">Place Bet</button>
+          <div id="royaleActiveBets"></div>
+          <button type="button" class="btn" style="width:100%;background:var(--good);color:#000;" onclick="startRoyale()">▶ Start Round</button>
+          <div class="oddsPanel">
+            <h3>📊 Live Continent Odds</h3>
+            <div id="royaleOddsBars"></div>
+            <canvas id="oddsGraph" width="580" height="200" class="oddsGraph"></canvas>
+          </div>
+          <button type="button" class="btn" style="width:100%;background:var(--accent2);color:#000;" onclick="cashoutRoyaleBet()">💰 Cashout</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== LIVE BETS PANEL ==================== -->
     <div id="tab-livebets" class="gamePanel">
       <div class="card pad">
@@ -849,6 +932,7 @@
         <a href="#" onclick="switchTab('plinko');return false">Plinko</a>
         <a href="#" onclick="switchTab('blackjack');return false">Blackjack</a>
         <a href="#" onclick="switchTab('slots');return false">Slots</a>
+        <a href="#" onclick="switchTab('royale');return false">Country Royale</a>
         <a href="#provably-section">Verify</a>
         <a href="#waitlist-section">Waitlist</a>
       </div>
@@ -2622,6 +2706,390 @@
       toast("You're on the waitlist!", "success");
     });
 
+    // ==================== COUNTRY ROYALE ====================
+    const ROYALE_COUNTRIES = [
+      { name:"Nigeria", flag:"🇳🇬", continent:"Africa", code:"NG" },
+      { name:"Egypt", flag:"🇪🇬", continent:"Africa", code:"EG" },
+      { name:"South Africa", flag:"🇿🇦", continent:"Africa", code:"ZA" },
+      { name:"Kenya", flag:"🇰🇪", continent:"Africa", code:"KE" },
+      { name:"Morocco", flag:"🇲🇦", continent:"Africa", code:"MA" },
+      { name:"Japan", flag:"🇯🇵", continent:"Asia", code:"JP" },
+      { name:"India", flag:"🇮🇳", continent:"Asia", code:"IN" },
+      { name:"South Korea", flag:"🇰🇷", continent:"Asia", code:"KR" },
+      { name:"Thailand", flag:"🇹🇭", continent:"Asia", code:"TH" },
+      { name:"China", flag:"🇨🇳", continent:"Asia", code:"CN" },
+      { name:"France", flag:"🇫🇷", continent:"Europe", code:"FR" },
+      { name:"Germany", flag:"🇩🇪", continent:"Europe", code:"DE" },
+      { name:"UK", flag:"🇬🇧", continent:"Europe", code:"GB" },
+      { name:"Spain", flag:"🇪🇸", continent:"Europe", code:"ES" },
+      { name:"Italy", flag:"🇮🇹", continent:"Europe", code:"IT" },
+      { name:"USA", flag:"🇺🇸", continent:"North America", code:"US" },
+      { name:"Canada", flag:"🇨🇦", continent:"North America", code:"CA" },
+      { name:"Mexico", flag:"🇲🇽", continent:"North America", code:"MX" },
+      { name:"Cuba", flag:"🇨🇺", continent:"North America", code:"CU" },
+      { name:"Jamaica", flag:"🇯🇲", continent:"North America", code:"JM" },
+      { name:"Brazil", flag:"🇧🇷", continent:"South America", code:"BR" },
+      { name:"Argentina", flag:"🇦🇷", continent:"South America", code:"AR" },
+      { name:"Colombia", flag:"🇨🇴", continent:"South America", code:"CO" },
+      { name:"Chile", flag:"🇨🇱", continent:"South America", code:"CL" },
+      { name:"Peru", flag:"🇵🇪", continent:"South America", code:"PE" },
+      { name:"Australia", flag:"🇦🇺", continent:"Oceania", code:"AU" },
+      { name:"New Zealand", flag:"🇳🇿", continent:"Oceania", code:"NZ" },
+      { name:"Fiji", flag:"🇫🇯", continent:"Oceania", code:"FJ" },
+      { name:"Papua New Guinea", flag:"🇵🇬", continent:"Oceania", code:"PG" },
+      { name:"Samoa", flag:"🇼🇸", continent:"Oceania", code:"WS" }
+    ];
+    const CONTINENTS = ["Africa","Asia","Europe","North America","South America","Oceania"];
+    const CONT_COLORS = { Africa:"#f4a460", Asia:"#ff6b6b", Europe:"#7c6fff", "North America":"#6ee7ff", "South America":"#7cff6b", Oceania:"#ffda6b" };
+    const R_CX = 300, R_CY = 300, R_ARENA = 250, R_BALL = 12;
+    const R_GAP_FRACTION = 10; // gap is 1/10th of circumference
+    const R_GAP_ARC = Math.PI * 2 / R_GAP_FRACTION;
+    const R_OMEGA = 0.3, R_GRAVITY = 30, R_DAMPING = 0.998, R_RESTITUTION = 0.85;
+
+    let royaleState = null;
+    let royaleBets = [];
+    let royaleAnimId = null;
+    let royaleOddsHistory = [];
+
+    function initRoyale() {
+      const balls = ROYALE_COUNTRIES.map((c, i) => {
+        const angle = (i / ROYALE_COUNTRIES.length) * Math.PI * 2;
+        const r = 40 + Math.random() * 150;
+        return { ...c, x: R_CX + Math.cos(angle) * r, y: R_CY + Math.sin(angle) * r, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 60, alive: true, elimOrder: 0 };
+      });
+      royaleState = { balls, gapAngle: 0, running: false, elapsed: 0, lastTime: 0, elimCount: 0, winner: null, settled: false };
+      royaleOddsHistory = [];
+      updateRoyaleOdds();
+      renderRoyale();
+      updateRoyaleHUD();
+    }
+
+    function populateRoyaleCountrySelect() {
+      const sel = $("royaleCountry");
+      sel.innerHTML = "";
+      ROYALE_COUNTRIES.forEach(c => {
+        const o = document.createElement("option");
+        o.value = c.code;
+        o.textContent = c.flag + " " + c.name;
+        sel.appendChild(o);
+      });
+    }
+
+    function updateRoyaleSelectors() {
+      const t = $("royaleBetType").value;
+      $("royaleCountrySelect").style.display = t === "continent" ? "none" : "";
+      $("royaleContinentSelect").style.display = t === "continent" ? "" : "none";
+    }
+
+    function startRoyale() {
+      if (royaleState && royaleState.running) { toast("Round already running!", "error"); return; }
+      initRoyale();
+      royaleState.running = true;
+      royaleState.lastTime = performance.now();
+      SND.click();
+      royaleLoop();
+    }
+
+    function royaleLoop() {
+      if (!royaleState || !royaleState.running) return;
+      const now = performance.now();
+      const dt = Math.min((now - royaleState.lastTime) / 1000, 0.05);
+      royaleState.lastTime = now;
+      royaleState.elapsed += dt;
+      updateRoyale(dt);
+      renderRoyale();
+      royaleAnimId = requestAnimationFrame(royaleLoop);
+    }
+
+    function updateRoyale(dt) {
+      const st = royaleState;
+      st.gapAngle += R_OMEGA * dt;
+      const alive = st.balls.filter(b => b.alive);
+      // gravity
+      alive.forEach(b => { b.vy += R_GRAVITY * dt; });
+      // move
+      alive.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; b.vx *= R_DAMPING; b.vy *= R_DAMPING; });
+      // ball-ball collisions
+      for (let i = 0; i < alive.length; i++) {
+        for (let j = i + 1; j < alive.length; j++) {
+          const a = alive[i], b = alive[j];
+          const dx = b.x - a.x, dy = b.y - a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const minD = R_BALL * 2;
+          if (dist < minD && dist > 0.01) {
+            const nx = dx / dist, ny = dy / dist;
+            const overlap = minD - dist;
+            a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
+            b.x += nx * overlap * 0.5; b.y += ny * overlap * 0.5;
+            const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
+            const dvn = dvx * nx + dvy * ny;
+            if (dvn > 0) {
+              a.vx -= dvn * nx * R_RESTITUTION; a.vy -= dvn * ny * R_RESTITUTION;
+              b.vx += dvn * nx * R_RESTITUTION; b.vy += dvn * ny * R_RESTITUTION;
+            }
+          }
+        }
+      }
+      // wall collision + gap elimination
+      alive.forEach(b => {
+        const dx = b.x - R_CX, dy = b.y - R_CY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist + R_BALL > R_ARENA) {
+          let angle = Math.atan2(dy, dx);
+          if (angle < 0) angle += Math.PI * 2;
+          let gapCenter = st.gapAngle % (Math.PI * 2);
+          if (gapCenter < 0) gapCenter += Math.PI * 2;
+          let diff = angle - gapCenter;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          if (Math.abs(diff) < R_GAP_ARC / 2) {
+            if (dist > R_ARENA + R_BALL) {
+              b.alive = false;
+              st.elimCount++;
+              b.elimOrder = st.elimCount;
+              updateRoyaleOdds();
+              updateRoyaleHUD();
+            }
+          } else {
+            // bounce off wall
+            const pen = dist + R_BALL - R_ARENA;
+            const nx = dx / dist, ny = dy / dist;
+            b.x -= nx * pen; b.y -= ny * pen;
+            const dvn = b.vx * nx + b.vy * ny;
+            if (dvn > 0) { b.vx -= 2 * dvn * nx * R_RESTITUTION; b.vy -= 2 * dvn * ny * R_RESTITUTION; }
+          }
+        }
+      });
+      // check winner
+      const remaining = st.balls.filter(b => b.alive);
+      if (remaining.length <= 1 && st.elimCount > 0) {
+        st.running = false;
+        st.winner = remaining.length === 1 ? remaining[0] : null;
+        if (royaleAnimId) cancelAnimationFrame(royaleAnimId);
+        renderRoyale();
+        updateRoyaleHUD();
+        settleRoyaleBets();
+        if (st.winner) toast(st.winner.flag + " " + st.winner.name + " wins! 🏆", "success");
+      }
+    }
+
+    function renderRoyale() {
+      const canvas = $("royaleCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, 600, 600);
+      const st = royaleState;
+      if (!st) return;
+      // draw arena wall (arc minus gap)
+      ctx.strokeStyle = "rgba(234,240,255,0.25)";
+      ctx.lineWidth = 4;
+      let gapCenter = st.gapAngle % (Math.PI * 2);
+      const gapStart = gapCenter - R_GAP_ARC / 2;
+      const gapEnd = gapCenter + R_GAP_ARC / 2;
+      ctx.beginPath();
+      ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+      ctx.stroke();
+      // draw gap indicators
+      ctx.strokeStyle = "rgba(255,107,107,0.5)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.arc(R_CX, R_CY, R_ARENA, gapStart, gapEnd);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // draw balls
+      st.balls.forEach(b => {
+        if (!b.alive) return;
+        const contCol = CONT_COLORS[b.continent] || "#fff";
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, R_BALL, 0, Math.PI * 2);
+        ctx.fillStyle = contCol;
+        ctx.globalAlpha = 0.35;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = contCol;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.font = "14px serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff";
+        ctx.fillText(b.flag, b.x, b.y);
+      });
+      // winner highlight
+      if (st.winner) {
+        ctx.beginPath();
+        ctx.arc(st.winner.x, st.winner.y, R_BALL + 6, 0, Math.PI * 2);
+        ctx.strokeStyle = "#7cff6b";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.font = "bold 22px sans-serif";
+        ctx.fillStyle = "#7cff6b";
+        ctx.textAlign = "center";
+        ctx.fillText("🏆 " + st.winner.name + " WINS!", R_CX, 40);
+      }
+      drawOddsGraph();
+    }
+
+    function updateRoyaleHUD() {
+      if (!royaleState) return;
+      const alive = royaleState.balls.filter(b => b.alive);
+      $("royaleRemaining").textContent = alive.length;
+      const el = $("royaleElimList");
+      const elim = royaleState.balls.filter(b => !b.alive).sort((a, b) => a.elimOrder - b.elimOrder);
+      el.innerHTML = elim.map(b => "<span>" + b.flag + "</span>").join("");
+    }
+
+    function updateRoyaleOdds() {
+      if (!royaleState) return;
+      const alive = royaleState.balls.filter(b => b.alive);
+      const total = alive.length || 1;
+      const odds = {};
+      CONTINENTS.forEach(c => { odds[c] = alive.filter(b => b.continent === c).length / total; });
+      royaleOddsHistory.push({ ...odds });
+      // render bars
+      const barsEl = $("royaleOddsBars");
+      if (barsEl) {
+        barsEl.innerHTML = CONTINENTS.map(c => {
+          const pct = Math.round(odds[c] * 100);
+          const col = CONT_COLORS[c];
+          return '<div class="oddBar"><span class="barLabel" style="color:' + col + '">' + c + '</span><div class="barTrack"><div class="barFill" style="width:' + pct + '%;background:' + col + '"></div></div><span class="barPct">' + pct + '%</span></div>';
+        }).join("");
+      }
+    }
+
+    function drawOddsGraph() {
+      const canvas = $("oddsGraph");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "rgba(13,15,26,0.6)";
+      ctx.fillRect(0, 0, w, h);
+      const hist = royaleOddsHistory;
+      if (hist.length < 2) return;
+      const step = w / Math.max(hist.length - 1, 1);
+      CONTINENTS.forEach(cont => {
+        ctx.beginPath();
+        ctx.strokeStyle = CONT_COLORS[cont];
+        ctx.lineWidth = 2;
+        hist.forEach((snap, i) => {
+          const x = i * step;
+          const y = h - (snap[cont] || 0) * h;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    function placeRoyaleBet() {
+      const amount = getBet("rBet");
+      const betType = $("royaleBetType").value;
+      if (!placeBet(amount)) return;
+      SND.click();
+      let target, label, payout;
+      if (betType === "winner") {
+        target = $("royaleCountry").value;
+        const c = ROYALE_COUNTRIES.find(x => x.code === target);
+        label = c ? c.flag + " " + c.name + " (Winner)" : target;
+        payout = 25;
+      } else if (betType === "top3") {
+        target = $("royaleCountry").value;
+        const c = ROYALE_COUNTRIES.find(x => x.code === target);
+        label = c ? c.flag + " " + c.name + " (Top 3)" : target;
+        payout = 8;
+      } else {
+        target = $("royaleContinent").value;
+        label = target + " (Continent)";
+        const alive = royaleState ? royaleState.balls.filter(b => b.alive) : ROYALE_COUNTRIES;
+        const total = alive.length || 1;
+        const contCount = alive.filter(b => b.continent === target).length;
+        const prob = contCount / total;
+        payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length; // max payout when continent fully eliminated
+      }
+      const bet = { id: Date.now(), type: betType, target, label, amount, payout, buyOdds: payout, active: true };
+      royaleBets.push(bet);
+      renderRoyaleActiveBets();
+      toast("Bet placed: " + amount + "🪙 on " + label, "info");
+    }
+
+    function renderRoyaleActiveBets() {
+      const el = $("royaleActiveBets");
+      if (!el) return;
+      el.innerHTML = royaleBets.filter(b => b.active).map(b => {
+        let curOdds = b.payout;
+        if (b.type === "continent" && royaleState) {
+          const alive = royaleState.balls.filter(x => x.alive);
+          const total = alive.length || 1;
+          const cnt = alive.filter(x => x.continent === b.target).length;
+          curOdds = cnt > 0 ? parseFloat((1 / (cnt / total)).toFixed(2)) : 0;
+        }
+        const val = curOdds > 0 ? (b.amount * b.buyOdds / curOdds).toFixed(0) : 0;
+        return '<div class="activeRoyaleBet"><span class="betInfo">' + b.amount + '🪙 ' + b.label + '</span><span class="betOdds">' + curOdds.toFixed(1) + '× (≈' + val + '🪙)</span></div>';
+      }).join("");
+    }
+
+    function cashoutRoyaleBet() {
+      if (!royaleState || !royaleState.running) { toast("No active round", "error"); return; }
+      const remaining = royaleState.balls.filter(b => b.alive).length;
+      if (remaining <= 3) { toast("Bets locked in Top 3!", "error"); return; }
+      const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+      if (contBets.length === 0) { toast("No continent bets to cashout", "error"); return; }
+      contBets.forEach(b => {
+        const alive = royaleState.balls.filter(x => x.alive);
+        const total = alive.length || 1;
+        const cnt = alive.filter(x => x.continent === b.target).length;
+        const curOdds = cnt > 0 ? (1 / (cnt / total)) : 0;
+        if (curOdds <= 0) { toast(b.target + " eliminated, no cashout", "error"); return; }
+        const cashAmount = Math.floor(b.amount * b.buyOdds / curOdds);
+        creditWin(cashAmount, parseFloat((cashAmount / b.amount).toFixed(2)));
+        b.active = false;
+        toast("Cashed out " + cashAmount + "🪙 from " + b.label, "success");
+        SND.win();
+      });
+      renderRoyaleActiveBets();
+    }
+
+    function settleRoyaleBets() {
+      if (!royaleState || royaleState.settled) return;
+      royaleState.settled = true;
+      const winner = royaleState.winner;
+      // Build top 3: winner + last 2 eliminated
+      const top3codes = [];
+      if (winner) top3codes.push(winner.code);
+      const lastElims = royaleState.balls.filter(b => !b.alive).sort((a, b) => b.elimOrder - a.elimOrder).slice(0, 2);
+      lastElims.forEach(e => top3codes.push(e.code));
+
+      royaleBets.forEach(b => {
+        if (!b.active) return;
+        b.active = false;
+        let won = false;
+        if (b.type === "winner" && winner && b.target === winner.code) {
+          const winAmt = Math.floor(b.amount * b.payout);
+          creditWin(winAmt, b.payout);
+          toast("Winner bet pays " + winAmt + "🪙! 🎉", "success");
+          SND.win();
+          won = true;
+        } else if (b.type === "top3" && top3codes.includes(b.target)) {
+          const winAmt = Math.floor(b.amount * b.payout);
+          creditWin(winAmt, b.payout);
+          toast("Top 3 bet pays " + winAmt + "🪙! 🎉", "success");
+          SND.win();
+          won = true;
+        } else if (b.type === "continent" && winner && winner.continent === b.target) {
+          const winAmt = Math.floor(b.amount * b.payout);
+          creditWin(winAmt, b.payout);
+          toast("Continent bet pays " + winAmt + "🪙! 🎉", "success");
+          SND.win();
+          won = true;
+        }
+        if (!won) {
+          recordLoss(b.amount);
+        }
+      });
+      renderRoyaleActiveBets();
+    }
+
     // ==================== INIT ====================
     (async function init() {
       // initial data
@@ -2635,6 +3103,10 @@
       renderPlinkoBuckets();
       drawPlinkoBoard();
       bjDeck = createDeck();
+
+      // country royale init
+      populateRoyaleCountrySelect();
+      initRoyale();
 
       // slots init
       renderSlotReels(false);
