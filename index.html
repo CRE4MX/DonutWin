@@ -2334,7 +2334,7 @@
       if (!placeBet(bet)) return;
       currentBetAmount = bet;
       sessionStats.rounds++;
-      dropOneBall(bet);
+      dropOneBall(bet); // fire-and-forget: allows multiple simultaneous balls
     });
 
     function stopAutobet() {
@@ -2744,7 +2744,7 @@
     function checkSlotWins() {
       let totalMult = 0;
       const winRows = [];
-      // Only the middle row (index 1) counts for wins
+      // Only the middle row (index 1) counts for wins – reduces exploitation and improves balance
       const row = slGrid[1];
       if (row[0] === row[1] && row[1] === row[2]) {
         totalMult += SLOT_PAYOUTS[row[0]];
