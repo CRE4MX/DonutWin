@@ -950,9 +950,6 @@
           </div>
           <!-- Market sub-tab -->
           <div id="royaleMarketPanel" class="royaleSubPanel">
-            <div class="miniCanvasWrap">
-              <canvas id="miniRoyaleCanvas" width="300" height="300" class="miniCanvas"></canvas>
-            </div>
             <div class="oddsPanel">
               <h3>Live Continent Odds</h3>
               <div id="royaleOddsBars"></div>
@@ -4007,11 +4004,12 @@
       if (!royaleState || !royaleState.running) { toast("Market bets only available during a round!", "error"); return; }
       const amount = getBet("mktBet");
       const target = $("mktContinent").value;
-      if (!placeBet(amount)) return;
-      SND.click();
       const alive = royaleState.balls.filter(b => b.alive);
       const total = alive.length || 1;
       const contCount = alive.filter(b => b.continent === target).length;
+      if (contCount === 0) { toast(target + " is already eliminated!", "error"); return; }
+      if (!placeBet(amount)) return;
+      SND.click();
       const prob = contCount / total;
       const payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length;
       const label = target + " (Continent)";
