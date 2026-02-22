@@ -3437,7 +3437,7 @@
               const pen = dist + R_BALL - R_ARENA;
               celebSt.winner.x -= nx * pen; celebSt.winner.y -= ny * pen;
               const dvn = celebSt.winner.vx * nx + celebSt.winner.vy * ny;
-              if (dvn > 0) { celebSt.winner.vx -= 2 * dvn * nx * 0.7; celebSt.winner.vy -= 2 * dvn * ny * 0.7; }
+              if (dvn > 0) { celebSt.winner.vx -= 2 * dvn * nx * R_RESTITUTION; celebSt.winner.vy -= 2 * dvn * ny * R_RESTITUTION; celebSt.winner.vx -= nx * R_WALL_BOUNCE_IMPULSE; celebSt.winner.vy -= ny * R_WALL_BOUNCE_IMPULSE; }
             }
           }
           renderRoyale();
