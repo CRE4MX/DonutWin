@@ -143,7 +143,6 @@
     .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 420px; width: 100%; margin: 10px auto; }
     .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: all .25s ease; transform: scale(1); min-width: 0; min-height: 48px; }
     .mTile:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); box-shadow: 0 0 12px rgba(124,111,255,0.15); }
-    .mTile.autoPick { border-color: rgba(110,231,255,0.7); box-shadow: 0 0 0 2px rgba(110,231,255,0.2), 0 0 12px rgba(110,231,255,0.25); }
     .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
     .mTile.mine { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
     .mTile.disabled { pointer-events: none; opacity: 0.6; transform: none; }
@@ -645,14 +644,6 @@
             <button type="button" class="btn primary" id="mStart">Start</button>
             <button type="button" class="btn" id="mCash" disabled>Cash out</button>
             <button type="button" class="btn" id="mReset">Reset</button>
-          </div>
-          <div class="crashTop">
-            <label class="autoCheck" style="cursor:pointer;">
-              <input type="checkbox" id="mAutoBet">
-              <span>Auto</span>
-            </label>
-            <button type="button" class="btn" id="mAutoClear">Clear picks</button>
-            <span class="mini">Auto picks: <b id="mAutoPickCount">0</b></span>
           </div>
           <div class="stats3">
             <div class="stat3"><div class="k">Safe picks</div><div class="v" id="mSafe">0</div></div>
@@ -1791,41 +1782,12 @@
     // ==================== MINES GAME ====================
     let mPlaying = false, mBusted = false, mSafe = 0, mMult = 1.0;
     let mMines = new Set(), mRevealed = new Set(), mBetAmt = 0;
-    let mAutoPicks = new Set();
 
     function setMStatus(t, col) { $("mStatus").textContent = t; $("mStatus").style.color = col || ""; }
     function updateMinesHUD() {
       $("mSafe").textContent = mSafe;
       $("mMult").textContent = mMult.toFixed(2) + "×";
     }
-    function updateMinesAutoPickCount() {
-      $("mAutoPickCount").textContent = mAutoPicks.size;
-    }
-    function scheduleMinesAutoStart() {
-      if (!$("mAutoBet").checked || mAutoPicks.size === 0) return;
-      setTimeout(() => {
-        if ($("mAutoBet").checked && !mPlaying) $("mStart").click();
-      }, 1200);
-    }
-    async function runMinesAutoPicks() {
-      if (!$("mAutoBet").checked || !mPlaying || mBusted || mAutoPicks.size === 0) return;
-      for (const i of mAutoPicks) {
-        if (!mPlaying || mBusted) break;
-        if (!mRevealed.has(i)) {
-          await revealTile(i);
-          if (!mPlaying || mBusted) break;
-          await new Promise(r => setTimeout(r, 260));
-        }
-      }
-      if (mPlaying && !mBusted && mSafe > 0) $("mCash").click();
-    }
-    function toggleMinesAutoPick(i) {
-      if (mAutoPicks.has(i)) mAutoPicks.delete(i);
-      else mAutoPicks.add(i);
-      updateMinesAutoPickCount();
-      renderMinesGrid();
-    }
-
     function renderMinesGrid() {
       const grid = $("mGrid"); grid.innerHTML = "";
       for (let i = 0; i < 25; i++) {
@@ -1837,13 +1799,8 @@
           tile.classList.add("disabled");
         } else if (!mPlaying || mBusted) {
           tile.classList.add("disabled");
-          if (mAutoPicks.has(i)) tile.classList.add("autoPick");
         }
         tile.addEventListener("click", () => {
-          if (!mPlaying && !mBusted) {
-            toggleMinesAutoPick(i);
-            return;
-          }
           revealTile(i);
         });
         grid.appendChild(tile);
@@ -1879,7 +1836,6 @@
         // reveal all mines
         mMines.forEach(m => mRevealed.add(m));
         renderMinesGrid();
-        scheduleMinesAutoStart();
         return;
       }
       // safe
@@ -1916,7 +1872,6 @@
       updateMinesHUD();
       renderMinesGrid();
       SND.click();
-      if ($("mAutoBet").checked && mAutoPicks.size > 0) setTimeout(runMinesAutoPicks, 180);
     });
 
     $("mCash").addEventListener("click", () => {
@@ -1933,7 +1888,6 @@
       SND.cash(); haptic(30);
       pushMineWin("you", mMult);
       renderMinesGrid();
-      scheduleMinesAutoStart();
     });
 
     $("mReset").addEventListener("click", () => {
@@ -1949,12 +1903,6 @@
       setMStatus("Ready", "");
       updateMinesHUD(); renderMinesGrid();
     });
-    $("mAutoClear").addEventListener("click", () => {
-      mAutoPicks.clear();
-      updateMinesAutoPickCount();
-      renderMinesGrid();
-    });
-
     // ==================== DICE GAME ====================
     const DICE_PAYOUT_FACTOR = 99; // 1% house edge (99/100)
     let dStreak = 0;
@@ -4234,7 +4182,6 @@
       // init games
       renderMinesGrid();
       updateMinesHUD();
-      updateMinesAutoPickCount();
       updateDiceUI();
       renderPlinkoBuckets();
       drawPlinkoBoard();
