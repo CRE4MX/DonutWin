@@ -1589,25 +1589,16 @@
 
     // ==================== BALANCE TAMPER DETECTION ====================
     (function() {
-      let balUpdating = false;
-      const origUpdateBalDisplay = updateBalDisplay;
-      updateBalDisplay = function() {
-        balUpdating = true;
-        origUpdateBalDisplay();
-        balUpdating = false;
-      };
       const balEl = $("balDisplay");
       if (balEl) {
         new MutationObserver(function() {
-          if (balUpdating) return;
+          if (balEl.textContent === balance.toLocaleString()) return;
           balance = 1000;
           saveBalance();
           totalWagered = 0;
           localStorage.setItem("dw_wagered", "0");
           sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
-          balUpdating = true;
-          origUpdateBalDisplay();
-          balUpdating = false;
+          updateBalDisplay();
           toast("Tampering detected – balance reset to 1,000 🪙", "error");
         }).observe(balEl, { childList: true, characterData: true, subtree: true });
       }
