@@ -358,6 +358,9 @@
     /* markets tab */
     .marketsWrap { display: grid; grid-template-columns: 1fr 320px; gap: 18px; }
     .marketsChart { width: 100%; aspect-ratio: 2/1; background: rgba(10,12,24,0.8); border: 1px solid rgba(124,111,255,0.1); border-radius: 10px; display: block; }
+    /* mini live-game preview in markets right column (desktop only) */
+    .mktMiniGameWrap { margin-top: 12px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(124,111,255,0.12); }
+    .mktMiniGameWrap .miniCanvas { aspect-ratio: 1; }
 
     /* responsive */
     @media (max-width: 760px) {
@@ -365,6 +368,9 @@
       .crashSide, .hero { grid-template-columns: 1fr; }
       .hero > .card:last-child { display: none; }
       .mobileOnly { display: grid; margin-top: 12px; }
+      /* hide mini game preview and royale market sub-tab on mobile */
+      .mktMiniGameWrap { display: none; }
+      .royaleSubTabs .royaleSubTab:nth-child(2) { display: none; }
       .mobileHeading { display: block; }
       .desktopHeading { display: none; }
 
@@ -448,6 +454,9 @@
       .hero .card.pad .ctaRow { justify-content: center; }
       .hero .card.pad .mini { text-align: center; }
       .mobileHeading { text-align: center; }
+
+      /* center footer links on mobile */
+      .foot > div { justify-content: center; }
     }
 
     /* small phone extra tweaks */
@@ -948,6 +957,7 @@
               <h3>Live Continent Odds</h3>
               <div id="royaleOddsBars"></div>
               <canvas id="oddsGraph" width="580" height="320" class="marketGraph"></canvas>
+              <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()" style="margin-top:12px;width:100%;">💰 Cashout Position<span class="cashoutCoeff" id="royaleMarketCashoutDisplay">—</span></button>
             </div>
           </div>
         </div>
@@ -1006,6 +1016,10 @@
           <div id="marketsActiveBets" style="margin-top:10px;"></div>
           <div class="royaleDivider" style="margin:10px 0;"></div>
           <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()">💰 Cashout Position<span class="cashoutCoeff" id="mktCashoutDisplay">—</span></button>
+          <!-- desktop-only live game preview -->
+          <div class="mktMiniGameWrap">
+            <canvas id="marketsMiniCanvas" width="300" height="300" class="miniCanvas"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -1018,6 +1032,8 @@
         </div>
         <div class="historyFilters" id="historyFilters">
           <button type="button" class="filterBtn active" data-filter="all">All</button>
+          <button type="button" class="filterBtn" data-filter="wins" style="border-color:rgba(124,255,107,0.3);">✅ Wins</button>
+          <button type="button" class="filterBtn" data-filter="losses" style="border-color:rgba(255,107,107,0.3);">❌ Losses</button>
           <button type="button" class="filterBtn" data-filter="Crash">Crash</button>
           <button type="button" class="filterBtn" data-filter="Mines">Mines</button>
           <button type="button" class="filterBtn" data-filter="Dice">Dice</button>
@@ -1489,7 +1505,10 @@
       const activeFilter = document.querySelector("#historyFilters .filterBtn.active");
       const filter = activeFilter ? activeFilter.dataset.filter : "all";
       const sortVal = $("historySort") ? $("historySort").value : "time";
-      let items = filter === "all" ? [...betHistory] : betHistory.filter(h => h.game === filter);
+      let items = filter === "all" ? [...betHistory]
+        : filter === "wins" ? betHistory.filter(h => h.multiplier >= 1.0)
+        : filter === "losses" ? betHistory.filter(h => h.multiplier < 1.0)
+        : betHistory.filter(h => h.game === filter);
       if (sortVal === "winlose") items.sort((a, b) => (b.won ? 1 : 0) - (a.won ? 1 : 0));
       else if (sortVal === "betlow") items.sort((a, b) => a.amount - b.amount);
       else if (sortVal === "bethigh") items.sort((a, b) => b.amount - a.amount);
@@ -2999,6 +3018,43 @@
     let royaleWallHits = [];
     let royaleShake = { x: 0, y: 0, intensity: 0 };
 
+    // Flag image cache — preloads country flags from CDN for crisp canvas rendering
+    const _flagImgCache = {};
+    function getFlagImg(code) {
+      if (!code) return null;
+      const k = code.toLowerCase();
+      if (!_flagImgCache[k]) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = "https://flagcdn.com/w40/" + k + ".png";
+        _flagImgCache[k] = img;
+      }
+      return _flagImgCache[k];
+    }
+    function drawBallLabel(ctx, b, size) {
+      const img = getFlagImg(b.code);
+      if (img && img.complete && img.naturalWidth > 0) {
+        const iw = size * 1.8, ih = size * 1.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, size - 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(img, b.x - iw / 2, b.y - ih / 2, iw, ih);
+        ctx.restore();
+      } else {
+        // Premium styled 2-letter code
+        ctx.save();
+        ctx.font = "bold " + Math.round(size * 0.85) + "px 'Segoe UI', system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = "rgba(0,0,0,0.8)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(b.code, b.x, b.y + 1);
+        ctx.restore();
+      }
+    }
+
     function switchRoyaleTab(tab) {
       document.querySelectorAll('.royaleSubTab').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.royaleSubPanel').forEach(p => p.classList.remove('active'));
@@ -3011,12 +3067,12 @@
       }
     }
 
-    function renderMiniRoyale() {
-      const canvas = $("miniRoyaleCanvas");
+    function renderMiniRoyaleToCanvas(canvas) {
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
+      if (!rect.width) return;
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -3067,21 +3123,25 @@
         ctx.strokeStyle = col;
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.font = (R_BALL * 1.4) + "px serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(b.flag, b.x, b.y + 1);
+        drawBallLabel(ctx, b, R_BALL);
       });
 
       ctx.restore();
     }
 
+    function renderMiniRoyale() {
+      renderMiniRoyaleToCanvas($("miniRoyaleCanvas"));
+      renderMiniRoyaleToCanvas($("marketsMiniCanvas"));
+    }
+
     function updateCashoutCoeff() {
       const el = $("cashoutCoeffDisplay");
+      const elMarket = $("royaleMarketCashoutDisplay");
       if (!el) return;
       const contBets = royaleBets.filter(b => b.active && b.type === "continent");
       if (contBets.length === 0 || !royaleState || !royaleState.running) {
         el.textContent = "—";
+        if (elMarket) elMarket.textContent = "—";
         $("rebetWrap").style.display = "none";
         return;
       }
@@ -3094,7 +3154,9 @@
         const coeff = curOdds > 0 ? (b.buyOdds / curOdds) : 0;
         return coeff.toFixed(2) + "×";
       });
-      el.textContent = "Live: " + parts.join(", ");
+      const label = "Live: " + parts.join(", ");
+      el.textContent = label;
+      if (elMarket) elMarket.textContent = label;
     }
 
     function rebetRoyale() {
@@ -3137,12 +3199,16 @@
         const r = 50 + Math.random() * 120;
         return { ...c, x: R_CX + Math.cos(angle) * r, y: R_CY + Math.sin(angle) * r, vx: (Math.random() - 0.5) * 200, vy: (Math.random() - 0.5) * 200, alive: true, elimOrder: 0, trail: [] };
       });
+      // stop any ongoing celebration from previous round
+      if (royaleState) royaleState.celebrating = false;
       royaleState = { balls, gapAngle: 0, running: false, elapsed: 0, lastTime: 0, elimCount: 0, winner: null, settled: false, winnerAnim: 0, celebrating: false };
       royaleOddsHistory = [];
       royaleParticles = [];
       royaleElimFlashes = [];
       royaleWallHits = [];
       royaleShake = { x: 0, y: 0, intensity: 0 };
+      // preload all flag images
+      ROYALE_COUNTRIES.forEach(c => getFlagImg(c.code));
       updateRoyaleOdds();
       renderRoyale();
       updateRoyaleHUD();
@@ -3354,31 +3420,31 @@
         st.celebrating = true;
         if (royaleAnimId) cancelAnimationFrame(royaleAnimId);
         document.querySelectorAll(".btnRoyaleStart").forEach(b => b.disabled = false);
-        // run winner celebration loop with bounce
-        let celebFrame = 0;
+        // run winner celebration loop with bounce — runs until new round starts
+        const celebSt = st;
         function celebLoop() {
-          st.winnerAnim = Math.min(1, st.winnerAnim + 0.02);
+          if (royaleState !== celebSt || !celebSt.celebrating) return;
+          celebSt.winnerAnim = Math.min(1, celebSt.winnerAnim + 0.02);
           // bounce winner inside closed arena
-          if (st.winner && st.winner.alive) {
+          if (celebSt.winner && celebSt.winner.alive) {
             const cdt = 0.016;
-            st.winner.vx += (Math.random() - 0.5) * 80 * cdt;
-            st.winner.vy += (Math.random() - 0.5) * 80 * cdt;
-            st.winner.x += st.winner.vx * cdt;
-            st.winner.y += st.winner.vy * cdt;
-            st.winner.vx *= 0.99; st.winner.vy *= 0.99;
-            const dx = st.winner.x - R_CX, dy = st.winner.y - R_CY;
+            celebSt.winner.vx += (Math.random() - 0.5) * 80 * cdt;
+            celebSt.winner.vy += (Math.random() - 0.5) * 80 * cdt;
+            celebSt.winner.x += celebSt.winner.vx * cdt;
+            celebSt.winner.y += celebSt.winner.vy * cdt;
+            celebSt.winner.vx *= 0.99; celebSt.winner.vy *= 0.99;
+            const dx = celebSt.winner.x - R_CX, dy = celebSt.winner.y - R_CY;
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist + R_BALL > R_ARENA) {
               const nx = dx / dist, ny = dy / dist;
               const pen = dist + R_BALL - R_ARENA;
-              st.winner.x -= nx * pen; st.winner.y -= ny * pen;
-              const dvn = st.winner.vx * nx + st.winner.vy * ny;
-              if (dvn > 0) { st.winner.vx -= 2 * dvn * nx * 0.7; st.winner.vy -= 2 * dvn * ny * 0.7; }
+              celebSt.winner.x -= nx * pen; celebSt.winner.y -= ny * pen;
+              const dvn = celebSt.winner.vx * nx + celebSt.winner.vy * ny;
+              if (dvn > 0) { celebSt.winner.vx -= 2 * dvn * nx * 0.7; celebSt.winner.vy -= 2 * dvn * ny * 0.7; }
             }
           }
           renderRoyale();
-          celebFrame++;
-          if (celebFrame < 180) requestAnimationFrame(celebLoop);
+          requestAnimationFrame(celebLoop);
         }
         celebLoop();
         updateRoyaleHUD();
@@ -3611,18 +3677,8 @@
         ctx.lineWidth = 2.5 + glowIntensity;
         ctx.stroke();
 
-        // clip for flag rendering
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, R_BALL - 2, 0, Math.PI * 2);
-        ctx.clip();
-
-        // bright flag emoji (large)
-        ctx.font = (R_BALL * 1.6) + "px serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(b.flag, b.x, b.y + 1);
-        ctx.restore();
+        // flag image or styled country code
+        drawBallLabel(ctx, b, R_BALL);
 
         // highlight
         ctx.beginPath();
