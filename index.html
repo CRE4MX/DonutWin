@@ -520,6 +520,7 @@
           <input id="sndMaster" type="checkbox" checked>
           <span>🔊</span>
         </label>
+        <input id="sndVolume" type="range" min="0" max="100" value="50" title="Volume" style="width:70px; accent-color:var(--accent); cursor:pointer;">
         <a class="btn primary" href="#waitlist-section">Join waitlist</a>
       </div>
     </div>
@@ -1273,14 +1274,18 @@
     const SND = (() => {
       let ctx = null;
       const master = $("sndMaster");
+      const volSlider = $("sndVolume");
       function getCtx() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; }
+      function getVolume() { return (volSlider ? parseInt(volSlider.value) : 50) / 100; }
       function play(o) {
         if (master && !master.checked) return;
         try {
+          const vol = getVolume();
           const ac = getCtx(), t = ac.currentTime;
           const g = ac.createGain();
+          const scaledGain = (o.gain || 0.10) * vol;
           g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(o.gain || 0.10, t + (o.attack || 0.01));
+          g.gain.exponentialRampToValueAtTime(Math.max(scaledGain, 0.0001), t + (o.attack || 0.01));
           g.gain.exponentialRampToValueAtTime(0.0001, t + (o.dur || 0.12) + (o.release || 0.08));
           g.connect(ac.destination);
           if (o.noise) {
@@ -1303,45 +1308,56 @@
       }
       return {
         // UI interaction sounds
-        tick()  { play({ type:"sine", f:1000, f2:1100, dur:0.03, gain:0.04, attack:0.001, release:0.03 }); }, // Light tick for counters
-        click() { play({ type:"sine", f:800, f2:850, dur:0.025, gain:0.05, attack:0.001, release:0.025 }); }, // Button clicks
-        pop()   { play({ type:"triangle", f:600, f2:800, dur:0.06, gain:0.07, attack:0.002, release:0.06 }); }, // Small wins/actions
+        tick()  { play({ type:"sine", f:1000, f2:1100, dur:0.03, gain:0.04, attack:0.001, release:0.03 }); },
+        click() { play({ type:"sine", f:800, f2:850, dur:0.025, gain:0.05, attack:0.001, release:0.025 }); },
+        pop()   { play({ type:"triangle", f:600, f2:800, dur:0.06, gain:0.07, attack:0.002, release:0.06 }); },
         
         // Money/winning sounds
         cash()  { 
-          // Cash out sound - satisfying cha-ching
           play({ type:"sine", f:523, f2:659, dur:0.12, gain:0.11, attack:0.005, release:0.10 }); 
           setTimeout(() => play({ type:"triangle", f:784, f2:880, dur:0.10, gain:0.09, attack:0.01, release:0.12 }), 40);
         },
         win()   { 
-          // Big win sound - triumphant ascending notes
           play({ type:"sine", f:523, f2:587, dur:0.15, gain:0.11, attack:0.008, release:0.12 }); 
           setTimeout(() => play({ type:"triangle", f:659, f2:784, dur:0.13, gain:0.10, attack:0.012, release:0.14 }), 60);
           setTimeout(() => play({ type:"sine", f:880, f2:1047, dur:0.11, gain:0.08, attack:0.015, release:0.16 }), 120);
         },
         
-        // Loss/negative sounds  
+        // Loss/negative sounds – toned down to avoid jump-scare
         bust()  { 
-          // Losing sound - descending, disappointing tone
-          play({ type:"sawtooth", f:260, f2:130, dur:0.18, gain:0.13, attack:0.004, release:0.20 }); 
-          setTimeout(() => play({ noise:true, dur:0.14, gain:0.09, attack:0.002, release:0.18 }), 40);
+          play({ type:"sawtooth", f:260, f2:130, dur:0.18, gain:0.06, attack:0.01, release:0.20 }); 
+          setTimeout(() => play({ noise:true, dur:0.14, gain:0.04, attack:0.005, release:0.18 }), 40);
         },
         
         // Card game sounds
         cardDeal() { 
-          // Quick swish for dealing cards
           play({ type:"sine", f:700, f2:400, dur:0.04, gain:0.05, attack:0.001, release:0.03 }); 
           play({ noise:true, dur:0.025, gain:0.025, attack:0.001, release:0.02 }); 
         },
         cardFlip() { 
-          // Flip/reveal sound
           play({ type:"square", f:500, f2:700, dur:0.07, gain:0.06, attack:0.002, release:0.06 }); 
         },
         
         // Bet placement
         chipPlace() { 
-          // Chip/token placement - short, solid tap
           play({ type:"triangle", f:350, f2:320, dur:0.06, gain:0.07, attack:0.002, release:0.05 }); 
+        },
+
+        // Country Royale sounds
+        eliminate() {
+          play({ type:"sine", f:400, f2:200, dur:0.12, gain:0.06, attack:0.003, release:0.12 });
+          setTimeout(() => play({ noise:true, dur:0.08, gain:0.03, attack:0.002, release:0.10 }), 30);
+        },
+        wallBounce() {
+          play({ type:"triangle", f:300, f2:350, dur:0.03, gain:0.03, attack:0.001, release:0.03 });
+        },
+        collision() {
+          play({ type:"sine", f:500, f2:450, dur:0.02, gain:0.02, attack:0.001, release:0.02 });
+        },
+        roundEnd() {
+          play({ type:"sine", f:440, f2:880, dur:0.20, gain:0.08, attack:0.01, release:0.15 });
+          setTimeout(() => play({ type:"triangle", f:660, f2:1320, dur:0.18, gain:0.07, attack:0.015, release:0.18 }), 80);
+          setTimeout(() => play({ type:"sine", f:880, f2:1760, dur:0.15, gain:0.06, attack:0.02, release:0.20 }), 160);
         }
       };
     })();
@@ -1478,6 +1494,13 @@
       setTimeout(() => el.classList.remove("flash-green", "flash-red"), 600);
     }
     function placeBet(amount) {
+      // Integrity check: ensure in-memory balance matches stored balance
+      const storedBal = parseInt(localStorage.getItem("dw_balance") || "1000", 10);
+      if (balance !== storedBal && !isNaN(storedBal)) {
+        balance = 1000; saveBalance(); updateBalDisplay();
+        toast("Balance mismatch detected – reset to 1,000 🪙", "error");
+        return false;
+      }
       if (balance === 0) {
         balance = 1000; saveBalance(); updateBalDisplay();
         toast("Balance automatically reset to 1,000 🪙", "info");
@@ -1563,6 +1586,32 @@
         SND.click();
       }
     });
+
+    // ==================== BALANCE TAMPER DETECTION ====================
+    (function() {
+      let balUpdating = false;
+      const origUpdateBalDisplay = updateBalDisplay;
+      updateBalDisplay = function() {
+        balUpdating = true;
+        origUpdateBalDisplay();
+        balUpdating = false;
+      };
+      const balEl = $("balDisplay");
+      if (balEl) {
+        new MutationObserver(function() {
+          if (balUpdating) return;
+          balance = 1000;
+          saveBalance();
+          totalWagered = 0;
+          localStorage.setItem("dw_wagered", "0");
+          sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
+          balUpdating = true;
+          origUpdateBalDisplay();
+          balUpdating = false;
+          toast("Tampering detected – balance reset to 1,000 🪙", "error");
+        }).observe(balEl, { childList: true, characterData: true, subtree: true });
+      }
+    })();
 
     // ==================== TAB SYSTEM ====================
     function switchTab(name) {
@@ -1707,6 +1756,8 @@
       cStartTime = Date.now();
       $("cStart").disabled = true;
       $("cCash").disabled = false;
+      $("cBet").disabled = true;
+      $("cAuto").disabled = true;
       $("cOverlayMult").classList.remove("crashed");
       setCStatus("Flying…", "var(--accent2)");
       $("cMsg").textContent = "";
@@ -1721,6 +1772,7 @@
           // busted
           cMult = cTarget; cBusted = true; cPlaying = false;
           $("cCash").disabled = true; $("cStart").disabled = false;
+          $("cBet").disabled = false; $("cAuto").disabled = false;
           setOverlay(cMult.toFixed(2) + "×", "Crashed!");
           $("cOverlayMult").classList.add("crashed");
           setCStatus("Crashed", "var(--bad)");
@@ -1761,6 +1813,7 @@
       cPlaying = false;
       if (cAnimId) cancelAnimationFrame(cAnimId);
       $("cCash").disabled = true; $("cStart").disabled = false;
+      $("cBet").disabled = false; $("cAuto").disabled = false;
 
       const winAmt = Math.floor(cBetAmt * cMult);
       creditWin(winAmt, cMult);
@@ -1829,6 +1882,8 @@
         setMStatus("Busted!", "var(--bad)");
         $("mMsg").textContent = "💥 You hit a mine!";
         $("mStart").disabled = false;
+        $("mBet").disabled = false;
+        $("mMineCount").disabled = false;
         recordLoss(mBetAmt);
         revealSeed("mines");
         SND.bust(); haptic(60);
@@ -1867,6 +1922,8 @@
       mSafe = 0; mMult = 1.0; mPlaying = true; mBusted = false;
       $("mStart").disabled = true;
       $("mCash").disabled = true;
+      $("mBet").disabled = true;
+      $("mMineCount").disabled = true;
       setMStatus("Playing", "var(--accent2)");
       $("mMsg").textContent = "";
       updateMinesHUD();
@@ -1881,6 +1938,8 @@
       creditWin(winAmt, mMult);
       $("mCash").disabled = true;
       $("mStart").disabled = false;
+      $("mBet").disabled = false;
+      $("mMineCount").disabled = false;
       setMStatus("Cashed out!", "var(--good)");
       $("mMsg").textContent = "Won " + winAmt + " 🪙 at " + mMult.toFixed(2) + "×";
       toast("Mines cashed out: " + winAmt + " 🪙", "success");
@@ -1900,6 +1959,8 @@
       mMines = new Set(); mRevealed = new Set();
       $("mMsg").textContent = ""; $("mCash").disabled = true;
       $("mStart").disabled = false;
+      $("mBet").disabled = false;
+      $("mMineCount").disabled = false;
       setMStatus("Ready", "");
       updateMinesHUD(); renderMinesGrid();
     });
@@ -1962,11 +2023,20 @@
       if (dRolling) return;
       dRolling = true;
       $("dRoll").disabled = true;
+      $("dBet").disabled = true;
+      $("dTarget").disabled = true;
+      $("dTargetSlider").disabled = true;
+      $("dSwapMode").disabled = true;
       currentGame = "Dice";
       const bet = getBet("dBet");
       if (!placeBet(bet)) {
         dRolling = false;
         $("dRoll").disabled = false;
+        $("dBet").disabled = false;
+        $("dTarget").disabled = false;
+        $("dTargetSlider").disabled = false;
+        $("dSwapMode").disabled = false;
+        $("dAutoBet").checked = false;
         return;
       }
       currentBetAmount = bet;
@@ -2017,10 +2087,19 @@
       pushDiceHistory(roll, won);
       dRolling = false;
       $("dRoll").disabled = false;
+      $("dBet").disabled = false;
+      $("dTarget").disabled = false;
+      $("dTargetSlider").disabled = false;
+      $("dSwapMode").disabled = false;
       if ($("dAutoBet").checked) {
-        setTimeout(() => {
-          if ($("dAutoBet").checked) rollDiceRound();
-        }, 900);
+        if (balance < bet) {
+          $("dAutoBet").checked = false;
+          toast("Auto-bet stopped: insufficient balance", "error");
+        } else {
+          setTimeout(() => {
+            if ($("dAutoBet").checked) rollDiceRound();
+          }, 900);
+        }
       }
     }
     $("dRoll").addEventListener("click", rollDiceRound);
@@ -2153,7 +2232,7 @@
           const elapsed = now - b.startTime;
           const rawT = Math.min(elapsed / b.duration, 1);
           b.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
-          const rows = parseInt($("plRows").value);
+          const rows = b.rows || parseInt($("plRows").value);
           const prevRow = b.lastRow || 0;
           const currentRow = Math.min(Math.floor(b.t * rows), rows - 1);
           if (currentRow > prevRow) SND.tick();
@@ -2169,7 +2248,9 @@
         } else {
           plAnimLoop = null;
           plAnimating = false;
-          $("plDrop").disabled = false;
+          $("plRisk").disabled = false;
+          $("plRows").disabled = false;
+          if (!plAutoRunning) $("plDrop").disabled = false;
           $("plStatus").textContent = "Ready";
           $("plStatus").style.color = "";
         }
@@ -2204,6 +2285,7 @@
       return new Promise((resolve) => {
         const ball = {
           path: result.path,
+          rows: rows,
           t: 0,
           startTime: Date.now(),
           duration: 1725,
@@ -2238,7 +2320,8 @@
 
         plActiveBalls.push(ball);
         plAnimating = true;
-        $("plDrop").disabled = true;
+        $("plRisk").disabled = true;
+        $("plRows").disabled = true;
         $("plStatus").textContent = "Dropping…";
         $("plStatus").style.color = "var(--accent2)";
         startPlinkoBallLoop();
@@ -2251,7 +2334,7 @@
       if (!placeBet(bet)) return;
       currentBetAmount = bet;
       sessionStats.rounds++;
-      await dropOneBall(bet);
+      dropOneBall(bet); // fire-and-forget: allows multiple simultaneous balls
     });
 
     function stopAutobet() {
@@ -2299,7 +2382,7 @@
     // ==================== BLACKJACK GAME ====================
     const SUITS = ["♠","♥","♦","♣"];
     const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
-    let bjDeck = [], bjPlayer = [], bjDealer = [], bjBetAmt = 0, bjActive = false;
+    let bjDeck = [], bjPlayer = [], bjDealer = [], bjBetAmt = 0, bjActive = false, bjProcessing = false;
     let bjWinCount = 0, bjLossCount = 0, bjPushCount = 0;
 
     function createDeck() {
@@ -2377,6 +2460,8 @@
 
     function bjResolve() {
       bjActive = false;
+      bjProcessing = true;
+      bjSetButtons(false, false, false, false);
       const pt = handTotal(bjPlayer), dt = handTotal(bjDealer);
       const playerBJ = bjPlayer.length === 2 && pt === 21;
       const dealerBJ = bjDealer.length === 2 && dt === 21;
@@ -2430,6 +2515,8 @@
         $("bjWins").textContent = bjWinCount;
         $("bjLosses").textContent = bjLossCount;
         $("bjPushes").textContent = bjPushCount;
+        bjProcessing = false;
+        $("bjBet").disabled = false;
         bjSetButtons(true, false, false, false);
         const histAmt = result === "Blackjack!" ? Math.floor(bjBetAmt * 2.5) : (result === "Win" ? bjBetAmt * 2 : 0);
         pushBJHistory(result, histAmt);
@@ -2454,11 +2541,12 @@
     }
 
     $("bjDeal").addEventListener("click", () => {
-      if (bjActive) return;
+      if (bjActive || bjProcessing) return;
       currentGame = "Blackjack";
       bjBetAmt = getBet("bjBet");
       if (!placeBet(bjBetAmt)) return;
       currentBetAmount = bjBetAmt;
+      $("bjBet").disabled = true;
 
       sessionStats.rounds++;
       SND.chipPlace(); // Bet placed sound
@@ -2486,7 +2574,9 @@
     });
 
     $("bjHit").addEventListener("click", () => {
-      if (!bjActive) return;
+      if (!bjActive || bjProcessing) return;
+      bjProcessing = true;
+      bjSetButtons(false, false, false, false);
       bjPlayer.push(bjDrawCard());
       renderBJHands(false);
       SND.cardDeal();
@@ -2495,18 +2585,23 @@
       } else if (handTotal(bjPlayer) === 21) {
         dealerPlay();
       } else {
+        bjProcessing = false;
         bjSetButtons(false, true, true, false);
       }
     });
 
     $("bjStand").addEventListener("click", () => {
-      if (!bjActive) return;
+      if (!bjActive || bjProcessing) return;
+      bjProcessing = true;
+      bjSetButtons(false, false, false, false);
       dealerPlay();
     });
 
     $("bjDouble").addEventListener("click", () => {
-      if (!bjActive || bjPlayer.length !== 2) return;
+      if (!bjActive || bjPlayer.length !== 2 || bjProcessing) return;
       if (!placeBet(bjBetAmt)) return;
+      bjProcessing = true;
+      bjSetButtons(false, false, false, false);
       bjBetAmt *= 2;
       bjPlayer.push(bjDrawCard());
       renderBJHands(false);
@@ -2649,15 +2744,14 @@
     function checkSlotWins() {
       let totalMult = 0;
       const winRows = [];
-      for (let r = 0; r < 3; r++) {
-        const row = slGrid[r];
-        if (row[0] === row[1] && row[1] === row[2]) {
-          totalMult += SLOT_PAYOUTS[row[0]];
-          winRows.push(r);
-        } else if (row[0] === row[1] || row[1] === row[2] || row[0] === row[2]) {
-          totalMult += 0.5;
-          winRows.push(r);
-        }
+      // Only the middle row (index 1) counts for wins – reduces exploitation and improves balance
+      const row = slGrid[1];
+      if (row[0] === row[1] && row[1] === row[2]) {
+        totalMult += SLOT_PAYOUTS[row[0]];
+        winRows.push(1);
+      } else if (row[0] === row[1] || row[1] === row[2] || row[0] === row[2]) {
+        totalMult += 0.5;
+        winRows.push(1);
       }
       return { totalMult, winRows };
     }
@@ -3383,7 +3477,7 @@
               bObj.vx += dvn * nx * R_RESTITUTION; bObj.vy += dvn * ny * R_RESTITUTION;
               // collision sparks
               const cx = (a.x + bObj.x) / 2, cy = (a.y + bObj.y) / 2;
-              if (dvn > 20) spawnCollisionSparks(cx, cy);
+              if (dvn > 20) { spawnCollisionSparks(cx, cy); SND.collision(); }
             }
           }
         }
@@ -3410,6 +3504,7 @@
               updateRoyaleOdds();
               updateRoyaleHUD();
               renderRoyaleActiveBets();
+              SND.eliminate();
             }
           } else {
             const pen = dist + R_BALL - R_ARENA;
@@ -3423,6 +3518,7 @@
               // wall hit sparks
               const hitX = R_CX + nx * R_ARENA, hitY = R_CY + ny * R_ARENA;
               spawnWallSparks(hitX, hitY, CONT_COLORS[b.continent] || "#fff");
+              SND.wallBounce();
             }
           }
         }
@@ -3464,6 +3560,7 @@
         }
         st.winnerAnim = 0;
         st.celebrating = true;
+        SND.roundEnd();
         if (royaleAnimId) cancelAnimationFrame(royaleAnimId);
         document.querySelectorAll(".btnRoyaleStart").forEach(b => b.disabled = false);
         // run winner celebration loop with bounce — runs until new round starts
