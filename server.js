@@ -20,7 +20,10 @@ app.use(
     secret: process.env.SESSION_SECRET || "donutwin-dev-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 },
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000,
+    },
   })
 );
 
@@ -34,8 +37,9 @@ app.use("/api/credits", creditsRoutes);
 app.use("/api/payments", paymentsRoutes);
 
 // ── Catch-all → serve the SPA ────────────────────────────────
+const indexPath = path.join(__dirname, "public", "index.html");
 app.get("*", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(indexPath);
 });
 
 // ── Start ────────────────────────────────────────────────────

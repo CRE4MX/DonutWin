@@ -3,6 +3,7 @@ const router = express.Router();
 
 // In-memory message store (replace with DB / WebSocket in production)
 const messages = [];
+let nextMsgId = 1;
 
 // Track active users (username → last-seen timestamp)
 const activeUsers = new Map();
@@ -17,9 +18,9 @@ function trackUser(session) {
 function getOnlineCount() {
   const cutoff = Date.now() - ACTIVE_WINDOW_MS;
   let count = 0;
-  for (const [user, ts] of activeUsers) {
+  for (const [username, ts] of activeUsers) {
     if (ts >= cutoff) count++;
-    else activeUsers.delete(user);
+    else activeUsers.delete(username);
   }
   return count;
 }
@@ -48,7 +49,7 @@ router.post("/messages", (req, res) => {
   trackUser(req.session);
 
   const msg = {
-    id: messages.length + 1,
+    id: nextMsgId++,
     username: req.session.user.username,
     text: text.trim().slice(0, 500),
     timestamp: Date.now(),
