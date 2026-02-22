@@ -143,6 +143,7 @@
     .mGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 420px; width: 100%; margin: 10px auto; }
     .mTile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: all .25s ease; transform: scale(1); min-width: 0; min-height: 48px; }
     .mTile:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); box-shadow: 0 0 12px rgba(124,111,255,0.15); }
+    .mTile.autoPick { border-color: rgba(110,231,255,0.7); box-shadow: 0 0 0 2px rgba(110,231,255,0.2), 0 0 12px rgba(110,231,255,0.25); }
     .mTile.safe { background: rgba(124,255,107,0.18); border-color: rgba(124,255,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(124,255,107,0.2); }
     .mTile.mine { background: rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.35); animation: tilePop .3s ease-out; box-shadow: 0 0 10px rgba(255,107,107,0.2); }
     .mTile.disabled { pointer-events: none; opacity: 0.6; transform: none; }
@@ -645,6 +646,14 @@
             <button type="button" class="btn" id="mCash" disabled>Cash out</button>
             <button type="button" class="btn" id="mReset">Reset</button>
           </div>
+          <div class="crashTop">
+            <label class="autoCheck" style="cursor:pointer;">
+              <input type="checkbox" id="mAutoBet">
+              <span>Auto</span>
+            </label>
+            <button type="button" class="btn" id="mAutoClear">Clear picks</button>
+            <span class="mini">Auto picks: <b id="mAutoPickCount">0</b></span>
+          </div>
           <div class="stats3">
             <div class="stat3"><div class="k">Safe picks</div><div class="v" id="mSafe">0</div></div>
             <div class="stat3"><div class="k">Multiplier</div><div class="v" id="mMult">1.00×</div></div>
@@ -683,6 +692,10 @@
             <span class="mini">Win chance: <b id="dChance">50%</b></span>
             <span class="mini">Multiplier: <b id="dPayoutLabel">1.98×</b></span>
             <button type="button" class="btn primary" id="dRoll">Roll</button>
+            <label class="autoCheck" style="cursor:pointer;">
+              <input type="checkbox" id="dAutoBet">
+              <span>Auto</span>
+            </label>
             <label class="autoCheck" style="cursor:pointer; margin-left:10px;">
               <input type="checkbox" id="dSwapMode">
               <span>Swap</span>
@@ -824,6 +837,10 @@
           <!-- Timer and place bet -->
           <div class="crashTop">
             <button type="button" class="btn primary" id="slPlace">Place bet</button>
+            <label class="autoCheck" style="cursor:pointer;">
+              <input type="checkbox" id="slAutoBet">
+              <span>Auto</span>
+            </label>
             <span class="mini" id="slTimerText">Next round in <b id="slCountdown">--</b>s</span>
           </div>
           <!-- Stats -->
@@ -1774,11 +1791,39 @@
     // ==================== MINES GAME ====================
     let mPlaying = false, mBusted = false, mSafe = 0, mMult = 1.0;
     let mMines = new Set(), mRevealed = new Set(), mBetAmt = 0;
+    let mAutoPicks = new Set();
 
     function setMStatus(t, col) { $("mStatus").textContent = t; $("mStatus").style.color = col || ""; }
     function updateMinesHUD() {
       $("mSafe").textContent = mSafe;
       $("mMult").textContent = mMult.toFixed(2) + "×";
+    }
+    function updateMinesAutoPickCount() {
+      $("mAutoPickCount").textContent = mAutoPicks.size;
+    }
+    function scheduleMinesAutoStart() {
+      if (!$("mAutoBet").checked || mAutoPicks.size === 0) return;
+      setTimeout(() => {
+        if ($("mAutoBet").checked && !mPlaying) $("mStart").click();
+      }, 1200);
+    }
+    async function runMinesAutoPicks() {
+      if (!$("mAutoBet").checked || !mPlaying || mBusted || mAutoPicks.size === 0) return;
+      for (const i of mAutoPicks) {
+        if (!mPlaying || mBusted) break;
+        if (!mRevealed.has(i)) {
+          await revealTile(i);
+          if (!mPlaying || mBusted) break;
+          await new Promise(r => setTimeout(r, 260));
+        }
+      }
+      if (mPlaying && !mBusted && mSafe > 0) $("mCash").click();
+    }
+    function toggleMinesAutoPick(i) {
+      if (mAutoPicks.has(i)) mAutoPicks.delete(i);
+      else mAutoPicks.add(i);
+      updateMinesAutoPickCount();
+      renderMinesGrid();
     }
 
     function renderMinesGrid() {
@@ -1792,8 +1837,15 @@
           tile.classList.add("disabled");
         } else if (!mPlaying || mBusted) {
           tile.classList.add("disabled");
+          if (mAutoPicks.has(i)) tile.classList.add("autoPick");
         }
-        tile.addEventListener("click", () => revealTile(i));
+        tile.addEventListener("click", () => {
+          if (!mPlaying && !mBusted) {
+            toggleMinesAutoPick(i);
+            return;
+          }
+          revealTile(i);
+        });
         grid.appendChild(tile);
       }
     }
@@ -1827,6 +1879,7 @@
         // reveal all mines
         mMines.forEach(m => mRevealed.add(m));
         renderMinesGrid();
+        scheduleMinesAutoStart();
         return;
       }
       // safe
@@ -1863,6 +1916,7 @@
       updateMinesHUD();
       renderMinesGrid();
       SND.click();
+      if ($("mAutoBet").checked && mAutoPicks.size > 0) setTimeout(runMinesAutoPicks, 180);
     });
 
     $("mCash").addEventListener("click", () => {
@@ -1879,6 +1933,7 @@
       SND.cash(); haptic(30);
       pushMineWin("you", mMult);
       renderMinesGrid();
+      scheduleMinesAutoStart();
     });
 
     $("mReset").addEventListener("click", () => {
@@ -1894,12 +1949,18 @@
       setMStatus("Ready", "");
       updateMinesHUD(); renderMinesGrid();
     });
+    $("mAutoClear").addEventListener("click", () => {
+      mAutoPicks.clear();
+      updateMinesAutoPickCount();
+      renderMinesGrid();
+    });
 
     // ==================== DICE GAME ====================
     const DICE_PAYOUT_FACTOR = 99; // 1% house edge (99/100)
     let dStreak = 0;
     const dHistoryArr = [];
     let dSwapMode = false;
+    let dRolling = false;
 
     function updateDiceUI() {
       const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
@@ -1949,10 +2010,17 @@
       });
     }
 
-    $("dRoll").addEventListener("click", async () => {
+    async function rollDiceRound() {
+      if (dRolling) return;
+      dRolling = true;
+      $("dRoll").disabled = true;
       currentGame = "Dice";
       const bet = getBet("dBet");
-      if (!placeBet(bet)) return;
+      if (!placeBet(bet)) {
+        dRolling = false;
+        $("dRoll").disabled = false;
+        return;
+      }
       currentBetAmount = bet;
 
       sessionStats.rounds++;
@@ -1999,7 +2067,15 @@
       }
       $("dStreak").textContent = dStreak;
       pushDiceHistory(roll, won);
-    });
+      dRolling = false;
+      $("dRoll").disabled = false;
+      if ($("dAutoBet").checked) {
+        setTimeout(() => {
+          if ($("dAutoBet").checked) rollDiceRound();
+        }, 900);
+      }
+    }
+    $("dRoll").addEventListener("click", rollDiceRound);
 
     // ==================== PLINKO GAME ====================
     const PLINKO_MULTS = {
@@ -2791,6 +2867,7 @@
         setSlStatus("Place your bet", "");
         $("slPlace").disabled = false;
         slCountdown = SLOT_ROUND_TIME;
+        if ($("slAutoBet").checked) placeSlotBet(true);
       }, spinWait);
     }
 
@@ -2809,9 +2886,9 @@
       }
     }
 
-    $("slPlace").addEventListener("click", () => {
+    function placeSlotBet(isAuto) {
       if (slBetPlaced || slSpinning) {
-        toast("Bet already placed for this round!", "info");
+        if (!isAuto) toast("Bet already placed for this round!", "info");
         return;
       }
       currentGame = "Slots";
@@ -2825,7 +2902,11 @@
       $("slMsg").textContent = "Waiting for spin…";
       $("slMsg").className = "slotResultBanner";
       SND.click(); haptic(15);
-      toast("Bet placed: " + slBetAmt + " 🪙", "info");
+      if (!isAuto) toast("Bet placed: " + slBetAmt + " 🪙", "info");
+    }
+    $("slPlace").addEventListener("click", () => placeSlotBet(false));
+    $("slAutoBet").addEventListener("change", () => {
+      if ($("slAutoBet").checked && !slSpinning && !slBetPlaced) placeSlotBet(true);
     });
 
     // ==================== LIVE BETS ====================
@@ -3163,6 +3244,9 @@
       // Cashout current bets first
       const remaining = royaleState.balls.filter(b => b.alive).length;
       if (remaining <= 3) { toast("Bets locked in Top 3!", "error"); return; }
+      const newTarget = $("rebetContinent").value;
+      const aliveNow = royaleState.balls.filter(b => b.alive);
+      if (aliveNow.filter(b => b.continent === newTarget).length === 0) { toast(newTarget + " is already eliminated!", "error"); return; }
       let totalCashout = 0;
       contBets.forEach(b => {
         const alive = royaleState.balls.filter(x => x.alive);
@@ -3176,7 +3260,6 @@
       });
       if (totalCashout === 0) { toast("Nothing to cashout", "error"); return; }
       // Place new bet on selected continent
-      const newTarget = $("rebetContinent").value;
       const alive = royaleState.balls.filter(b => b.alive);
       const total = alive.length || 1;
       const contCount = alive.filter(b => b.continent === newTarget).length;
@@ -3238,6 +3321,24 @@
           opt.disabled = false; opt.textContent = opt.textContent.replace(/ 🔒$/, "");
         }
       }
+      updateContinentSelectors();
+    }
+
+    function updateContinentSelectors() {
+      const alive = royaleState ? royaleState.balls.filter(b => b.alive) : ROYALE_COUNTRIES;
+      const aliveSet = new Set(alive.map(b => b.continent));
+      ["royaleContinent", "mktContinent", "rebetContinent"].forEach(id => {
+        const sel = $(id);
+        if (!sel) return;
+        for (let i = 0; i < sel.options.length; i++) {
+          const opt = sel.options[i];
+          opt.disabled = !!(royaleState && royaleState.running && !aliveSet.has(opt.value));
+        }
+        if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
+          const firstEnabled = Array.from(sel.options).find(o => !o.disabled);
+          if (firstEnabled) sel.value = firstEnabled.value;
+        }
+      });
     }
 
     function spawnElimParticles(x, y, color) {
@@ -3788,6 +3889,7 @@
       const odds = {};
       CONTINENTS.forEach(c => { odds[c] = alive.filter(b => b.continent === c).length / total; });
       royaleOddsHistory.push({ ...odds });
+      updateContinentSelectors();
       const barsEl = $("royaleOddsBars");
       if (barsEl) {
         barsEl.innerHTML = CONTINENTS.map(c => {
@@ -3889,7 +3991,6 @@
 
     function placeRoyaleBet() {
       currentGame = "Country Royale";
-      const amount = getBet("rBet");
       const betType = $("royaleBetType").value;
       const isRunning = royaleState && royaleState.running;
       if (isRunning && (betType === "winner" || betType === "top3")) {
@@ -3898,8 +3999,6 @@
       if (!isRunning && betType === "continent") {
         toast("Market bets only available during a round!", "error"); return;
       }
-      if (!placeBet(amount)) return;
-      SND.click();
       let target, label, payout;
       if (betType === "winner") {
         target = $("royaleCountry").value;
@@ -3917,9 +4016,13 @@
         const alive = royaleState ? royaleState.balls.filter(b => b.alive) : ROYALE_COUNTRIES;
         const total = alive.length || 1;
         const contCount = alive.filter(b => b.continent === target).length;
+        if (contCount === 0) { toast(target + " is already eliminated!", "error"); return; }
         const prob = contCount / total;
         payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length;
       }
+      const amount = getBet("rBet");
+      if (!placeBet(amount)) return;
+      SND.click();
       const bet = { id: Date.now(), type: betType, target, label, amount, payout, buyOdds: payout, active: true };
       royaleBets.push(bet);
       renderRoyaleActiveBets();
@@ -4029,6 +4132,7 @@
       }
       const alive = royaleState.balls.filter(b => b.alive);
       const total = alive.length || 1;
+      updateContinentSelectors();
       barsEl.innerHTML = CONTINENTS.map(c => {
         const cnt = alive.filter(b => b.continent === c).length;
         const pct = Math.round((cnt / total) * 100);
@@ -4130,6 +4234,7 @@
       // init games
       renderMinesGrid();
       updateMinesHUD();
+      updateMinesAutoPickCount();
       updateDiceUI();
       renderPlinkoBuckets();
       drawPlinkoBoard();
@@ -4138,6 +4243,7 @@
       // country royale init
       populateRoyaleCountrySelect();
       initRoyale();
+      updateContinentSelectors();
 
       // slots init
       renderSlotReels(false);
