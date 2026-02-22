@@ -1,0 +1,3246 @@
+// ==================== SOURCE PROTECTION ====================
+// Disable right-click context menu
+document.addEventListener("contextmenu", function(e) { e.preventDefault(); });
+// Block keyboard shortcuts that expose source / DevTools
+document.addEventListener("keydown", function(e) {
+  // F12
+  if (e.key === "F12" || e.keyCode === 123) { e.preventDefault(); return false; }
+  // Ctrl+U (View Source), Ctrl+Shift+I/J/C (DevTools)
+  if (e.ctrlKey && (
+    e.key === "u" || e.key === "U" ||
+    (e.shiftKey && (e.key === "I" || e.key === "i" ||
+                    e.key === "J" || e.key === "j" ||
+                    e.key === "C" || e.key === "c"))
+  )) { e.preventDefault(); return false; }
+});
+
+// ==================== LOGIN GATE ====================
+var isD107Session = false; // track if user logged in with D107
+
+function isD107TimeAllowed() {
+  var now = new Date();
+  // Determine day-of-week in GMT+2 (0=Sun, 6=Sat)
+  var gmt2 = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  var day = gmt2.getUTCDay();
+  if (day === 0 || day === 6) return true; // weekends: always allowed
+  var utcH = now.getUTCHours();
+  var utcM = now.getUTCMinutes();
+  var totalMin = utcH * 60 + utcM;
+  // 15:35 GMT+2 = 13:35 UTC = 815 min; 08:15 GMT+2 = 06:15 UTC = 375 min
+  // Allowed window wraps midnight: 815..1440 OR 0..375
+  return (totalMin >= 815) || (totalMin < 375);
+}
+
+function attemptLogin() {
+  var pwd = document.getElementById("gatePwd").value;
+  var err = document.getElementById("gateErr");
+  var adminPass = "dimitr";
+  var normalPass = "D107";
+
+  if (pwd === adminPass) {
+    isD107Session = false; // admin never gets kicked
+    document.getElementById("loginGate").classList.add("drop");
+    return;
+  }
+
+  if (pwd === normalPass) {
+    if (isD107TimeAllowed()) {
+      isD107Session = true;
+      document.getElementById("loginGate").classList.add("drop");
+    } else {
+      err.textContent = "Access not available at this time. Try between 15:35–08:15 GMT+2.";
+    }
+    return;
+  }
+
+  err.textContent = "Incorrect password.";
+}
+
+// Check every 30 seconds — if D107 session and time expired, kick back to login
+setInterval(function() {
+  if (isD107Session && !isD107TimeAllowed()) {
+    isD107Session = false;
+    var gate = document.getElementById("loginGate");
+    gate.classList.remove("drop");
+    document.getElementById("gatePwd").value = "";
+    document.getElementById("gateErr").textContent = "Session expired. Access window closed.";
+  }
+}, 30000);
+
+// ==================== HELPERS ====================
+const $ = (id) => document.getElementById(id);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const haptic = (ms) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} };
+const isMobile = () => window.innerWidth <= 760;
+$("y").textContent = new Date().getFullYear();
+
+// ==================== TOAST ====================
+function toast(msg, type = "info") {
+  const container = $("toastContainer");
+  // On mobile, keep only 1 toast visible and dismiss faster
+  if (isMobile()) {
+    container.querySelectorAll(".toast").forEach(t => t.remove());
+  }
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  const duration = isMobile() ? 1400 : 2800;
+  setTimeout(() => { el.classList.add("fade-out"); setTimeout(() => el.remove(), 350); }, duration);
+}
+
+// ==================== CLIPBOARD ====================
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("mono")) {
+    const txt = e.target.textContent;
+    if (txt && txt !== "—") {
+      navigator.clipboard.writeText(txt).then(() => toast("Copied!", "success")).catch(() => {});
+    }
+  }
+});
+
+// ==================== PARTICLES ====================
+(function () {
+  const c = $("p"), ctx = c.getContext("2d");
+  const resize = () => { c.width = innerWidth; c.height = innerHeight; };
+  addEventListener("resize", resize); resize();
+  const pts = Array.from({ length: 70 }, () => ({
+    x: Math.random() * c.width, y: Math.random() * c.height,
+    r: Math.random() * 2.2 + 0.6, vx: (Math.random() - .5) * 0.22,
+    vy: (Math.random() - .5) * 0.22, a: Math.random() * 0.5 + 0.15
+  }));
+  (function step() {
+    ctx.clearRect(0, 0, c.width, c.height);
+    for (const p of pts) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = c.width; if (p.x > c.width) p.x = 0;
+      if (p.y < 0) p.y = c.height; if (p.y > c.height) p.y = 0;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(234,240,255,${p.a})`; ctx.fill();
+    }
+    requestAnimationFrame(step);
+  })();
+})();
+
+// ==================== SOUND ====================
+const SND = (() => {
+  let ctx = null;
+  const master = $("sndMaster");
+  const volSlider = $("sndVolume");
+  function getCtx() { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); return ctx; }
+  function getVolume() { return (volSlider ? parseInt(volSlider.value) : 50) / 100; }
+  function play(o) {
+    if (master && !master.checked) return;
+    try {
+      const vol = getVolume();
+      const ac = getCtx(), t = ac.currentTime;
+      const g = ac.createGain();
+      const scaledGain = (o.gain || 0.10) * vol;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(scaledGain, 0.0001), t + (o.attack || 0.01));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + (o.dur || 0.12) + (o.release || 0.08));
+      g.connect(ac.destination);
+      if (o.noise) {
+        const bs = Math.floor(ac.sampleRate * ((o.dur||0.12) + (o.release||0.08)));
+        const buf = ac.createBuffer(1, bs, ac.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bs; i++) d[i] = (Math.random() * 2 - 1) * 0.6;
+        const src = ac.createBufferSource(); src.buffer = buf;
+        const ftr = ac.createBiquadFilter(); ftr.type = "lowpass";
+        ftr.frequency.setValueAtTime(1200, t);
+        ftr.frequency.exponentialRampToValueAtTime(240, t + (o.dur||0.12) + (o.release||0.08));
+        src.connect(ftr); ftr.connect(g); src.start(t); src.stop(t + (o.dur||0.12) + (o.release||0.08));
+        return;
+      }
+      const osc = ac.createOscillator(); osc.type = o.type || "sine";
+      osc.frequency.setValueAtTime(o.f || 440, t);
+      if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t + (o.dur||0.12));
+      osc.connect(g); osc.start(t); osc.stop(t + (o.dur||0.12) + (o.release||0.08));
+    } catch (_) {}
+  }
+  return {
+    // UI interaction sounds
+    tick()  { play({ type:"sine", f:1000, f2:1100, dur:0.03, gain:0.04, attack:0.001, release:0.03 }); },
+    click() { play({ type:"sine", f:800, f2:850, dur:0.025, gain:0.05, attack:0.001, release:0.025 }); },
+    pop()   { play({ type:"triangle", f:600, f2:800, dur:0.06, gain:0.07, attack:0.002, release:0.06 }); },
+    
+    // Money/winning sounds
+    cash()  { 
+      play({ type:"sine", f:523, f2:659, dur:0.12, gain:0.11, attack:0.005, release:0.10 }); 
+      setTimeout(() => play({ type:"triangle", f:784, f2:880, dur:0.10, gain:0.09, attack:0.01, release:0.12 }), 40);
+    },
+    win()   { 
+      play({ type:"sine", f:523, f2:587, dur:0.15, gain:0.11, attack:0.008, release:0.12 }); 
+      setTimeout(() => play({ type:"triangle", f:659, f2:784, dur:0.13, gain:0.10, attack:0.012, release:0.14 }), 60);
+      setTimeout(() => play({ type:"sine", f:880, f2:1047, dur:0.11, gain:0.08, attack:0.015, release:0.16 }), 120);
+    },
+    
+    // Loss/negative sounds – toned down to avoid jump-scare
+    bust()  { 
+      play({ type:"sawtooth", f:260, f2:130, dur:0.18, gain:0.06, attack:0.01, release:0.20 }); 
+      setTimeout(() => play({ noise:true, dur:0.14, gain:0.04, attack:0.005, release:0.18 }), 40);
+    },
+    
+    // Card game sounds
+    cardDeal() { 
+      play({ type:"sine", f:700, f2:400, dur:0.04, gain:0.05, attack:0.001, release:0.03 }); 
+      play({ noise:true, dur:0.025, gain:0.025, attack:0.001, release:0.02 }); 
+    },
+    cardFlip() { 
+      play({ type:"square", f:500, f2:700, dur:0.07, gain:0.06, attack:0.002, release:0.06 }); 
+    },
+    
+    // Bet placement
+    chipPlace() { 
+      play({ type:"triangle", f:350, f2:320, dur:0.06, gain:0.07, attack:0.002, release:0.05 }); 
+    },
+
+    // Country Royale sounds
+    eliminate() {
+      play({ type:"sine", f:400, f2:200, dur:0.12, gain:0.06, attack:0.003, release:0.12 });
+      setTimeout(() => play({ noise:true, dur:0.08, gain:0.03, attack:0.002, release:0.10 }), 30);
+    },
+    wallBounce() {
+      play({ type:"triangle", f:300, f2:350, dur:0.03, gain:0.03, attack:0.001, release:0.03 });
+    },
+    collision() {
+      play({ type:"sine", f:500, f2:450, dur:0.02, gain:0.02, attack:0.001, release:0.02 });
+    },
+    roundEnd() {
+      play({ type:"sine", f:440, f2:880, dur:0.20, gain:0.08, attack:0.01, release:0.15 });
+      setTimeout(() => play({ type:"triangle", f:660, f2:1320, dur:0.18, gain:0.07, attack:0.015, release:0.18 }), 80);
+      setTimeout(() => play({ type:"sine", f:880, f2:1760, dur:0.15, gain:0.06, attack:0.02, release:0.20 }), 160);
+    }
+  };
+})();
+
+// ==================== CRYPTO ====================
+const enc = new TextEncoder();
+const toHex = (buf) => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+async function sha256Hex(str) { return toHex(await crypto.subtle.digest("SHA-256", enc.encode(str))); }
+async function hmac256Hex(keyStr, msgStr) {
+  const key = await crypto.subtle.importKey("raw", enc.encode(keyStr), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return toHex(await crypto.subtle.sign("HMAC", key, enc.encode(msgStr)));
+}
+function u32FromHex(hex) { return parseInt(hex.slice(0, 8), 16) >>> 0; }
+function randSeed(len = 24) {
+  const abc = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+  let s = ""; crypto.getRandomValues(new Uint8Array(len)).forEach(v => s += abc[v % abc.length]); return s;
+}
+
+// ==================== SEED STATE ====================
+let clientSeed = randSeed(16);
+let serverSeed = randSeed(32);
+let nonce = 0;
+let lastRevealedSeed = null;
+let lastRevealedNonce = null;
+let lastGame = null;
+
+async function refreshCommit() {
+  $("pfClientSeed").value = clientSeed;
+  $("pfCommit").textContent = await sha256Hex(serverSeed);
+  $("pfReveal").textContent = "—";
+  $("pfNonce").textContent = "—";
+}
+function revealSeed(game) {
+  lastRevealedSeed = serverSeed;
+  lastRevealedNonce = nonce;
+  lastGame = game;
+  $("pfReveal").textContent = serverSeed;
+  $("pfNonce").textContent = nonce;
+  serverSeed = randSeed(32);
+  nonce++;
+  refreshCommit();
+  // Auto-click the corresponding verify button after a short delay
+  const verifyMap = { crash: "pfCrashVerify", mines: "pfMinesVerify", dice: "pfDiceVerify", plinko: "pfPlinkoVerify", slots: "pfSlotsVerify" };
+  if (verifyMap[game]) {
+    setTimeout(() => { const btn = $(verifyMap[game]); if (btn) btn.click(); }, 300);
+  }
+}
+
+// ==================== PROVABLY FAIR COMPUTE ====================
+async function computeCrashPoint(ss, cs, n) {
+  const hmac = await hmac256Hex(ss, cs + ":" + n);
+  const h = u32FromHex(hmac);
+  const e = 2 ** 32;
+  const r = (100 * e - h) / (e - h);
+  const cp = Math.max(1, Math.floor(r) / 100);
+  return { crashPoint: cp, hmac };
+}
+async function computeMines(ss, cs, n, count) {
+  const hmac = await hmac256Hex(ss, cs + ":" + n);
+  const all = Array.from({ length: 25 }, (_, i) => i);
+  for (let i = 24; i > 0; i--) {
+    const sub = hmac.slice((24 - i) * 2, (24 - i) * 2 + 8);
+    const v = parseInt(sub, 16) >>> 0;
+    const j = v % (i + 1);
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all.slice(0, count);
+}
+async function computeDice(ss, cs, n) {
+  const hmac = await hmac256Hex(ss, cs + ":" + n);
+  return (u32FromHex(hmac) % 10000) / 100;
+}
+async function computePlinko(ss, cs, n, rows) {
+  const hmac = await hmac256Hex(ss, cs + ":" + n);
+  const path = [];
+  let col = 0;
+  for (let r = 0; r < rows; r++) {
+    const byteIdx = r % 32;
+    const hexPair = hmac.slice(byteIdx * 2, byteIdx * 2 + 2);
+    const val = parseInt(hexPair, 16);
+    const bit = (val >> (r % 8)) & 1;
+    path.push(bit);
+    col += bit;
+  }
+  return { col, path, hmac };
+}
+async function computeSlots(ss, cs, n) {
+  const hmac = await hmac256Hex(ss, cs + ":" + n);
+  const symbols = ["🍩", "💎", "🍒", "🔔", "⭐"];
+  const grid = [];
+  for (let row = 0; row < 3; row++) {
+    const rowSyms = [];
+    for (let col = 0; col < 3; col++) {
+      const idx = (row * 3 + col) * 2;
+      const val = parseInt(hmac.slice(idx, idx + 2), 16);
+      const mod = val % 100;
+      let sym;
+      if (mod < 8) sym = symbols[0];
+      else if (mod < 23) sym = symbols[1];
+      else if (mod < 43) sym = symbols[2];
+      else if (mod < 68) sym = symbols[3];
+      else sym = symbols[4];
+      rowSyms.push(sym);
+    }
+    grid.push(rowSyms);
+  }
+  return { grid, hmac };
+}
+
+// ==================== BALANCE ====================
+let balance = parseInt(localStorage.getItem("dw_balance") || "1000", 10);
+if (isNaN(balance) || balance < 0) balance = 1000;
+const startingBalance = balance;
+let totalWagered = parseInt(localStorage.getItem("dw_wagered") || "0", 10);
+if (isNaN(totalWagered) || totalWagered < 0) totalWagered = 0;
+let sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
+
+function saveBalance() { localStorage.setItem("dw_balance", balance); }
+function updateBalDisplay() {
+  $("balDisplay").textContent = balance.toLocaleString();
+  $("ssRounds").textContent = sessionStats.rounds;
+  $("ssStreak").textContent = sessionStats.streak;
+  $("ssBest").textContent = sessionStats.bestMult > 0 ? sessionStats.bestMult.toFixed(2) + "×" : "-";
+  const pnl = balance - startingBalance;
+  $("ssPnl").textContent = (pnl >= 0 ? "+" : "") + pnl.toLocaleString();
+  $("ssPnl").style.color = pnl >= 0 ? "var(--good)" : "var(--bad)";
+  $("ssWagered").textContent = totalWagered.toLocaleString();
+}
+function flashBal(win) {
+  const el = $("balDisplay");
+  el.classList.remove("flash-green", "flash-red");
+  void el.offsetWidth;
+  el.classList.add(win ? "flash-green" : "flash-red");
+  setTimeout(() => el.classList.remove("flash-green", "flash-red"), 600);
+}
+function placeBet(amount) {
+  // Integrity check: ensure in-memory balance matches stored balance
+  const storedBal = parseInt(localStorage.getItem("dw_balance") || "1000", 10);
+  if (balance !== storedBal && !isNaN(storedBal)) {
+    balance = 1000; saveBalance(); updateBalDisplay();
+    toast("Balance mismatch detected – reset to 1,000 🪙", "error");
+    return false;
+  }
+  if (balance === 0) {
+    balance = 1000; saveBalance(); updateBalDisplay();
+    toast("Balance automatically reset to 1,000 🪙", "info");
+  }
+  if (amount > balance || amount < 1) { toast("Insufficient balance!", "error"); return false; }
+  balance -= amount; totalWagered += amount; localStorage.setItem("dw_wagered", totalWagered); saveBalance(); updateBalDisplay(); return true;
+}
+// ==================== BET HISTORY ====================
+let betHistory = [];
+let currentGame = "Unknown";
+let currentBetAmount = 0;
+
+function creditWin(amount, mult) {
+  balance += amount; saveBalance();
+  sessionStats.wins++; sessionStats.streak++;
+  if (sessionStats.streak > sessionStats.bestStreak) sessionStats.bestStreak = sessionStats.streak;
+  if (mult > sessionStats.bestMult) sessionStats.bestMult = mult;
+  flashBal(true); updateBalDisplay();
+  betHistory.push({ game: currentGame, amount: currentBetAmount || Math.floor(amount / mult), won: true, multiplier: mult, payout: amount, timestamp: Date.now() });
+}
+function recordLoss(lostAmount) {
+  sessionStats.streak = 0;
+  flashBal(false); updateBalDisplay();
+  betHistory.push({ game: currentGame, amount: lostAmount, won: false, multiplier: 0, payout: 0, timestamp: Date.now() });
+}
+
+function renderBetHistory() {
+  const list = $("historyList");
+  if (!list) return;
+  const activeFilter = document.querySelector("#historyFilters .filterBtn.active");
+  const filter = activeFilter ? activeFilter.dataset.filter : "all";
+  const sortVal = $("historySort") ? $("historySort").value : "time";
+  let items = filter === "all" ? [...betHistory]
+    : filter === "wins" ? betHistory.filter(h => h.multiplier >= 1.0)
+    : filter === "losses" ? betHistory.filter(h => h.multiplier < 1.0)
+    : betHistory.filter(h => h.game === filter);
+  if (sortVal === "winlose") items.sort((a, b) => (b.won ? 1 : 0) - (a.won ? 1 : 0));
+  else if (sortVal === "betlow") items.sort((a, b) => a.amount - b.amount);
+  else if (sortVal === "bethigh") items.sort((a, b) => b.amount - a.amount);
+  else if (sortVal === "multhigh") items.sort((a, b) => b.multiplier - a.multiplier);
+  else items.sort((a, b) => b.timestamp - a.timestamp);
+  if (items.length === 0) {
+    list.innerHTML = '<p class="mini" style="text-align:center;padding:20px;">No bets yet. Start playing!</p>';
+    return;
+  }
+  list.innerHTML = items.map(h => {
+    const time = new Date(h.timestamp).toLocaleTimeString();
+    const resultClass = h.won ? "win" : "loss";
+    const resultText = h.won ? "+" + h.payout + " 🪙 (" + h.multiplier.toFixed(2) + "×)" : "-" + h.amount + " 🪙";
+    return '<div class="historyEntry"><span class="heGame">' + h.game + '</span><span class="heAmount">' + h.amount + ' 🪙</span><span class="heResult ' + resultClass + '">' + resultText + '</span><span class="heTime">' + time + '</span></div>';
+  }).join("");
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("filterBtn") && e.target.closest("#historyFilters")) {
+    document.querySelectorAll("#historyFilters .filterBtn").forEach(b => b.classList.remove("active"));
+    e.target.classList.add("active");
+    renderBetHistory();
+  }
+});
+
+// ==================== BET HELPERS ====================
+function setQBet(inputId, val) {
+  if (val === "max") $(inputId).value = balance;
+  else $(inputId).value = val;
+}
+function multiplyBet(inputId, multiplier) {
+  const current = parseFloat($(inputId).value) || 10;
+  const newVal = Math.max(1, Math.floor(current * multiplier));
+  $(inputId).value = Math.min(newVal, balance);
+}
+function getBet(inputId) {
+  return clamp(Math.floor(parseFloat($(inputId).value) || 0), 1, balance);
+}
+
+// ==================== BALANCE RESET ====================
+$("balReset").addEventListener("click", () => {
+  if (confirm("Reset balance to 1,000 🪙?")) {
+    balance = 1000; saveBalance();
+    sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
+    updateBalDisplay();
+    toast("Balance reset to 1,000 🪙", "info");
+    SND.click();
+  }
+});
+
+// ==================== BALANCE TAMPER DETECTION ====================
+(function() {
+  const balEl = $("balDisplay");
+  if (balEl) {
+    new MutationObserver(function() {
+      if (balEl.textContent === balance.toLocaleString()) return;
+      balance = 1000;
+      saveBalance();
+      totalWagered = 0;
+      localStorage.setItem("dw_wagered", "0");
+      sessionStats = { rounds: 0, wins: 0, streak: 0, bestStreak: 0, bestMult: 0 };
+      updateBalDisplay();
+      toast("Tampering detected – balance reset to 1,000 🪙", "error");
+    }).observe(balEl, { childList: true, characterData: true, subtree: true });
+  }
+})();
+
+// ==================== TAB SYSTEM ====================
+function switchTab(name) {
+  document.querySelectorAll(".tabBtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".gamePanel").forEach(p => p.classList.toggle("active", p.id === "tab-" + name));
+  if (name === "history") renderBetHistory();
+  if (name === "markets") updateMarketsPanel();
+  const panel = document.getElementById("tab-" + name);
+  if (panel) {
+    setTimeout(() => { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+  }
+}
+function isTabActive(name) { const b = document.querySelector('.tabBtn[data-tab="'+name+'"]'); return b && b.classList.contains("active"); }
+document.querySelectorAll(".tabBtn").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+// ==================== SPACE = CASH OUT ====================
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && !e.repeat) {
+    const activeTab = document.querySelector(".tabBtn.active");
+    if (activeTab && activeTab.dataset.tab === "crash" && !$("cCash").disabled) {
+      e.preventDefault();
+      $("cCash").click();
+    }
+  }
+});
+
+// ==================== CRASH GAME ====================
+let cPlaying = false, cBusted = false, cMult = 1.0, cTarget = 1.0, cBetAmt = 0;
+let cStartTime = 0, cAnimId = null;
+const cHistory = [];
+
+function setCStatus(t, col) { $("cStatus").textContent = t; $("cStatus").style.color = col || ""; }
+function setOverlay(m, hint) { $("cOverlayMult").textContent = m; $("cOverlayHint").textContent = hint || ""; }
+
+function pushCrashRound(mult) {
+  cHistory.unshift(mult);
+  if (cHistory.length > 20) cHistory.pop();
+  const el = $("cRounds"); el.innerHTML = "";
+  cHistory.forEach(m => {
+    const t = document.createElement("span");
+    t.className = "roundTag";
+    t.textContent = m.toFixed(2) + "×";
+    t.style.background = m >= 2 ? "rgba(124,255,107,0.15)" : "rgba(255,107,107,0.12)";
+    t.style.color = m >= 2 ? "var(--good)" : "var(--bad)";
+    el.appendChild(t);
+  });
+}
+
+function drawCrash() {
+  const canvas = $("crashCanvas");
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // y-axis labels
+  ctx.fillStyle = "rgba(234,240,255,0.25)";
+  ctx.font = "10px system-ui";
+  const labels = [1, 1.5, 2, 3, 5, 10];
+  const maxLabel = Math.max(cMult * 1.2, 2);
+  labels.forEach(l => {
+    if (l > maxLabel) return;
+    const y = H - ((l - 1) / (maxLabel - 1)) * (H - 30) - 15;
+    ctx.fillText(l + "×", 4, y + 3);
+    ctx.strokeStyle = "rgba(234,240,255,0.06)";
+    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W, y); ctx.stroke();
+  });
+
+  if (cHistory.length < 2 && !cPlaying) return;
+
+  // draw curve
+  const pts = [];
+  const currentMult = cPlaying ? cMult : (cHistory.length ? cHistory[0] : 2);
+  const steps = 120;
+  for (let i = 0; i <= steps; i++) {
+    const frac = i / steps;
+    // use a power curve for x-mapping so the exponential shape is visually pronounced
+    const m = 1 + (currentMult - 1) * Math.pow(frac, 2.2);
+    if (m > currentMult) break;
+    const x = 30 + frac * (W - 40);
+    const y = H - ((m - 1) / (maxLabel - 1)) * (H - 30) - 15;
+    pts.push({ x, y });
+  }
+
+  if (pts.length > 1) {
+    // gradient fill under the curve
+    const grad = ctx.createLinearGradient(0, pts[pts.length - 1].y, 0, H);
+    grad.addColorStop(0, cBusted ? "rgba(255,107,107,0.15)" : "rgba(124,111,255,0.15)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, H);
+    for (let i = 0; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.lineTo(pts[pts.length - 1].x, H);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // smooth curve line using quadratic bezier segments
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const cpx = (pts[i].x + pts[i + 1].x) / 2;
+      const cpy = (pts[i].y + pts[i + 1].y) / 2;
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, cpx, cpy);
+    }
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    ctx.strokeStyle = cBusted ? "#ff6b6b" : "#7c6fff";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // glow dot at tip
+    const last = pts[pts.length - 1];
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = cBusted ? "#ff6b6b" : "#7c6fff";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = cBusted ? "rgba(255,107,107,0.25)" : "rgba(124,111,255,0.25)";
+    ctx.fill();
+  }
+}
+
+async function startCrash() {
+  if (cPlaying) return;
+  currentGame = "Crash";
+  cBetAmt = getBet("cBet");
+  if (!placeBet(cBetAmt)) return;
+  currentBetAmount = cBetAmt;
+
+  sessionStats.rounds++;
+  const ss = serverSeed, cs = clientSeed, n = nonce;
+  const result = await computeCrashPoint(ss, cs, n);
+  cTarget = result.crashPoint;
+
+  cPlaying = true; cBusted = false; cMult = 1.0;
+  cStartTime = Date.now();
+  $("cStart").disabled = true;
+  $("cCash").disabled = false;
+  $("cBet").disabled = true;
+  $("cAuto").disabled = true;
+  $("cOverlayMult").classList.remove("crashed");
+  setCStatus("Flying…", "var(--accent2)");
+  $("cMsg").textContent = "";
+
+  const autoVal = parseFloat($("cAuto").value) || 99999;
+
+  function tick() {
+    const elapsed = (Date.now() - cStartTime) / 1000;
+    cMult = Math.pow(Math.E, 0.05 * elapsed);
+
+    if (cMult >= cTarget) {
+      // busted
+      cMult = cTarget; cBusted = true; cPlaying = false;
+      $("cCash").disabled = true; $("cStart").disabled = false;
+      $("cBet").disabled = false; $("cAuto").disabled = false;
+      setOverlay(cMult.toFixed(2) + "×", "Crashed!");
+      $("cOverlayMult").classList.add("crashed");
+      setCStatus("Crashed", "var(--bad)");
+      $("cMult").textContent = cMult.toFixed(2) + "×";
+      $("cMult").style.color = "var(--bad)";
+      $("cPotential").textContent = "-";
+      document.title = "DonutWin – Casino";
+      pushCrashRound(cMult);
+      recordLoss(cBetAmt);
+      revealSeed("crash");
+      SND.bust(); haptic(60);
+      toast("Crashed at " + cMult.toFixed(2) + "×", "error");
+      drawCrash();
+      if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
+      return;
+    }
+
+    // auto cash out
+    if (cMult >= autoVal) {
+      cashOutCrash();
+      return;
+    }
+
+    $("cMult").textContent = cMult.toFixed(2) + "×";
+    $("cMult").style.color = "var(--accent2)";
+    setOverlay(cMult.toFixed(2) + "×", "");
+    $("cPotential").textContent = Math.floor(cBetAmt * cMult).toLocaleString();
+    document.title = cMult.toFixed(2) + "× – DonutWin";
+    drawCrash();
+    SND.tick();
+    cAnimId = requestAnimationFrame(tick);
+  }
+  cAnimId = requestAnimationFrame(tick);
+}
+
+function cashOutCrash() {
+  if (!cPlaying || cBusted) return;
+  cPlaying = false;
+  if (cAnimId) cancelAnimationFrame(cAnimId);
+  $("cCash").disabled = true; $("cStart").disabled = false;
+  $("cBet").disabled = false; $("cAuto").disabled = false;
+
+  const winAmt = Math.floor(cBetAmt * cMult);
+  creditWin(winAmt, cMult);
+  setOverlay(cMult.toFixed(2) + "×", "Cashed out!");
+  setCStatus("Won!", "var(--good)");
+  $("cPotential").textContent = "-";
+  document.title = "DonutWin – Casino";
+  pushCrashRound(cMult);
+  revealSeed("crash");
+  SND.cash(); haptic(30);
+  toast("Cashed out at " + cMult.toFixed(2) + "× for " + winAmt + " 🪙", "success");
+  drawCrash();
+  if ($("cAutoBet").checked) setTimeout(startCrash, 1200);
+}
+
+$("cStart").addEventListener("click", startCrash);
+$("cCash").addEventListener("click", cashOutCrash);
+
+// ==================== MINES GAME ====================
+let mPlaying = false, mBusted = false, mSafe = 0, mMult = 1.0;
+let mMines = new Set(), mRevealed = new Set(), mBetAmt = 0;
+
+function setMStatus(t, col) { $("mStatus").textContent = t; $("mStatus").style.color = col || ""; }
+function updateMinesHUD() {
+  $("mSafe").textContent = mSafe;
+  $("mMult").textContent = mMult.toFixed(2) + "×";
+}
+function renderMinesGrid() {
+  const grid = $("mGrid"); grid.innerHTML = "";
+  for (let i = 0; i < 25; i++) {
+    const tile = document.createElement("div");
+    tile.className = "mTile";
+    if (mRevealed.has(i)) {
+      tile.classList.add(mMines.has(i) ? "mine" : "safe");
+      tile.textContent = mMines.has(i) ? "💣" : "💎";
+      tile.classList.add("disabled");
+    } else if (!mPlaying || mBusted) {
+      tile.classList.add("disabled");
+    }
+    tile.addEventListener("click", () => {
+      revealTile(i);
+    });
+    grid.appendChild(tile);
+  }
+}
+
+function pushMineWin(who, mult) {
+  const el = $("mWins");
+  const tag = document.createElement("div");
+  tag.className = "roundTag";
+  tag.textContent = (who === "you" ? "You " : "Bot ") + mult.toFixed(2) + "×";
+  tag.style.background = "rgba(124,255,107,0.15)"; tag.style.color = "var(--good)";
+  el.prepend(tag);
+  if (el.children.length > 15) el.lastChild.remove();
+}
+function fakeMineWin() {
+  pushMineWin("bot", (1 + Math.random() * 4));
+}
+
+async function revealTile(i) {
+  if (!mPlaying || mBusted || mRevealed.has(i)) return;
+  mRevealed.add(i);
+  if (mMines.has(i)) {
+    // hit mine
+    mBusted = true; mPlaying = false;
+    setMStatus("Busted!", "var(--bad)");
+    $("mMsg").textContent = "💥 You hit a mine!";
+    $("mStart").disabled = false;
+    $("mBet").disabled = false;
+    $("mMineCount").disabled = false;
+    recordLoss(mBetAmt);
+    revealSeed("mines");
+    SND.bust(); haptic(60);
+    toast("Hit a mine!", "error");
+    // reveal all mines
+    mMines.forEach(m => mRevealed.add(m));
+    renderMinesGrid();
+    return;
+  }
+  // safe
+  mSafe++;
+  const mc = parseInt($("mMineCount").value) || 5;
+  const total = 25, remaining = total - mSafe - mc;
+  const MINES_HOUSE_EDGE = 0.97;
+  mMult = mSafe === 0 ? 1 : parseFloat(((total / (total - mc)) ** mSafe * MINES_HOUSE_EDGE).toFixed(2));
+  SND.pop(); haptic(15);
+  setMStatus("Playing", "var(--accent2)");
+  $("mCash").disabled = false;
+  updateMinesHUD();
+  renderMinesGrid();
+}
+
+$("mStart").addEventListener("click", async () => {
+  if (mPlaying) return;
+  currentGame = "Mines";
+  mBetAmt = getBet("mBet");
+  if (!placeBet(mBetAmt)) return;
+  currentBetAmount = mBetAmt;
+
+  sessionStats.rounds++;
+  const mc = clamp(parseInt($("mMineCount").value) || 5, 1, 24);
+  const ss = serverSeed, cs = clientSeed, n = nonce;
+  const mines = await computeMines(ss, cs, n, mc);
+  mMines = new Set(mines);
+  mRevealed = new Set();
+  mSafe = 0; mMult = 1.0; mPlaying = true; mBusted = false;
+  $("mStart").disabled = true;
+  $("mCash").disabled = true;
+  $("mBet").disabled = true;
+  $("mMineCount").disabled = true;
+  setMStatus("Playing", "var(--accent2)");
+  $("mMsg").textContent = "";
+  updateMinesHUD();
+  renderMinesGrid();
+  SND.click();
+});
+
+$("mCash").addEventListener("click", () => {
+  if (!mPlaying || mBusted || mSafe === 0) return;
+  mPlaying = false;
+  const winAmt = Math.floor(mBetAmt * mMult);
+  creditWin(winAmt, mMult);
+  $("mCash").disabled = true;
+  $("mStart").disabled = false;
+  $("mBet").disabled = false;
+  $("mMineCount").disabled = false;
+  setMStatus("Cashed out!", "var(--good)");
+  $("mMsg").textContent = "Won " + winAmt + " 🪙 at " + mMult.toFixed(2) + "×";
+  toast("Mines cashed out: " + winAmt + " 🪙", "success");
+  revealSeed("mines");
+  SND.cash(); haptic(30);
+  pushMineWin("you", mMult);
+  renderMinesGrid();
+});
+
+$("mReset").addEventListener("click", () => {
+  if (mPlaying && mSafe === 0) {
+    // refund bet if no tiles revealed
+    balance += mBetAmt; saveBalance(); updateBalDisplay();
+    toast("Bet refunded", "info");
+  }
+  mPlaying = false; mBusted = false; mSafe = 0; mMult = 1.0;
+  mMines = new Set(); mRevealed = new Set();
+  $("mMsg").textContent = ""; $("mCash").disabled = true;
+  $("mStart").disabled = false;
+  $("mBet").disabled = false;
+  $("mMineCount").disabled = false;
+  setMStatus("Ready", "");
+  updateMinesHUD(); renderMinesGrid();
+});
+// ==================== DICE GAME ====================
+const DICE_PAYOUT_FACTOR = 99; // 1% house edge (99/100)
+let dStreak = 0;
+const dHistoryArr = [];
+let dSwapMode = false;
+let dRolling = false;
+
+function updateDiceUI() {
+  const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
+  const swapped = $("dSwapMode").checked;
+  dSwapMode = swapped;
+  
+  // Sync slider with text field
+  $("dTargetSlider").value = target;
+  
+  // Update label based on mode
+  $("dModeLabel").textContent = swapped ? "Roll under" : "Roll over";
+  
+  // Calculate chance based on mode
+  const chance = swapped ? target : (100 - target);
+  const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
+  $("dChance").textContent = chance + "%";
+  $("dPayoutLabel").textContent = payout.toFixed(4) + "×";
+  
+  // Update bar gradient based on mode
+  if (swapped) {
+    // Swapped: green on left (under target), red on right (over target)
+    $("dBar").style.background = `linear-gradient(90deg, var(--good) 0%, var(--good) ${target}%, var(--bad) ${target}%, var(--bad) 100%)`;
+  } else {
+    // Normal: red on left (under target), green on right (over target)
+    $("dBar").style.background = `linear-gradient(90deg, var(--bad) 0%, var(--bad) ${target}%, var(--good) ${target}%, var(--good) 100%)`;
+  }
+}
+
+$("dTarget").addEventListener("input", updateDiceUI);
+$("dTargetSlider").addEventListener("input", () => {
+  $("dTarget").value = $("dTargetSlider").value;
+  updateDiceUI();
+});
+$("dSwapMode").addEventListener("change", updateDiceUI);
+
+function pushDiceHistory(roll, won) {
+  dHistoryArr.unshift({ roll, won });
+  if (dHistoryArr.length > 20) dHistoryArr.pop();
+  const el = $("dHistory"); el.innerHTML = "";
+  dHistoryArr.forEach(h => {
+    const t = document.createElement("span");
+    t.className = "roundTag";
+    t.textContent = h.roll.toFixed(2);
+    t.style.background = h.won ? "rgba(124,255,107,0.15)" : "rgba(255,107,107,0.12)";
+    t.style.color = h.won ? "var(--good)" : "var(--bad)";
+    el.appendChild(t);
+  });
+}
+
+async function rollDiceRound() {
+  if (dRolling) return;
+  dRolling = true;
+  $("dRoll").disabled = true;
+  $("dBet").disabled = true;
+  $("dTarget").disabled = true;
+  $("dTargetSlider").disabled = true;
+  $("dSwapMode").disabled = true;
+  currentGame = "Dice";
+  const bet = getBet("dBet");
+  if (!placeBet(bet)) {
+    dRolling = false;
+    $("dRoll").disabled = false;
+    $("dBet").disabled = false;
+    $("dTarget").disabled = false;
+    $("dTargetSlider").disabled = false;
+    $("dSwapMode").disabled = false;
+    $("dAutoBet").checked = false;
+    return;
+  }
+  currentBetAmount = bet;
+
+  sessionStats.rounds++;
+  const target = clamp(parseInt($("dTarget").value) || 50, 1, 98);
+  const swapped = dSwapMode;
+  const chance = swapped ? target : (100 - target);
+  const payout = chance > 0 ? parseFloat((DICE_PAYOUT_FACTOR / chance).toFixed(4)) : 0;
+
+  const ss = serverSeed, cs = clientSeed, n = nonce;
+  const roll = await computeDice(ss, cs, n);
+  revealSeed("dice");
+
+  // animate marker
+  $("dMarker").style.left = roll + "%";
+  const resultEl = $("dResult");
+  resultEl.classList.remove("pop");
+  void resultEl.offsetWidth; // force reflow to restart CSS animation
+  resultEl.textContent = roll.toFixed(2);
+  resultEl.classList.add("pop");
+  $("dLast").textContent = roll.toFixed(2);
+
+  // Win condition based on mode
+  const won = swapped ? (roll < target) : (roll > target);
+  if (won) {
+    const winAmt = Math.floor(bet * payout);
+    creditWin(winAmt, payout);
+    dStreak++;
+    $("dResult").style.color = "var(--good)";
+    $("dStatus").textContent = "Win!";
+    $("dStatus").style.color = "var(--good)";
+    $("dMsg").textContent = "Won " + winAmt + " 🪙";
+    toast("Dice win: " + roll.toFixed(2) + " → " + winAmt + " 🪙", "success");
+    SND.win(); haptic(20);
+  } else {
+    dStreak = 0;
+    recordLoss(bet);
+    $("dResult").style.color = "var(--bad)";
+    $("dStatus").textContent = "Loss";
+    $("dStatus").style.color = "var(--bad)";
+    $("dMsg").textContent = "";
+    const comparison = swapped ? " ≥ " : " ≤ ";
+    toast("Dice: " + roll.toFixed(2) + comparison + target, "error");
+    SND.bust(); haptic(40);
+  }
+  $("dStreak").textContent = dStreak;
+  pushDiceHistory(roll, won);
+  dRolling = false;
+  $("dRoll").disabled = false;
+  $("dBet").disabled = false;
+  $("dTarget").disabled = false;
+  $("dTargetSlider").disabled = false;
+  $("dSwapMode").disabled = false;
+  if ($("dAutoBet").checked) {
+    if (balance < bet) {
+      $("dAutoBet").checked = false;
+      toast("Auto-bet stopped: insufficient balance", "error");
+    } else {
+      setTimeout(() => {
+        if ($("dAutoBet").checked) rollDiceRound();
+      }, 900);
+    }
+  }
+}
+$("dRoll").addEventListener("click", rollDiceRound);
+
+// ==================== PLINKO GAME ====================
+const PLINKO_MULTS = {
+  low:    { 8: [4.6,1.8,1.1,0.9,0.6,0.9,1.1,1.8,4.6],
+            12: [9,3,1.5,1.2,1,0.9,0.7,0.9,1,1.2,1.5,3,9],
+            16: [13,8,2,1.5,1.3,1.1,0.9,0.8,0.7,0.8,0.9,1.1,1.3,1.5,2,8,13] },
+  medium: { 8: [8.6,2.8,1.2,0.8,0.5,0.8,1.2,2.8,8.6],
+            12: [21,7.5,3.5,1.7,1,0.7,0.4,0.7,1,1.7,3.5,7.5,21],
+            16: [75,28,7.5,3.8,2.1,1.3,1,0.7,0.4,0.7,1,1.3,2.1,3.8,7.5,28,75] },
+  high:   { 8: [18,4.5,1.3,0.4,0.3,0.4,1.3,4.5,18],
+            12: [130,20,7,1.9,0.7,0.3,0.2,0.3,0.7,1.9,7,20,130],
+            16: [920,120,24,7,3.5,1.8,0.4,0.3,0.2,0.3,0.4,1.8,3.5,7,24,120,920] }
+};
+let plDropCount = 0, plAnimating = false;
+const plHistoryArr = [];
+const plActiveBalls = [];
+let plAnimLoop = null;
+let plAutoRunning = false, plAutoRemaining = 0;
+
+function getBucketColor(m) {
+  if (m >= 10) return "#ff4444";
+  if (m >= 3) return "#ff8800";
+  if (m >= 1.5) return "#ffcc00";
+  if (m >= 1) return "#66dd55";
+  return "#888";
+}
+
+function renderPlinkoBuckets() {
+  const risk = $("plRisk").value;
+  const rows = parseInt($("plRows").value);
+  const mults = PLINKO_MULTS[risk][rows];
+  const el = $("plBuckets"); el.innerHTML = "";
+  mults.forEach(m => {
+    const b = document.createElement("div");
+    b.className = "plinkoBucket";
+    b.textContent = m + "×";
+    b.style.background = getBucketColor(m);
+    b.style.color = m >= 3 ? "#fff" : "#111";
+    el.appendChild(b);
+  });
+}
+
+function drawPlinkoBoard() {
+  const canvas = $("plinkoCanvas");
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const rows = parseInt($("plRows").value);
+  const padTop = 20, padBot = 6, padX = 20;
+  const rowH = (H - padTop - padBot) / (rows + 1);
+
+  ctx.clearRect(0, 0, W, H);
+
+  // draw pegs
+  for (let r = 0; r < rows; r++) {
+    const pegsInRow = r + 2;
+    const rowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+    const startX = (W - rowWidth) / 2;
+    const y = padTop + (r + 1) * rowH;
+    for (let c = 0; c < pegsInRow; c++) {
+      const x = startX + c * ((W - padX * 2) / (rows + 1));
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(124,111,255,0.08)";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fill();
+    }
+  }
+
+  // draw all active balls
+  for (const ball of plActiveBalls) {
+    if (!ball.path || ball.t === undefined) continue;
+    const path = ball.path;
+    const progress = ball.t;
+    const currentRow = Math.min(Math.floor(progress * rows), rows - 1);
+    const frac = (progress * rows) - currentRow;
+
+    let col = 0;
+    for (let r = 0; r < currentRow; r++) col += path[r];
+    const nextCol = col + (currentRow < path.length ? path[currentRow] : 0);
+
+    const pegsInRow = currentRow + 2;
+    const nextPegsInRow = currentRow + 3;
+    const rowWidth = (pegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+    const nextRowWidth = (nextPegsInRow - 1) * ((W - padX * 2) / (rows + 1));
+    const startX = (W - rowWidth) / 2;
+    const nextStartX = (W - nextRowWidth) / 2;
+
+    const bx = startX + col * ((W - padX * 2) / (rows + 1));
+    const nbx = nextStartX + nextCol * ((W - padX * 2) / (rows + 1));
+    const by = padTop + (currentRow + 1) * rowH;
+    const nby = padTop + (currentRow + 2) * rowH;
+
+    const cx = bx + (nbx - bx) * frac;
+    const cy = by + (nby - by) * frac - Math.sin(frac * Math.PI) * 12;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,136,0,0.15)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+    const ballGrad = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 7);
+    ballGrad.addColorStop(0, "#ffcc00");
+    ballGrad.addColorStop(1, "#ff8800");
+    ctx.fillStyle = ballGrad;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+function startPlinkoBallLoop() {
+  if (plAnimLoop) return;
+  function loop() {
+    const now = Date.now();
+    for (let i = plActiveBalls.length - 1; i >= 0; i--) {
+      const b = plActiveBalls[i];
+      const elapsed = now - b.startTime;
+      const rawT = Math.min(elapsed / b.duration, 1);
+      b.t = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+      const rows = b.rows || parseInt($("plRows").value);
+      const prevRow = b.lastRow || 0;
+      const currentRow = Math.min(Math.floor(b.t * rows), rows - 1);
+      if (currentRow > prevRow) SND.tick();
+      b.lastRow = currentRow;
+      if (rawT >= 1) {
+        plActiveBalls.splice(i, 1);
+        b.onDone();
+      }
+    }
+    drawPlinkoBoard();
+    if (plActiveBalls.length > 0) {
+      plAnimLoop = requestAnimationFrame(loop);
+    } else {
+      plAnimLoop = null;
+      plAnimating = false;
+      $("plRisk").disabled = false;
+      $("plRows").disabled = false;
+      if (!plAutoRunning) $("plDrop").disabled = false;
+      $("plStatus").textContent = "Ready";
+      $("plStatus").style.color = "";
+    }
+  }
+  plAnimLoop = requestAnimationFrame(loop);
+}
+
+function pushPlinkoHistory(mult, won) {
+  plHistoryArr.unshift(mult);
+  if (plHistoryArr.length > 20) plHistoryArr.pop();
+  const el = $("plHistory"); el.innerHTML = "";
+  plHistoryArr.forEach(m => {
+    const t = document.createElement("span");
+    t.className = "roundTag";
+    t.textContent = m.toFixed(2) + "×";
+    t.style.background = getBucketColor(m);
+    t.style.color = m >= 3 ? "#fff" : "#111";
+    el.appendChild(t);
+  });
+}
+
+async function dropOneBall(bet) {
+  const rows = parseInt($("plRows").value);
+  const risk = $("plRisk").value;
+  const ss = serverSeed, cs = clientSeed, n = nonce;
+  const result = await computePlinko(ss, cs, n, rows);
+  revealSeed("plinko");
+
+  const mults = PLINKO_MULTS[risk][rows];
+  const mult = mults[result.col];
+
+  return new Promise((resolve) => {
+    const ball = {
+      path: result.path,
+      rows: rows,
+      t: 0,
+      startTime: Date.now(),
+      duration: 1725,
+      onDone: () => {
+        plDropCount++;
+        $("plDropped").textContent = plDropCount;
+        $("plLastMult").textContent = mult.toFixed(2) + "×";
+
+        const winAmt = Math.floor(bet * mult);
+        if (winAmt > 0) {
+          creditWin(winAmt, mult);
+          $("plStatus").textContent = mult >= 1 ? "Win!" : "Low";
+          $("plStatus").style.color = mult >= 1 ? "var(--good)" : "var(--bad)";
+          toast("Plinko: " + mult + "× → " + winAmt + " 🪙", mult >= 1 ? "success" : "info");
+          if (mult >= 2) SND.win(); else SND.pop();
+        } else {
+          recordLoss(bet);
+          $("plStatus").textContent = "Miss";
+          $("plStatus").style.color = "var(--bad)";
+        }
+        pushPlinkoHistory(mult, winAmt > bet);
+        haptic(20);
+
+        const bucketEls = $("plBuckets").children;
+        if (bucketEls[result.col]) {
+          bucketEls[result.col].style.transform = "scale(1.3)";
+          setTimeout(() => { if (bucketEls[result.col]) bucketEls[result.col].style.transform = ""; }, 250);
+        }
+        resolve();
+      }
+    };
+
+    plActiveBalls.push(ball);
+    plAnimating = true;
+    $("plRisk").disabled = true;
+    $("plRows").disabled = true;
+    $("plStatus").textContent = "Dropping…";
+    $("plStatus").style.color = "var(--accent2)";
+    startPlinkoBallLoop();
+  });
+}
+
+$("plDrop").addEventListener("click", async () => {
+  currentGame = "Plinko";
+  const bet = getBet("plBet");
+  if (!placeBet(bet)) return;
+  currentBetAmount = bet;
+  sessionStats.rounds++;
+  dropOneBall(bet); // fire-and-forget: allows multiple simultaneous balls
+});
+
+function stopAutobet() {
+  plAutoRunning = false;
+  plAutoRemaining = 0;
+  $("plAutoStart").style.display = "";
+  $("plAutoStop").style.display = "none";
+  if (plActiveBalls.length === 0) $("plDrop").disabled = false;
+}
+
+$("plAutoStart").addEventListener("click", async () => {
+  if (plAutoRunning) return;
+  const totalBalls = clamp(parseInt($("plAutoBalls").value) || 10, 1, 500);
+  const bet = getBet("plBet");
+  if (!bet || bet <= 0) { toast("Set a valid bet first", "error"); return; }
+
+  plAutoRunning = true;
+  plAutoRemaining = totalBalls;
+  $("plAutoStart").style.display = "none";
+  $("plAutoStop").style.display = "";
+  $("plDrop").disabled = true;
+
+  const delay = 150;
+  for (let i = 0; i < totalBalls; i++) {
+    if (!plAutoRunning) break;
+    if (!placeBet(bet)) {
+      toast("Auto-bet stopped: insufficient balance", "error");
+      break;
+    }
+    sessionStats.rounds++;
+    plAutoRemaining--;
+    dropOneBall(bet);
+    if (plAutoRunning && plAutoRemaining > 0) {
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  stopAutobet();
+});
+
+$("plAutoStop").addEventListener("click", stopAutobet);
+
+$("plRisk").addEventListener("change", () => { renderPlinkoBuckets(); drawPlinkoBoard(); });
+$("plRows").addEventListener("change", () => { renderPlinkoBuckets(); drawPlinkoBoard(); });
+
+// ==================== BLACKJACK GAME ====================
+const SUITS = ["♠","♥","♦","♣"];
+const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+let bjDeck = [], bjPlayer = [], bjDealer = [], bjBetAmt = 0, bjActive = false, bjProcessing = false;
+let bjWinCount = 0, bjLossCount = 0, bjPushCount = 0;
+
+function createDeck() {
+  const d = [];
+  for (const s of SUITS) for (const r of RANKS) d.push({ rank: r, suit: s });
+  // shuffle
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
+
+function cardValue(card) {
+  if (["J","Q","K"].includes(card.rank)) return 10;
+  if (card.rank === "A") return 11;
+  return parseInt(card.rank);
+}
+
+function handTotal(hand) {
+  let total = 0, aces = 0;
+  for (const c of hand) {
+    total += cardValue(c);
+    if (c.rank === "A") aces++;
+  }
+  while (total > 21 && aces > 0) { total -= 10; aces--; }
+  return total;
+}
+
+function isRed(suit) { return suit === "♥" || suit === "♦"; }
+
+function renderCard(card, facedown) {
+  if (facedown) return '<div class="bjCard facedown"></div>';
+  const red = isRed(card.suit) ? " red" : "";
+  return '<div class="bjCard' + red + '">' +
+    '<span class="rank">' + card.rank + card.suit + '</span>' +
+    '<span class="suit">' + card.suit + '</span>' +
+    '<span class="rank-br">' + card.rank + card.suit + '</span></div>';
+}
+
+function renderBJHands(revealDealer) {
+  let ph = "", dh = "";
+  bjPlayer.forEach(c => ph += renderCard(c, false));
+  bjDealer.forEach((c, i) => dh += renderCard(c, !revealDealer && i === 1));
+  $("bjPlayerHand").innerHTML = ph;
+  $("bjDealerHand").innerHTML = dh;
+  $("bjPlayerScore").textContent = "(" + handTotal(bjPlayer) + ")";
+  $("bjDealerScore").textContent = revealDealer ? "(" + handTotal(bjDealer) + ")" : "(" + cardValue(bjDealer[0]) + " + ?)";
+}
+
+function bjSetButtons(deal, hit, stand, dbl) {
+  $("bjDeal").disabled = !deal;
+  $("bjHit").disabled = !hit;
+  $("bjStand").disabled = !stand;
+  $("bjDouble").disabled = !dbl;
+}
+
+function bjDrawCard() {
+  if (bjDeck.length < 5) bjDeck = createDeck();
+  return bjDeck.pop();
+}
+
+function pushBJHistory(result, amount) {
+  const el = $("bjHistory");
+  const t = document.createElement("div");
+  t.className = "roundTag";
+  t.textContent = result + (amount ? " " + amount + "🪙" : "");
+  t.style.background = result === "Win" || result === "Blackjack!" ? "rgba(124,255,107,0.15)" :
+                       result === "Push" ? "rgba(255,255,255,0.08)" : "rgba(255,107,107,0.12)";
+  t.style.color = result === "Win" || result === "Blackjack!" ? "var(--good)" :
+                  result === "Push" ? "var(--text)" : "var(--bad)";
+  el.prepend(t);
+  if (el.children.length > 20) el.lastChild.remove();
+}
+
+function bjResolve() {
+  bjActive = false;
+  bjProcessing = true;
+  bjSetButtons(false, false, false, false);
+  const pt = handTotal(bjPlayer), dt = handTotal(bjDealer);
+  const playerBJ = bjPlayer.length === 2 && pt === 21;
+  const dealerBJ = bjDealer.length === 2 && dt === 21;
+
+  // Flip dealer's hidden card
+  SND.cardFlip();
+  setTimeout(() => renderBJHands(true), 100);
+  
+  setTimeout(() => {
+    let msg = "", result = "";
+
+    if (playerBJ && dealerBJ) {
+      msg = "Push – both Blackjack!"; result = "Push";
+      balance += bjBetAmt; saveBalance(); updateBalDisplay();
+      bjPushCount++;
+    } else if (playerBJ) {
+      const winAmt = Math.floor(bjBetAmt * 2.5);
+      msg = "🎉 Blackjack! +" + winAmt + " 🪙"; result = "Blackjack!";
+      creditWin(winAmt, 2.5); bjWinCount++;
+      SND.win();
+    } else if (dealerBJ) {
+      msg = "Dealer Blackjack!"; result = "Loss";
+      recordLoss(bjBetAmt); bjLossCount++;
+      SND.bust();
+    } else if (pt > 21) {
+      msg = "💥 Bust!"; result = "Bust";
+      recordLoss(bjBetAmt); bjLossCount++;
+      SND.bust();
+    } else if (dt > 21) {
+      const winAmt = bjBetAmt * 2;
+      msg = "Dealer busts! +" + winAmt + " 🪙"; result = "Win";
+      creditWin(winAmt, 2); bjWinCount++;
+      SND.win();
+    } else if (pt > dt) {
+      const winAmt = bjBetAmt * 2;
+      msg = "You win! +" + winAmt + " 🪙"; result = "Win";
+      creditWin(winAmt, 2); bjWinCount++;
+      SND.win();
+    } else if (pt < dt) {
+      msg = "Dealer wins."; result = "Loss";
+      recordLoss(bjBetAmt); bjLossCount++;
+      SND.bust();
+    } else {
+      msg = "Push!"; result = "Push";
+      balance += bjBetAmt; saveBalance(); updateBalDisplay();
+      bjPushCount++;
+    }
+
+    $("bjMsg").textContent = msg;
+    $("bjMsg").className = "bjMsg" + (result === "Win" || result === "Blackjack!" ? " win-anim" : "");
+    $("bjWins").textContent = bjWinCount;
+    $("bjLosses").textContent = bjLossCount;
+    $("bjPushes").textContent = bjPushCount;
+    bjProcessing = false;
+    $("bjBet").disabled = false;
+    bjSetButtons(true, false, false, false);
+    const histAmt = result === "Blackjack!" ? Math.floor(bjBetAmt * 2.5) : (result === "Win" ? bjBetAmt * 2 : 0);
+    pushBJHistory(result, histAmt);
+    haptic(20);
+  }, 200); // Delay for card flip animation
+}
+
+function dealerPlay() {
+  SND.cardFlip(); // Flip dealer's hidden card
+  renderBJHands(true);
+  function dealerStep() {
+    if (handTotal(bjDealer) < 17) {
+      bjDealer.push(bjDrawCard());
+      renderBJHands(true);
+      SND.cardDeal();
+      setTimeout(dealerStep, 500);
+    } else {
+      bjResolve();
+    }
+  }
+  setTimeout(dealerStep, 500);
+}
+
+$("bjDeal").addEventListener("click", () => {
+  if (bjActive || bjProcessing) return;
+  currentGame = "Blackjack";
+  bjBetAmt = getBet("bjBet");
+  if (!placeBet(bjBetAmt)) return;
+  currentBetAmount = bjBetAmt;
+  $("bjBet").disabled = true;
+
+  sessionStats.rounds++;
+  SND.chipPlace(); // Bet placed sound
+  if (bjDeck.length < 15) bjDeck = createDeck();
+  bjPlayer = [bjDrawCard(), bjDrawCard()];
+  bjDealer = [bjDrawCard(), bjDrawCard()];
+  bjActive = true;
+  $("bjMsg").textContent = "";
+  renderBJHands(false);
+  
+  // Deal animation with sound
+  setTimeout(() => SND.cardDeal(), 50);
+  setTimeout(() => SND.cardDeal(), 200);
+  setTimeout(() => SND.cardDeal(), 350);
+  setTimeout(() => SND.cardDeal(), 500);
+
+  // check for natural blackjack (21 with first 2 cards)
+  const playerHas21 = handTotal(bjPlayer) === 21;
+  const dealerHas21 = handTotal(bjDealer) === 21;
+  if (playerHas21 || dealerHas21) {
+    bjResolve();
+    return;
+  }
+  bjSetButtons(false, true, true, bjPlayer.length === 2 && balance >= bjBetAmt);
+});
+
+$("bjHit").addEventListener("click", () => {
+  if (!bjActive || bjProcessing) return;
+  bjProcessing = true;
+  bjSetButtons(false, false, false, false);
+  bjPlayer.push(bjDrawCard());
+  renderBJHands(false);
+  SND.cardDeal();
+  if (handTotal(bjPlayer) > 21) {
+    bjResolve();
+  } else if (handTotal(bjPlayer) === 21) {
+    dealerPlay();
+  } else {
+    bjProcessing = false;
+    bjSetButtons(false, true, true, false);
+  }
+});
+
+$("bjStand").addEventListener("click", () => {
+  if (!bjActive || bjProcessing) return;
+  bjProcessing = true;
+  bjSetButtons(false, false, false, false);
+  dealerPlay();
+});
+
+$("bjDouble").addEventListener("click", () => {
+  if (!bjActive || bjPlayer.length !== 2 || bjProcessing) return;
+  if (!placeBet(bjBetAmt)) return;
+  bjProcessing = true;
+  bjSetButtons(false, false, false, false);
+  bjBetAmt *= 2;
+  bjPlayer.push(bjDrawCard());
+  renderBJHands(false);
+  SND.click();
+  if (handTotal(bjPlayer) > 21) {
+    bjResolve();
+  } else {
+    dealerPlay();
+  }
+});
+
+// ==================== PROVABLY FAIR VERIFICATION ====================
+$("pfNewSeeds").addEventListener("click", async () => {
+  clientSeed = $("pfClientSeed").value.trim() || "donutwin-client";
+  serverSeed = randSeed(32);
+  nonce = 0;
+  await refreshCommit();
+  toast("New seeds generated!", "success");
+  SND.click();
+});
+
+$("pfClientSeed").addEventListener("change", () => {
+  clientSeed = $("pfClientSeed").value.trim() || clientSeed;
+});
+
+$("pfCrashVerify").addEventListener("click", async () => {
+  if (!lastRevealedSeed || lastGame !== "crash") {
+    $("pfCrashResult").textContent = "No completed crash round to verify.";
+    return;
+  }
+  const cs = $("pfClientSeed").value.trim() || clientSeed;
+  const res = await computeCrashPoint(lastRevealedSeed, cs, lastRevealedNonce);
+  $("pfCrashResult").textContent = res.crashPoint.toFixed(8) + "×  |  HMAC: " + res.hmac.slice(0, 32) + "…";
+});
+
+$("pfMinesVerify").addEventListener("click", async () => {
+  if (!lastRevealedSeed || lastGame !== "mines") {
+    $("pfMinesResult").textContent = "No completed mines round to verify.";
+    return;
+  }
+  const cs = $("pfClientSeed").value.trim() || clientSeed;
+  const mc = clamp(parseInt($("mMineCount").value) || 5, 1, 24);
+  const pos = await computeMines(lastRevealedSeed, cs, lastRevealedNonce, mc);
+  $("pfMinesResult").textContent = "Mines at: " + pos.join(", ");
+});
+
+$("pfDiceVerify").addEventListener("click", async () => {
+  if (!lastRevealedSeed || lastGame !== "dice") {
+    $("pfDiceResult").textContent = "No completed dice round to verify.";
+    return;
+  }
+  const cs = $("pfClientSeed").value.trim() || clientSeed;
+  const roll = await computeDice(lastRevealedSeed, cs, lastRevealedNonce);
+  $("pfDiceResult").textContent = "Roll: " + roll.toFixed(2);
+});
+
+$("pfPlinkoVerify").addEventListener("click", async () => {
+  if (!lastRevealedSeed || lastGame !== "plinko") {
+    $("pfPlinkoResult").textContent = "No completed plinko round to verify.";
+    return;
+  }
+  const cs = $("pfClientSeed").value.trim() || clientSeed;
+  const rows = parseInt($("plRows").value);
+  const res = await computePlinko(lastRevealedSeed, cs, lastRevealedNonce, rows);
+  $("pfPlinkoResult").textContent = "Bucket: " + res.col + "  |  Path: " + res.path.join("");
+});
+
+$("pfSlotsVerify").addEventListener("click", async () => {
+  if (!lastRevealedSeed || lastGame !== "slots") {
+    $("pfSlotsResult").textContent = "No completed slots round to verify.";
+    return;
+  }
+  const cs = $("pfClientSeed").value.trim() || clientSeed;
+  const res = await computeSlots(lastRevealedSeed, cs, lastRevealedNonce);
+  $("pfSlotsResult").textContent = res.grid.map(r => r.join("")).join(" | ");
+});
+
+// ==================== SLOTS GAME (LIVE) ====================
+const SLOT_SYMBOLS = ["🍩", "💎", "🍒", "🔔", "⭐"];
+const SLOT_PAYOUTS = { "🍩": 10, "💎": 5, "🍒": 3, "🔔": 2, "⭐": 1.5 };
+const SLOT_ROUND_TIME = 12;
+const SLOT_SPIN_TIME = 3;
+const SLOT_REEL_STAGGER = 0.4; // seconds delay per reel
+const SLOT_SYM_H = 72; // must match CSS .slotSymbol height
+let slBetAmt = 0, slBetPlaced = false, slSpinning = false;
+let slTimer = null, slCountdown = SLOT_ROUND_TIME;
+let slGrid = [["⭐","⭐","⭐"],["⭐","⭐","⭐"],["⭐","⭐","⭐"]];
+const slHistoryArr = [];
+
+function setSlStatus(t, col) { $("slStatus").textContent = t; $("slStatus").style.color = col || ""; }
+
+function renderSlotReels(animate) {
+  $("slWinOverlay").innerHTML = "";
+  const bigWin = $("slBigWin"); if (bigWin) bigWin.classList.remove("show");
+  for (let c = 0; c < 3; c++) {
+    const strip = $("slReel" + c);
+    const reel = strip.parentElement;
+    strip.innerHTML = "";
+    if (animate) {
+      reel.classList.add("spinning");
+      const count = 12 + c * 4;
+      for (let i = 0; i < count; i++) {
+        const s = document.createElement("div");
+        s.className = "slotSymbol";
+        s.textContent = SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)];
+        strip.appendChild(s);
+      }
+      for (let r = 0; r < 3; r++) {
+        const s = document.createElement("div");
+        s.className = "slotSymbol";
+        s.textContent = slGrid[r][c];
+        s.dataset.row = r;
+        s.dataset.col = c;
+        strip.appendChild(s);
+      }
+      const totalSyms = count + 3;
+      const targetY = -(totalSyms - 3) * SLOT_SYM_H;
+      strip.style.transition = "none";
+      strip.style.transform = "translateY(0)";
+      strip.offsetHeight;
+      const dur = SLOT_SPIN_TIME + c * SLOT_REEL_STAGGER;
+      strip.style.transition = "transform " + dur + "s cubic-bezier(0.15, 0.85, 0.25, 1)";
+      strip.style.transform = "translateY(" + targetY + "px)";
+      setTimeout(() => reel.classList.remove("spinning"), dur * 1000);
+    } else {
+      for (let r = 0; r < 3; r++) {
+        const s = document.createElement("div");
+        s.className = "slotSymbol";
+        s.textContent = slGrid[r][c];
+        s.dataset.row = r;
+        s.dataset.col = c;
+        strip.appendChild(s);
+      }
+      strip.style.transition = "none";
+      strip.style.transform = "translateY(0)";
+    }
+  }
+}
+
+function checkSlotWins() {
+  let totalMult = 0;
+  const winRows = [];
+  // Only the middle row (index 1) counts for wins – reduces exploitation and improves balance
+  const row = slGrid[1];
+  if (row[0] === row[1] && row[1] === row[2]) {
+    totalMult += SLOT_PAYOUTS[row[0]];
+    winRows.push(1);
+  } else if (row[0] === row[1] || row[1] === row[2] || row[0] === row[2]) {
+    totalMult += 0.5;
+    winRows.push(1);
+  }
+  return { totalMult, winRows };
+}
+
+function highlightWinningSymbols(winRows) {
+  for (let c = 0; c < 3; c++) {
+    const strip = $("slReel" + c);
+    const syms = strip.querySelectorAll(".slotSymbol");
+    syms.forEach(s => {
+      const row = parseInt(s.dataset.row);
+      if (!isNaN(row) && winRows.includes(row)) {
+        s.classList.add("winning");
+      }
+    });
+  }
+}
+
+function drawWinLines(winRows) {
+  const overlay = $("slWinOverlay");
+  overlay.innerHTML = "";
+  if (winRows.length === 0) return;
+  const overlayRect = overlay.getBoundingClientRect();
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "100%");
+  svg.setAttribute("height", "100%");
+  svg.style.position = "absolute";
+  svg.style.inset = "0";
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+  const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+  filter.setAttribute("id", "slotLineGlow");
+  const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+  blur.setAttribute("stdDeviation", "4");
+  blur.setAttribute("result", "glow");
+  const merge = document.createElementNS("http://www.w3.org/2000/svg", "feMerge");
+  const m1 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+  m1.setAttribute("in", "glow");
+  const m2 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+  m2.setAttribute("in", "SourceGraphic");
+  merge.appendChild(m1);
+  merge.appendChild(m2);
+  filter.appendChild(blur);
+  filter.appendChild(merge);
+  defs.appendChild(filter);
+  svg.appendChild(defs);
+  const colors = ["rgba(255,215,0,0.85)", "rgba(124,255,107,0.85)", "rgba(124,111,255,0.85)"];
+  winRows.forEach((row, idx) => {
+    const points = [];
+    for (let c = 0; c < 3; c++) {
+      const strip = $("slReel" + c);
+      const syms = strip.querySelectorAll(".slotSymbol");
+      for (const sym of syms) {
+        if (parseInt(sym.dataset.row) === row) {
+          const rect = sym.getBoundingClientRect();
+          points.push((rect.left + rect.width / 2 - overlayRect.left) + "," + (rect.top + rect.height / 2 - overlayRect.top));
+          break;
+        }
+      }
+    }
+    if (points.length >= 2) {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      line.setAttribute("points", points.join(" "));
+      line.setAttribute("fill", "none");
+      line.setAttribute("stroke", colors[idx % colors.length]);
+      line.setAttribute("stroke-width", "3");
+      line.setAttribute("stroke-linecap", "round");
+      line.setAttribute("filter", "url(#slotLineGlow)");
+      svg.appendChild(line);
+      let len = 1000;
+      try { if (line.getTotalLength) len = line.getTotalLength(); } catch(e) {}
+      line.style.strokeDasharray = len;
+      line.style.strokeDashoffset = len;
+      line.style.animation = "slotLineDraw 0.6s ease forwards, slotLinePulse 1.2s ease-in-out 0.6s infinite";
+    }
+  });
+  overlay.appendChild(svg);
+}
+
+function pushSlotRound(symbols, mult, won) {
+  slHistoryArr.unshift({ symbols, mult, won });
+  if (slHistoryArr.length > 15) slHistoryArr.pop();
+  const el = $("slHistory"); el.innerHTML = "";
+  slHistoryArr.forEach(h => {
+    const t = document.createElement("div");
+    t.className = "roundTag";
+    t.textContent = h.symbols + " " + h.mult.toFixed(2) + "×";
+    t.style.background = h.won ? "rgba(124,255,107,0.15)" : "rgba(255,107,107,0.12)";
+    t.style.color = h.won ? "var(--good)" : "var(--bad)";
+    el.appendChild(t);
+  });
+}
+
+async function runSlotRound() {
+  slSpinning = true;
+  $("slPlace").disabled = true;
+  $("slPhaseTag").innerHTML = '<span class="dot"></span> Spinning';
+  setSlStatus("Spinning…", "var(--accent2)");
+
+  const ss = serverSeed, cs = clientSeed, n = nonce;
+  const result = await computeSlots(ss, cs, n);
+  slGrid = result.grid;
+
+  renderSlotReels(true);
+  if (isTabActive("slots")) SND.click();
+
+  // last reel (index 2) finishes at SLOT_SPIN_TIME + 2*SLOT_REEL_STAGGER; add 200ms buffer
+  const spinWait = (SLOT_SPIN_TIME + 2 * SLOT_REEL_STAGGER) * 1000 + 200;
+  setTimeout(() => {
+    const { totalMult, winRows } = checkSlotWins();
+    highlightWinningSymbols(winRows);
+    drawWinLines(winRows);
+
+    const topRow = slGrid[1].join("");
+    if (slBetPlaced && slBetAmt > 0) {
+      sessionStats.rounds++;
+      if (totalMult > 0) {
+        const winAmt = Math.floor(slBetAmt * totalMult);
+        creditWin(winAmt, totalMult);
+        if (totalMult >= 1.5) {
+          setSlStatus("Big Win!", "var(--good)");
+          const bw = $("slBigWin");
+          if (bw) { $("slBigWinText").textContent = totalMult >= 5 ? "🏆 JACKPOT!" : "✨ BIG WIN!"; bw.classList.add("show"); setTimeout(() => bw.classList.remove("show"), 3000); }
+        } else {
+          setSlStatus("Won!", "var(--good)");
+        }
+        $("slResult").textContent = totalMult.toFixed(2) + "×";
+        $("slResult").style.color = "var(--good)";
+        const msg = $("slMsg"); msg.textContent = "🎉 Won " + winAmt.toLocaleString() + " 🪙 at " + totalMult.toFixed(2) + "×"; msg.className = "slotResultBanner win";
+        toast("Slots win: " + winAmt.toLocaleString() + " 🪙 (" + totalMult.toFixed(2) + "×)", "success");
+        if (isTabActive("slots")) { SND.cash(); haptic(30); }
+        pushSlotRound(topRow, totalMult, true);
+      } else {
+        recordLoss(slBetAmt);
+        setSlStatus("No win", "var(--bad)");
+        $("slResult").textContent = "0×";
+        $("slResult").style.color = "var(--bad)";
+        const msg = $("slMsg"); msg.textContent = "No matching symbols"; msg.className = "slotResultBanner loss";
+        toast("Slots: no win", "error");
+        if (isTabActive("slots")) { SND.bust(); haptic(60); }
+        pushSlotRound(topRow, 0, false);
+      }
+      revealSeed("slots");
+      slBetPlaced = false;
+      slBetAmt = 0;
+      $("slYourBet").textContent = "-";
+    } else {
+      // advance seed even without a bet so next round is different
+      serverSeed = randSeed(32);
+      nonce++;
+      refreshCommit();
+      pushSlotRound(topRow, totalMult, totalMult > 0);
+    }
+
+    slSpinning = false;
+    $("slPhaseTag").innerHTML = '<span class="dot"></span> Betting';
+    setSlStatus("Place your bet", "");
+    $("slPlace").disabled = false;
+    slCountdown = SLOT_ROUND_TIME;
+    if ($("slAutoBet").checked) placeSlotBet(true);
+  }, spinWait);
+}
+
+function updateSlotTimer() {
+  slCountdown -= 0.1;
+  if (slCountdown <= 0 && !slSpinning) {
+    runSlotRound();
+    slCountdown = SLOT_ROUND_TIME;
+  }
+  const pct = Math.max(0, (slCountdown / SLOT_ROUND_TIME) * 100);
+  $("slTimerBar").style.width = pct + "%";
+  if (!slSpinning) {
+    $("slCountdown").textContent = Math.max(0, Math.ceil(slCountdown));
+  } else {
+    $("slCountdown").textContent = "…";
+  }
+}
+
+function placeSlotBet(isAuto) {
+  if (slBetPlaced || slSpinning) {
+    if (!isAuto) toast("Bet already placed for this round!", "info");
+    return;
+  }
+  currentGame = "Slots";
+  slBetAmt = getBet("slBet");
+  if (!placeBet(slBetAmt)) return;
+  currentBetAmount = slBetAmt;
+  slBetPlaced = true;
+  $("slPlace").disabled = true;
+  $("slYourBet").textContent = slBetAmt.toLocaleString() + " 🪙";
+  setSlStatus("Bet placed!", "var(--accent2)");
+  $("slMsg").textContent = "Waiting for spin…";
+  $("slMsg").className = "slotResultBanner";
+  SND.click(); haptic(15);
+  if (!isAuto) toast("Bet placed: " + slBetAmt + " 🪙", "info");
+}
+$("slPlace").addEventListener("click", () => placeSlotBet(false));
+$("slAutoBet").addEventListener("change", () => {
+  if ($("slAutoBet").checked && !slSpinning && !slBetPlaced) placeSlotBet(true);
+});
+
+// ==================== LIVE BETS ====================
+const playerNames = [
+  "James", "Robert", "John", "Michael", "David", "William", "Richard", "Joseph", "Thomas", "Christopher",
+  "Charles", "Daniel", "Matthew", "Anthony", "Mark", "Donald", "Steven", "Andrew", "Paul", "Joshua",
+  "Kenneth", "Kevin", "Brian", "George", "Timothy", "Ronald", "Edward", "Jason", "Jeffrey", "Ryan",
+  "Jacob", "Gary", "Nicholas", "Eric", "Jonathan", "Stephen", "Larry", "Justin", "Scott", "Brandon",
+  "Benjamin", "Samuel", "Raymond", "Gregory", "Frank", "Alexander", "Patrick", "Jack", "Dennis", "Jerry",
+  "Mary", "Patricia", "Jennifer", "Linda", "Barbara", "Elizabeth", "Susan", "Jessica", "Sarah", "Karen",
+  "Lisa", "Nancy", "Betty", "Margaret", "Sandra", "Ashley", "Kimberly", "Emily", "Donna", "Michelle",
+  "Carol", "Amanda", "Dorothy", "Melissa", "Deborah", "Stephanie", "Rebecca", "Sharon", "Laura", "Cynthia",
+  "Amy", "Kathleen", "Angela", "Shirley", "Anna", "Brenda", "Pamela", "Emma", "Nicole", "Helen",
+  "Samantha", "Katherine", "Christine", "Debra", "Rachel", "Carolyn", "Janet", "Catherine", "Maria", "Heather"
+];
+
+const gameIcons = {
+  crash: "💥",
+  mines: "💣",
+  dice: "🎲",
+  plinko: "📍",
+  blackjack: "🃏",
+  slots: "🎰"
+};
+
+const gameNames = ["crash", "mines", "dice", "plinko", "blackjack", "slots"];
+let liveBetsHistory = [];
+
+function generateRandomBet() {
+  const baseName = playerNames[Math.floor(Math.random() * playerNames.length)];
+  // 40% chance no number, 30% chance 1-2 digits, 30% chance 3-4 digits
+  const rand = Math.random();
+  let player;
+  if (rand < 0.4) {
+    player = baseName; // No number
+  } else if (rand < 0.7) {
+    player = baseName + (Math.floor(Math.random() * 99) + 1); // 1-99
+  } else {
+    player = baseName + (Math.floor(Math.random() * 9000) + 1000); // 1000-9999
+  }
+  const game = gameNames[Math.floor(Math.random() * gameNames.length)];
+  const betAmount = [5, 10, 25, 50, 100, 250, 500][Math.floor(Math.random() * 7)];
+  const won = Math.random() > 0.48; // 52% win rate
+  const multiplier = won 
+    ? (1 + Math.random() * 4).toFixed(2) 
+    : (0.5 + Math.random() * 0.8).toFixed(2);
+  const payout = Math.floor(betAmount * parseFloat(multiplier));
+  
+  return { player, game, betAmount, won, multiplier, payout, timestamp: Date.now() };
+}
+
+function renderLiveBets() {
+  const container = $("liveBetsContainer");
+  if (!container) return;
+  
+  container.innerHTML = "";
+  liveBetsHistory.forEach(bet => {
+    const betEl = document.createElement("div");
+    betEl.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      gap: 12px;
+      flex-wrap: wrap;
+    `;
+    
+    const playerCol = document.createElement("div");
+    playerCol.style.cssText = "flex: 1; min-width: 120px;";
+    playerCol.innerHTML = `<div style="font-size:13px; font-weight:600; color:var(--text);">${bet.player}</div>
+      <div style="font-size:10px; color:var(--muted); margin-top:2px;">just now</div>`;
+    
+    const gameCol = document.createElement("div");
+    gameCol.style.cssText = "display:flex; align-items:center; gap:6px;";
+    gameCol.innerHTML = `<span style="font-size:16px;">${gameIcons[bet.game]}</span>
+      <span style="font-size:12px; color:var(--muted); text-transform:capitalize;">${bet.game}</span>`;
+    
+    const betCol = document.createElement("div");
+    betCol.style.cssText = "text-align:right;";
+    betCol.innerHTML = `<div style="font-size:11px; color:var(--muted);">Bet: ${bet.betAmount} 🪙</div>`;
+    
+    const resultCol = document.createElement("div");
+    resultCol.style.cssText = "text-align:right; min-width:100px;";
+    const resultColor = bet.won ? "var(--good)" : "var(--bad)";
+    const resultText = bet.won ? `Won ${bet.payout} 🪙` : `Lost ${bet.betAmount} 🪙`;
+    resultCol.innerHTML = `<div style="font-size:13px; font-weight:700; color:${resultColor};">${resultText}</div>
+      <div style="font-size:11px; color:var(--muted); margin-top:2px;">${bet.multiplier}× multiplier</div>`;
+    
+    betEl.appendChild(playerCol);
+    betEl.appendChild(gameCol);
+    betEl.appendChild(betCol);
+    betEl.appendChild(resultCol);
+    container.appendChild(betEl);
+  });
+}
+
+function addLiveBet() {
+  const bet = generateRandomBet();
+  liveBetsHistory.unshift(bet);
+  if (liveBetsHistory.length > 50) liveBetsHistory.pop();
+  renderLiveBets();
+}
+
+// Initialize with some bets
+for (let i = 0; i < 20; i++) {
+  liveBetsHistory.push(generateRandomBet());
+}
+renderLiveBets();
+
+// Add new bets periodically (every 2-5 seconds)
+setInterval(() => {
+  if (Math.random() > 0.3) { // 70% chance to add a bet
+    addLiveBet();
+  }
+}, 2000 + Math.random() * 3000);
+
+// ==================== WAITLIST ====================
+const wlForm = $("wlForm");
+const wlMsg = $("wlMsg");
+wlForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const email = $("email").value.trim().toLowerCase();
+  if (!email) return;
+  const key = "donutwin_waitlist";
+  const arr = JSON.parse(localStorage.getItem(key) || "[]");
+  if (!arr.includes(email)) arr.push(email);
+  localStorage.setItem(key, JSON.stringify(arr));
+  wlMsg.textContent = "✅ Added! We'll email you at launch.";
+  wlForm.reset();
+  setTimeout(() => wlMsg.textContent = "", 3500);
+  haptic(18);
+  SND.click();
+  toast("You're on the waitlist!", "success");
+});
+
+// ==================== COUNTRY ROYALE ====================
+const ROYALE_COUNTRIES = [
+  { name:"Nigeria", flag:"🇳🇬", continent:"Africa", code:"NG" },
+  { name:"Egypt", flag:"🇪🇬", continent:"Africa", code:"EG" },
+  { name:"South Africa", flag:"🇿🇦", continent:"Africa", code:"ZA" },
+  { name:"Kenya", flag:"🇰🇪", continent:"Africa", code:"KE" },
+  { name:"Morocco", flag:"🇲🇦", continent:"Africa", code:"MA" },
+  { name:"Japan", flag:"🇯🇵", continent:"Asia", code:"JP" },
+  { name:"India", flag:"🇮🇳", continent:"Asia", code:"IN" },
+  { name:"South Korea", flag:"🇰🇷", continent:"Asia", code:"KR" },
+  { name:"Thailand", flag:"🇹🇭", continent:"Asia", code:"TH" },
+  { name:"China", flag:"🇨🇳", continent:"Asia", code:"CN" },
+  { name:"France", flag:"🇫🇷", continent:"Europe", code:"FR" },
+  { name:"Germany", flag:"🇩🇪", continent:"Europe", code:"DE" },
+  { name:"UK", flag:"🇬🇧", continent:"Europe", code:"GB" },
+  { name:"Spain", flag:"🇪🇸", continent:"Europe", code:"ES" },
+  { name:"Italy", flag:"🇮🇹", continent:"Europe", code:"IT" },
+  { name:"USA", flag:"🇺🇸", continent:"North America", code:"US" },
+  { name:"Canada", flag:"🇨🇦", continent:"North America", code:"CA" },
+  { name:"Mexico", flag:"🇲🇽", continent:"North America", code:"MX" },
+  { name:"Cuba", flag:"🇨🇺", continent:"North America", code:"CU" },
+  { name:"Jamaica", flag:"🇯🇲", continent:"North America", code:"JM" },
+  { name:"Brazil", flag:"🇧🇷", continent:"South America", code:"BR" },
+  { name:"Argentina", flag:"🇦🇷", continent:"South America", code:"AR" },
+  { name:"Colombia", flag:"🇨🇴", continent:"South America", code:"CO" },
+  { name:"Chile", flag:"🇨🇱", continent:"South America", code:"CL" },
+  { name:"Peru", flag:"🇵🇪", continent:"South America", code:"PE" },
+  { name:"Australia", flag:"🇦🇺", continent:"Oceania", code:"AU" },
+  { name:"New Zealand", flag:"🇳🇿", continent:"Oceania", code:"NZ" },
+  { name:"Fiji", flag:"🇫🇯", continent:"Oceania", code:"FJ" },
+  { name:"Papua New Guinea", flag:"🇵🇬", continent:"Oceania", code:"PG" },
+  { name:"Samoa", flag:"🇼🇸", continent:"Oceania", code:"WS" }
+];
+const CONTINENTS = ["Africa","Asia","Europe","North America","South America","Oceania"];
+const CONT_COLORS = { Africa:"#f4a460", Asia:"#ff6b6b", Europe:"#7c6fff", "North America":"#6ee7ff", "South America":"#7cff6b", Oceania:"#ffda6b" };
+const R_CX = 300, R_CY = 300, R_ARENA = 250, R_BALL = 30;
+const R_GAP_FRACTION = 10;
+const R_GAP_ARC = Math.PI * 2 / R_GAP_FRACTION;
+const R_OMEGA = 0.15, R_GRAVITY = 0, R_DAMPING = 0.999, R_RESTITUTION = 1.05;
+const R_WALL_BOUNCE_IMPULSE = 30;
+const R_MAX_SPEED = 400;
+
+let royaleState = null;
+let royaleBets = [];
+let royaleAnimId = null;
+let royaleOddsHistory = [];
+let royaleParticles = [];
+let royaleElimFlashes = [];
+let royaleWallHits = [];
+let royaleShake = { x: 0, y: 0, intensity: 0 };
+
+// Flag image cache — preloads country flags from CDN for crisp canvas rendering
+const _flagImgCache = {};
+function getFlagImg(code) {
+  if (!code) return null;
+  const k = code.toLowerCase();
+  if (!_flagImgCache[k]) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = "https://flagcdn.com/w40/" + k + ".png";
+    _flagImgCache[k] = img;
+  }
+  return _flagImgCache[k];
+}
+function drawBallLabel(ctx, b, size) {
+  const img = getFlagImg(b.code);
+  if (img && img.complete && img.naturalWidth > 0) {
+    const iw = size * 1.8, ih = size * 1.2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, size - 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, b.x - iw / 2, b.y - ih / 2, iw, ih);
+    ctx.restore();
+  } else {
+    // Premium styled 2-letter code
+    ctx.save();
+    ctx.font = "bold " + Math.round(size * 0.85) + "px 'Segoe UI', system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(0,0,0,0.8)";
+    ctx.shadowBlur = 4;
+    ctx.fillText(b.code, b.x, b.y + 1);
+    ctx.restore();
+  }
+}
+
+function switchRoyaleTab(tab) {
+  document.querySelectorAll('.royaleSubTab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.royaleSubPanel').forEach(p => p.classList.remove('active'));
+  if (tab === 'market') {
+    document.querySelectorAll('.royaleSubTab')[1].classList.add('active');
+    $('royaleMarketPanel').classList.add('active');
+  } else {
+    document.querySelectorAll('.royaleSubTab')[0].classList.add('active');
+    $('royaleGamePanel').classList.add('active');
+  }
+}
+
+function renderMiniRoyaleToCanvas(canvas) {
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width) return;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const scale = rect.width / 600;
+  ctx.scale(dpr * scale, dpr * scale);
+  ctx.clearRect(0, 0, 600, 600);
+  const st = royaleState;
+  if (!st) return;
+
+  ctx.save();
+
+  // background
+  const bgGrad = ctx.createRadialGradient(R_CX, R_CY, 0, R_CX, R_CY, R_ARENA + 30);
+  bgGrad.addColorStop(0, "rgba(19,22,42,0.3)");
+  bgGrad.addColorStop(0.7, "rgba(13,15,26,0.1)");
+  bgGrad.addColorStop(1, "rgba(10,12,20,0)");
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 600, 600);
+
+  let gapCenter = st.gapAngle % (Math.PI * 2);
+  const gapStart = gapCenter - R_GAP_ARC / 2;
+  const gapEnd = gapCenter + R_GAP_ARC / 2;
+
+  // arena wall
+  ctx.strokeStyle = "rgba(124,111,255,0.35)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+  ctx.stroke();
+
+  // gap indicator
+  ctx.strokeStyle = "rgba(255,107,107,0.3)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.arc(R_CX, R_CY, R_ARENA, gapStart, gapEnd);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // draw balls (simplified)
+  st.balls.forEach(b => {
+    if (!b.alive) return;
+    const col = CONT_COLORS[b.continent] || "#fff";
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, R_BALL, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(20,22,40,0.85)";
+    ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    drawBallLabel(ctx, b, R_BALL);
+  });
+
+  ctx.restore();
+}
+
+function renderMiniRoyale() {
+  renderMiniRoyaleToCanvas($("miniRoyaleCanvas"));
+  renderMiniRoyaleToCanvas($("marketsMiniCanvas"));
+}
+
+function updateCashoutCoeff() {
+  const el = $("cashoutCoeffDisplay");
+  const elMarket = $("royaleMarketCashoutDisplay");
+  if (!el) return;
+  const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+  if (contBets.length === 0 || !royaleState || !royaleState.running) {
+    el.textContent = "—";
+    if (elMarket) elMarket.textContent = "—";
+    $("rebetWrap").style.display = "none";
+    return;
+  }
+  $("rebetWrap").style.display = "";
+  const parts = contBets.map(b => {
+    const alive = royaleState.balls.filter(x => x.alive);
+    const total = alive.length || 1;
+    const cnt = alive.filter(x => x.continent === b.target).length;
+    const curOdds = cnt > 0 ? (1 / (cnt / total)) : 0;
+    const coeff = curOdds > 0 ? (b.buyOdds / curOdds) : 0;
+    return coeff.toFixed(2) + "×";
+  });
+  const label = "Live: " + parts.join(", ");
+  el.textContent = label;
+  if (elMarket) elMarket.textContent = label;
+}
+
+function rebetRoyale() {
+  if (!royaleState || !royaleState.running) { toast("No active round", "error"); return; }
+  const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+  if (contBets.length === 0) { toast("No active bets to re-bet", "error"); return; }
+  // Cashout current bets first
+  const remaining = royaleState.balls.filter(b => b.alive).length;
+  if (remaining <= 3) { toast("Bets locked in Top 3!", "error"); return; }
+  const newTarget = $("rebetContinent").value;
+  const aliveNow = royaleState.balls.filter(b => b.alive);
+  if (aliveNow.filter(b => b.continent === newTarget).length === 0) { toast(newTarget + " is already eliminated!", "error"); return; }
+  let totalCashout = 0;
+  contBets.forEach(b => {
+    const alive = royaleState.balls.filter(x => x.alive);
+    const total = alive.length || 1;
+    const cnt = alive.filter(x => x.continent === b.target).length;
+    const curOdds = cnt > 0 ? (1 / (cnt / total)) : 0;
+    if (curOdds <= 0.01) return;
+    const cashAmount = Math.min(Math.floor(b.amount * b.buyOdds / curOdds), b.amount * 100);
+    totalCashout += cashAmount;
+    b.active = false;
+  });
+  if (totalCashout === 0) { toast("Nothing to cashout", "error"); return; }
+  // Place new bet on selected continent
+  const alive = royaleState.balls.filter(b => b.alive);
+  const total = alive.length || 1;
+  const contCount = alive.filter(b => b.continent === newTarget).length;
+  const prob = contCount / total;
+  const payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length;
+  const bet = { id: Date.now(), type: "continent", target: newTarget, label: newTarget + " (Continent)", amount: totalCashout, payout, buyOdds: payout, active: true };
+  royaleBets.push(bet);
+  renderRoyaleActiveBets();
+  updateCashoutCoeff();
+  toast("Re-bet " + totalCashout + "🪙 on " + newTarget, "info");
+  SND.click();
+}
+
+function initRoyale() {
+  const balls = ROYALE_COUNTRIES.map((c, i) => {
+    const angle = (i / ROYALE_COUNTRIES.length) * Math.PI * 2;
+    const r = 50 + Math.random() * 120;
+    return { ...c, x: R_CX + Math.cos(angle) * r, y: R_CY + Math.sin(angle) * r, vx: (Math.random() - 0.5) * 200, vy: (Math.random() - 0.5) * 200, alive: true, elimOrder: 0, trail: [] };
+  });
+  // stop any ongoing celebration from previous round
+  if (royaleState) royaleState.celebrating = false;
+  royaleState = { balls, gapAngle: 0, running: false, elapsed: 0, lastTime: 0, elimCount: 0, winner: null, settled: false, winnerAnim: 0, celebrating: false };
+  royaleOddsHistory = [];
+  royaleParticles = [];
+  royaleElimFlashes = [];
+  royaleWallHits = [];
+  royaleShake = { x: 0, y: 0, intensity: 0 };
+  // preload all flag images
+  ROYALE_COUNTRIES.forEach(c => getFlagImg(c.code));
+  updateRoyaleOdds();
+  renderRoyale();
+  updateRoyaleHUD();
+}
+
+function populateRoyaleCountrySelect() {
+  const sel = $("royaleCountry");
+  sel.innerHTML = "";
+  ROYALE_COUNTRIES.forEach(c => {
+    const o = document.createElement("option");
+    o.value = c.code;
+    o.textContent = c.flag + " " + c.name;
+    sel.appendChild(o);
+  });
+}
+
+function updateRoyaleSelectors() {
+  const t = $("royaleBetType").value;
+  $("royaleCountrySelect").style.display = t === "continent" ? "none" : "";
+  $("royaleContinentSelect").style.display = t === "continent" ? "" : "none";
+  const isRunning = royaleState && royaleState.running;
+  const sel = $("royaleBetType");
+  for (let i = 0; i < sel.options.length; i++) {
+    const opt = sel.options[i];
+    if (isRunning && (opt.value === "winner" || opt.value === "top3")) {
+      opt.disabled = true; opt.textContent = opt.textContent.replace(/ 🔒$/, "") + " 🔒";
+    } else if (!isRunning && opt.value === "continent") {
+      opt.disabled = true; opt.textContent = opt.textContent.replace(/ 🔒$/, "") + " 🔒";
+    } else {
+      opt.disabled = false; opt.textContent = opt.textContent.replace(/ 🔒$/, "");
+    }
+  }
+  updateContinentSelectors();
+}
+
+function updateContinentSelectors() {
+  const alive = royaleState ? royaleState.balls.filter(b => b.alive) : ROYALE_COUNTRIES;
+  const aliveSet = new Set(alive.map(b => b.continent));
+  ["royaleContinent", "mktContinent", "rebetContinent"].forEach(id => {
+    const sel = $(id);
+    if (!sel) return;
+    for (let i = 0; i < sel.options.length; i++) {
+      const opt = sel.options[i];
+      opt.disabled = !!(royaleState && royaleState.running && !aliveSet.has(opt.value));
+    }
+    if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
+      const firstEnabled = Array.from(sel.options).find(o => !o.disabled);
+      if (firstEnabled) sel.value = firstEnabled.value;
+    }
+  });
+}
+
+function spawnElimParticles(x, y, color) {
+  for (let i = 0; i < 28; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 80 + Math.random() * 200;
+    const type = Math.random() > 0.6 ? 'spark' : 'dot';
+    royaleParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, color, size: type === 'spark' ? 1 + Math.random() * 2 : 3 + Math.random() * 5, type });
+  }
+  royaleShake.intensity = 8;
+}
+
+function spawnWallSparks(x, y, color) {
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.atan2(y - R_CY, x - R_CX) + Math.PI + (Math.random() - 0.5) * 1.5;
+    const speed = 40 + Math.random() * 80;
+    royaleParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.6, color, size: 1 + Math.random() * 2, type: 'spark' });
+  }
+  royaleWallHits.push({ x, y, life: 1, color });
+}
+
+function spawnCollisionSparks(x, y) {
+  for (let i = 0; i < 4; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 30 + Math.random() * 60;
+    royaleParticles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 0.4, color: '#fff', size: 1 + Math.random(), type: 'spark' });
+  }
+}
+
+function startRoyale() {
+  if (royaleState && royaleState.running) { toast("Round already running!", "error"); return; }
+  initRoyale();
+  royaleState.running = true;
+  royaleState.lastTime = performance.now();
+  document.querySelectorAll(".btnRoyaleStart").forEach(b => b.disabled = true);
+  updateRoyaleSelectors();
+  SND.click();
+  royaleLoop();
+}
+
+function royaleLoop() {
+  if (!royaleState || !royaleState.running) return;
+  const now = performance.now();
+  const dt = Math.min((now - royaleState.lastTime) / 1000, 0.05);
+  royaleState.lastTime = now;
+  royaleState.elapsed += dt;
+  updateRoyale(dt);
+  renderRoyale();
+  royaleAnimId = requestAnimationFrame(royaleLoop);
+}
+
+function updateRoyale(dt) {
+  const st = royaleState;
+  st.gapAngle += R_OMEGA * dt;
+  const alive = st.balls.filter(b => b.alive);
+  // Random chaotic gusts to keep balls bouncing wildly
+  alive.forEach(b => {
+    b.vy += R_GRAVITY * dt;
+    // random impulse every frame
+    b.vx += (Math.random() - 0.5) * 120 * dt;
+    b.vy += (Math.random() - 0.5) * 120 * dt;
+    // periodic strong gust
+    if (Math.random() < 0.02) {
+      const gustAngle = Math.random() * Math.PI * 2;
+      b.vx += Math.cos(gustAngle) * 40;
+      b.vy += Math.sin(gustAngle) * 40;
+    }
+  });
+  alive.forEach(b => {
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    b.vx *= R_DAMPING; b.vy *= R_DAMPING;
+    // cap velocity to prevent unbounded growth
+    const spd = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    if (spd > R_MAX_SPEED) { const sc = R_MAX_SPEED / spd; b.vx *= sc; b.vy *= sc; }
+    b.trail.push({ x: b.x, y: b.y });
+    if (b.trail.length > 16) b.trail.shift();
+  });
+  // ball-ball collisions
+  for (let i = 0; i < alive.length; i++) {
+    for (let j = i + 1; j < alive.length; j++) {
+      const a = alive[i], bObj = alive[j];
+      const dx = bObj.x - a.x, dy = bObj.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minD = R_BALL * 2;
+      if (dist < minD && dist > 0.01) {
+        const nx = dx / dist, ny = dy / dist;
+        const overlap = minD - dist;
+        a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
+        bObj.x += nx * overlap * 0.5; bObj.y += ny * overlap * 0.5;
+        const dvx = a.vx - bObj.vx, dvy = a.vy - bObj.vy;
+        const dvn = dvx * nx + dvy * ny;
+        if (dvn > 0) {
+          a.vx -= dvn * nx * R_RESTITUTION; a.vy -= dvn * ny * R_RESTITUTION;
+          bObj.vx += dvn * nx * R_RESTITUTION; bObj.vy += dvn * ny * R_RESTITUTION;
+          // collision sparks
+          const cx = (a.x + bObj.x) / 2, cy = (a.y + bObj.y) / 2;
+          if (dvn > 20) { spawnCollisionSparks(cx, cy); SND.collision(); }
+        }
+      }
+    }
+  }
+  // wall collision + gap elimination
+  alive.forEach(b => {
+    const dx = b.x - R_CX, dy = b.y - R_CY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist + R_BALL > R_ARENA) {
+      let angle = Math.atan2(dy, dx);
+      if (angle < 0) angle += Math.PI * 2;
+      let gapCenter = st.gapAngle % (Math.PI * 2);
+      if (gapCenter < 0) gapCenter += Math.PI * 2;
+      let diff = angle - gapCenter;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      if (Math.abs(diff) < R_GAP_ARC / 2) {
+        if (dist > R_ARENA + R_BALL) {
+          b.alive = false;
+          st.elimCount++;
+          b.elimOrder = st.elimCount;
+          spawnElimParticles(b.x, b.y, CONT_COLORS[b.continent] || "#fff");
+          royaleElimFlashes.push({ x: b.x, y: b.y, life: 1, flag: b.flag });
+          updateRoyaleOdds();
+          updateRoyaleHUD();
+          renderRoyaleActiveBets();
+          SND.eliminate();
+        }
+      } else {
+        const pen = dist + R_BALL - R_ARENA;
+        const nx = dx / dist, ny = dy / dist;
+        b.x -= nx * pen; b.y -= ny * pen;
+        const dvn = b.vx * nx + b.vy * ny;
+        if (dvn > 0) {
+          b.vx -= 2 * dvn * nx * R_RESTITUTION; b.vy -= 2 * dvn * ny * R_RESTITUTION;
+          const bounceImpulse = R_WALL_BOUNCE_IMPULSE;
+          b.vx -= nx * bounceImpulse; b.vy -= ny * bounceImpulse;
+          // wall hit sparks
+          const hitX = R_CX + nx * R_ARENA, hitY = R_CY + ny * R_ARENA;
+          spawnWallSparks(hitX, hitY, CONT_COLORS[b.continent] || "#fff");
+          SND.wallBounce();
+        }
+      }
+    }
+  });
+  // update particles
+  royaleParticles.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 2.5; p.vx *= 0.94; p.vy *= 0.94; });
+  royaleParticles = royaleParticles.filter(p => p.life > 0);
+  royaleElimFlashes.forEach(f => { f.life -= dt * 1.5; });
+  royaleElimFlashes = royaleElimFlashes.filter(f => f.life > 0);
+  royaleWallHits.forEach(h => { h.life -= dt * 4; });
+  royaleWallHits = royaleWallHits.filter(h => h.life > 0);
+  // screen shake decay
+  royaleShake.intensity *= 0.88;
+  if (royaleShake.intensity > 0.2) {
+    royaleShake.x = (Math.random() - 0.5) * royaleShake.intensity;
+    royaleShake.y = (Math.random() - 0.5) * royaleShake.intensity;
+  } else { royaleShake.x = 0; royaleShake.y = 0; royaleShake.intensity = 0; }
+  // winner animation
+  if (st.winner) st.winnerAnim = Math.min(1, (st.winnerAnim || 0) + dt * 2);
+  // check winner
+  const remaining = st.balls.filter(b => b.alive);
+  if (remaining.length <= 1 && st.elimCount > 0) {
+    st.running = false;
+    if (remaining.length === 1) {
+      st.winner = remaining[0];
+    } else {
+      // 0 remaining: last eliminated ball is the winner
+      const lastElim = st.balls.filter(b => !b.alive).sort((a, b) => b.elimOrder - a.elimOrder)[0];
+      if (lastElim) {
+        lastElim.alive = true;
+        lastElim.x = R_CX; lastElim.y = R_CY;
+        lastElim.vx = 0; lastElim.vy = 0;
+        st.elimCount--;
+        lastElim.elimOrder = 0;
+        st.winner = lastElim;
+      } else {
+        st.winner = null;
+      }
+    }
+    st.winnerAnim = 0;
+    st.celebrating = true;
+    SND.roundEnd();
+    if (royaleAnimId) cancelAnimationFrame(royaleAnimId);
+    document.querySelectorAll(".btnRoyaleStart").forEach(b => b.disabled = false);
+    // run winner celebration loop with bounce — runs until new round starts
+    const celebSt = st;
+    function celebLoop() {
+      if (royaleState !== celebSt || !celebSt.celebrating) return;
+      celebSt.winnerAnim = Math.min(1, celebSt.winnerAnim + 0.02);
+      // bounce winner inside closed arena
+      if (celebSt.winner && celebSt.winner.alive) {
+        const cdt = 0.016;
+        celebSt.winner.vx += (Math.random() - 0.5) * 80 * cdt;
+        celebSt.winner.vy += (Math.random() - 0.5) * 80 * cdt;
+        celebSt.winner.x += celebSt.winner.vx * cdt;
+        celebSt.winner.y += celebSt.winner.vy * cdt;
+        celebSt.winner.vx *= 0.99; celebSt.winner.vy *= 0.99;
+        const dx = celebSt.winner.x - R_CX, dy = celebSt.winner.y - R_CY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist + R_BALL > R_ARENA) {
+          const nx = dx / dist, ny = dy / dist;
+          const pen = dist + R_BALL - R_ARENA;
+          celebSt.winner.x -= nx * pen; celebSt.winner.y -= ny * pen;
+          const dvn = celebSt.winner.vx * nx + celebSt.winner.vy * ny;
+          if (dvn > 0) { celebSt.winner.vx -= 2 * dvn * nx * R_RESTITUTION; celebSt.winner.vy -= 2 * dvn * ny * R_RESTITUTION; celebSt.winner.vx -= nx * R_WALL_BOUNCE_IMPULSE; celebSt.winner.vy -= ny * R_WALL_BOUNCE_IMPULSE; }
+        }
+      }
+      renderRoyale();
+      requestAnimationFrame(celebLoop);
+    }
+    celebLoop();
+    updateRoyaleHUD();
+    settleRoyaleBets();
+    if (st.winner) toast(st.winner.flag + " " + st.winner.name + " wins! 🏆", "success");
+  }
+  // update timer
+  const timerEl = $("royaleTimer");
+  if (timerEl) timerEl.textContent = st.elapsed.toFixed(1) + "s";
+}
+
+function renderRoyale() {
+  const canvas = $("royaleCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr * rect.width / 600, dpr * rect.height / 600);
+  const w = 600, h = 600;
+  ctx.clearRect(0, 0, w, h);
+  const st = royaleState;
+  if (!st) return;
+
+  // screen shake
+  ctx.save();
+  ctx.translate(royaleShake.x, royaleShake.y);
+
+  // background radial gradient
+  const bgGrad = ctx.createRadialGradient(R_CX, R_CY, 0, R_CX, R_CY, R_ARENA + 30);
+  bgGrad.addColorStop(0, "rgba(19,22,42,0.4)");
+  bgGrad.addColorStop(0.7, "rgba(13,15,26,0.15)");
+  bgGrad.addColorStop(1, "rgba(10,12,20,0)");
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // subtle grid
+  ctx.strokeStyle = "rgba(124,111,255,0.025)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < w; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); }
+  for (let i = 0; i < h; i += 30) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke(); }
+
+  let gapCenter = st.gapAngle % (Math.PI * 2);
+  const gapStart = gapCenter - R_GAP_ARC / 2;
+  const gapEnd = gapCenter + R_GAP_ARC / 2;
+  const now = Date.now();
+  const isCelebrating = st.celebrating && st.winner && !st.running;
+
+  // arena outer glow (pulsing)
+  ctx.save();
+  const glowPulse = 0.15 + Math.sin(now / 500) * 0.1;
+  ctx.shadowColor = isCelebrating ? "rgba(124,255,107," + glowPulse + ")" : "rgba(124,111,255," + glowPulse + ")";
+  ctx.shadowBlur = 40;
+  ctx.strokeStyle = isCelebrating ? "rgba(124,255,107,0.06)" : "rgba(124,111,255,0.06)";
+  ctx.lineWidth = 16;
+  ctx.beginPath();
+  if (isCelebrating) {
+    ctx.arc(R_CX, R_CY, R_ARENA, 0, Math.PI * 2);
+  } else {
+    ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // arena wall (gradient stroke)
+  ctx.save();
+  const wallGrad = ctx.createLinearGradient(R_CX - R_ARENA, R_CY, R_CX + R_ARENA, R_CY);
+  if (isCelebrating) {
+    wallGrad.addColorStop(0, "rgba(124,255,107,0.5)");
+    wallGrad.addColorStop(0.5, "rgba(255,215,0,0.45)");
+    wallGrad.addColorStop(1, "rgba(124,255,107,0.5)");
+  } else {
+    wallGrad.addColorStop(0, "rgba(124,111,255,0.5)");
+    wallGrad.addColorStop(0.5, "rgba(110,231,255,0.45)");
+    wallGrad.addColorStop(1, "rgba(124,111,255,0.5)");
+  }
+  ctx.strokeStyle = wallGrad;
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  if (isCelebrating) {
+    ctx.arc(R_CX, R_CY, R_ARENA, 0, Math.PI * 2);
+  } else {
+    ctx.arc(R_CX, R_CY, R_ARENA, gapEnd, gapStart + Math.PI * 2);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // inner ring accent
+  ctx.strokeStyle = "rgba(124,111,255,0.05)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(R_CX, R_CY, R_ARENA - 8, 0, Math.PI * 2);
+  ctx.stroke();
+
+  if (!isCelebrating) {
+  // gap danger zone glow (pulsing)
+  ctx.save();
+  const gapMidX = R_CX + Math.cos(gapCenter) * R_ARENA;
+  const gapMidY = R_CY + Math.sin(gapCenter) * R_ARENA;
+  const dangerPulse = 0.2 + Math.sin(now / 200) * 0.1;
+  const dangerGlow = ctx.createRadialGradient(gapMidX, gapMidY, 0, gapMidX, gapMidY, 80);
+  dangerGlow.addColorStop(0, "rgba(255,107,107," + dangerPulse + ")");
+  dangerGlow.addColorStop(1, "rgba(255,107,107,0)");
+  ctx.fillStyle = dangerGlow;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+
+  // gap indicator arcs
+  ctx.strokeStyle = "rgba(255,107,107,0.45)";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.arc(R_CX, R_CY, R_ARENA, gapStart, gapEnd);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // gap chevrons (pulsing)
+  for (let side = -1; side <= 1; side += 2) {
+    const edgeAngle = gapCenter + side * R_GAP_ARC / 2;
+    const ex = R_CX + Math.cos(edgeAngle) * R_ARENA;
+    const ey = R_CY + Math.sin(edgeAngle) * R_ARENA;
+    const chevR = 5 + Math.sin(now / 150) * 2;
+    ctx.beginPath();
+    ctx.arc(ex, ey, chevR, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,107,107,0.7)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(ex, ey, chevR + 5, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,107,107,0.2)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  } // end if (!isCelebrating)
+
+  // wall hit flashes
+  royaleWallHits.forEach(hit => {
+    const r = 15 + (1 - hit.life) * 25;
+    ctx.beginPath();
+    ctx.arc(hit.x, hit.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hit.color;
+    ctx.globalAlpha = hit.life * 0.35;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  // particles (enhanced with spark streaks)
+  royaleParticles.forEach(p => {
+    ctx.globalAlpha = p.life * 0.8;
+    if (p.type === 'spark') {
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      const len = Math.min(speed * 0.03, 8);
+      const angle = Math.atan2(p.vy, p.vx);
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = p.size * p.life;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - Math.cos(angle) * len, p.y - Math.sin(angle) * len);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  // elim flashes (dramatic rising flag + shockwave)
+  royaleElimFlashes.forEach(f => {
+    const ringR = (1 - f.life) * 60;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, ringR, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,107,107," + (f.life * 0.4) + ")";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = f.life * 0.7;
+    ctx.font = (24 + (1 - f.life) * 24) + "px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(f.flag, f.x, f.y - (1 - f.life) * 50);
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillStyle = "rgba(255,107,107," + f.life + ")";
+    ctx.fillText("\u2715", f.x + 16, f.y - (1 - f.life) * 50 + 12);
+    ctx.globalAlpha = 1;
+  });
+
+  // ball trails (speed-based intensity)
+  st.balls.forEach(b => {
+    if (!b.alive || b.trail.length < 2) return;
+    const col = CONT_COLORS[b.continent] || "#fff";
+    const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    const trailIntensity = Math.min(speed / 150, 1);
+    for (let i = 0; i < b.trail.length - 1; i++) {
+      const t = i / b.trail.length;
+      const alpha = t * 0.25 * trailIntensity;
+      const size = R_BALL * t * 0.5;
+      ctx.beginPath();
+      ctx.arc(b.trail[i].x, b.trail[i].y, size, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  // draw balls
+  st.balls.forEach(b => {
+    if (!b.alive) return;
+    const col = CONT_COLORS[b.continent] || "#fff";
+    const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    const glowIntensity = Math.min(speed / 100, 1);
+
+    // speed-based outer glow
+    ctx.save();
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 14 + glowIntensity * 16;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, R_BALL, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(20,22,40,0.85)";
+    ctx.fill();
+    ctx.restore();
+
+    // ball border (brighter when fast)
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, R_BALL, 0, Math.PI * 2);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.5 + glowIntensity;
+    ctx.stroke();
+
+    // flag image or styled country code
+    drawBallLabel(ctx, b, R_BALL);
+
+    // highlight
+    ctx.beginPath();
+    ctx.arc(b.x - 5, b.y - 7, R_BALL * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.fill();
+  });
+
+  // remaining count overlay (top)
+  const alive = st.balls.filter(b => b.alive).length;
+  if (st.running || st.winner) {
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(234,240,255,0.5)";
+    ctx.fillText(alive + " / " + ROYALE_COUNTRIES.length + " remaining", R_CX, 22);
+  }
+
+  // winner celebration (dramatic)
+  if (st.winner && st.winnerAnim > 0) {
+    const t = st.winnerAnim;
+
+    // full screen darken
+    ctx.fillStyle = "rgba(0,0,0," + (0.3 * t) + ")";
+    ctx.fillRect(0, 0, w, h);
+
+    // spotlight
+    const spotGrad = ctx.createRadialGradient(st.winner.x, st.winner.y, 0, st.winner.x, st.winner.y, 120 * t);
+    spotGrad.addColorStop(0, "rgba(124,255,107," + (0.25 * t) + ")");
+    spotGrad.addColorStop(0.5, "rgba(255,215,0," + (0.08 * t) + ")");
+    spotGrad.addColorStop(1, "rgba(124,255,107,0)");
+    ctx.fillStyle = spotGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // multiple pulsing rings
+    for (let r = 0; r < 4; r++) {
+      const ringR = R_BALL + 10 + r * 14 + Math.sin(now / (180 + r * 50)) * 4;
+      ctx.beginPath();
+      ctx.arc(st.winner.x, st.winner.y, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(124,255,107," + (0.6 * t / (r + 1)) + ")";
+      ctx.lineWidth = 3 - r * 0.5;
+      ctx.stroke();
+    }
+
+    // golden sparkles around winner
+    for (let s = 0; s < 8; s++) {
+      const sparkAngle = (now / 400 + s * 0.785) % (Math.PI * 2);
+      const sparkR = 50 + Math.sin(now / 300 + s) * 10;
+      const sx = st.winner.x + Math.cos(sparkAngle) * sparkR;
+      const sy = st.winner.y + Math.sin(sparkAngle) * sparkR;
+      const sparkSize = 2 + Math.sin(now / 200 + s * 2) * 1;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sparkSize * t, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,215,0," + (0.8 * t) + ")";
+      ctx.fill();
+    }
+
+    // winner banner
+    ctx.globalAlpha = t;
+    const bannerY = 52;
+    const bannerW = 280;
+    const bannerH = 50;
+    const bx = R_CX - bannerW / 2;
+    ctx.save();
+    ctx.shadowColor = "rgba(124,255,107,0.5)";
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = "rgba(13,15,26,0.92)";
+    ctx.beginPath();
+    ctx.roundRect(bx, bannerY - bannerH / 2, bannerW, bannerH, 14);
+    ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = "rgba(124,255,107,0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(bx, bannerY - bannerH / 2, bannerW, bannerH, 14);
+    ctx.stroke();
+
+    ctx.font = "bold 20px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#7cff6b";
+    ctx.fillText("\uD83C\uDFC6 " + st.winner.flag + " " + st.winner.name.toUpperCase(), R_CX, bannerY);
+
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.restore(); // end screen shake
+
+  drawOddsGraph();
+  drawMarketsChart();
+  renderMiniRoyale();
+  updateCashoutCoeff();
+  updateMarketsPanel();
+}
+
+function updateRoyaleHUD() {
+  if (!royaleState) return;
+  const alive = royaleState.balls.filter(b => b.alive);
+  $("royaleRemaining").textContent = alive.length;
+  const elimCountEl = $("royaleElimCount");
+  if (elimCountEl) elimCountEl.textContent = royaleState.elimCount;
+  const el = $("royaleElimList");
+  const elim = royaleState.balls.filter(b => !b.alive).sort((a, b) => a.elimOrder - b.elimOrder);
+  el.innerHTML = elim.map(b => '<span title="' + b.name + ' (#' + b.elimOrder + ')">' + b.flag + '</span>').join("");
+}
+
+function updateRoyaleOdds() {
+  if (!royaleState) return;
+  const alive = royaleState.balls.filter(b => b.alive);
+  const total = alive.length || 1;
+  const odds = {};
+  CONTINENTS.forEach(c => { odds[c] = alive.filter(b => b.continent === c).length / total; });
+  royaleOddsHistory.push({ ...odds });
+  updateContinentSelectors();
+  const barsEl = $("royaleOddsBars");
+  if (barsEl) {
+    barsEl.innerHTML = CONTINENTS.map(c => {
+      const pct = Math.round(odds[c] * 100);
+      const col = CONT_COLORS[c];
+      const isElim = pct === 0;
+      return '<div class="oddBar" style="opacity:' + (isElim ? '0.3' : '1') + '"><span class="barLabel" style="color:' + col + '">' + c + '</span><div class="barTrack"><div class="barFill" style="width:' + pct + '%;background:linear-gradient(90deg,' + col + ',' + col + 'cc)"></div></div><span class="barPct" style="color:' + (pct > 0 ? col : 'var(--muted)') + '">' + pct + '%</span></div>';
+    }).join("");
+  }
+}
+
+function drawOddsGraph() {
+  const canvas = $("oddsGraph");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const logicalW = 580, logicalH = 320;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr * rect.width / logicalW, dpr * rect.height / logicalH);
+  const w = logicalW, h = logicalH;
+  ctx.clearRect(0, 0, w, h);
+
+  // background
+  ctx.fillStyle = "rgba(10,12,24,0.8)";
+  ctx.fillRect(0, 0, w, h);
+
+  // grid lines
+  ctx.strokeStyle = "rgba(124,111,255,0.06)";
+  ctx.lineWidth = 1;
+  for (let p = 0; p <= 100; p += 25) {
+    const y = h - (p / 100) * (h - 30) - 15;
+    ctx.beginPath();
+    ctx.moveTo(40, y);
+    ctx.lineTo(w - 10, y);
+    ctx.stroke();
+    ctx.font = "9px sans-serif";
+    ctx.fillStyle = "rgba(234,240,255,0.25)";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(p + "%", 36, y);
+  }
+
+  const hist = royaleOddsHistory;
+  if (hist.length < 2) {
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "rgba(234,240,255,0.2)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Odds graph updates when round starts", w / 2, h / 2);
+    return;
+  }
+
+  const plotL = 42, plotR = w - 10, plotT = 15, plotB = h - 15;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+  const step = plotW / Math.max(hist.length - 1, 1);
+
+  CONTINENTS.forEach(cont => {
+    const col = CONT_COLORS[cont];
+
+    // line only (no filled area)
+    ctx.beginPath();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    hist.forEach((snap, i) => {
+      const x = plotL + i * step;
+      const y = plotB - (snap[cont] || 0) * plotH;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // end dot
+    const lastSnap = hist[hist.length - 1];
+    const lastVal = lastSnap[cont] || 0;
+    if (lastVal > 0) {
+      const ex = plotL + (hist.length - 1) * step;
+      const ey = plotB - lastVal * plotH;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 3, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.fill();
+      // glow dot
+      ctx.beginPath();
+      ctx.arc(ex, ey, 6, 0, Math.PI * 2);
+      ctx.fillStyle = col.slice(0, 7) + "30";
+      ctx.fill();
+    }
+  });
+
+  // x-axis label
+  ctx.font = "9px sans-serif";
+  ctx.fillStyle = "rgba(234,240,255,0.2)";
+  ctx.textAlign = "center";
+  ctx.fillText("Eliminations →", w / 2, h - 3);
+}
+
+function placeRoyaleBet() {
+  currentGame = "Country Royale";
+  const betType = $("royaleBetType").value;
+  const isRunning = royaleState && royaleState.running;
+  if (isRunning && (betType === "winner" || betType === "top3")) {
+    toast("Winner/Top3 bets locked after round starts!", "error"); return;
+  }
+  if (!isRunning && betType === "continent") {
+    toast("Market bets only available during a round!", "error"); return;
+  }
+  let target, label, payout;
+  if (betType === "winner") {
+    target = $("royaleCountry").value;
+    const c = ROYALE_COUNTRIES.find(x => x.code === target);
+    label = c ? c.flag + " " + c.name + " (Winner)" : target;
+    payout = 25;
+  } else if (betType === "top3") {
+    target = $("royaleCountry").value;
+    const c = ROYALE_COUNTRIES.find(x => x.code === target);
+    label = c ? c.flag + " " + c.name + " (Top 3)" : target;
+    payout = 8;
+  } else {
+    target = $("royaleContinent").value;
+    label = target + " (Continent)";
+    const alive = royaleState ? royaleState.balls.filter(b => b.alive) : ROYALE_COUNTRIES;
+    const total = alive.length || 1;
+    const contCount = alive.filter(b => b.continent === target).length;
+    if (contCount === 0) { toast(target + " is already eliminated!", "error"); return; }
+    const prob = contCount / total;
+    payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length;
+  }
+  const amount = getBet("rBet");
+  if (!placeBet(amount)) return;
+  SND.click();
+  const bet = { id: Date.now(), type: betType, target, label, amount, payout, buyOdds: payout, active: true };
+  royaleBets.push(bet);
+  renderRoyaleActiveBets();
+  toast("Bet placed: " + amount + "🪙 on " + label, "info");
+}
+
+function renderRoyaleActiveBets() {
+  const el = $("royaleActiveBets");
+  if (!el) return;
+  el.innerHTML = royaleBets.filter(b => b.active).map(b => {
+    let curOdds = b.payout;
+    if (b.type === "continent" && royaleState) {
+      const alive = royaleState.balls.filter(x => x.alive);
+      const total = alive.length || 1;
+      const cnt = alive.filter(x => x.continent === b.target).length;
+      curOdds = cnt > 0 ? parseFloat((1 / (cnt / total)).toFixed(2)) : 0;
+    }
+    const cashVal = curOdds > 0 ? Math.floor(b.amount * b.buyOdds / curOdds) : 0;
+    const pnl = cashVal - b.amount;
+    const pnlCol = pnl >= 0 ? "var(--good)" : "var(--bad)";
+    return '<div class="activeRoyaleBet"><span class="betInfo">' + b.amount + '🪙 ' + b.label + '</span><span class="betOdds">' + curOdds.toFixed(1) + '× <span style="color:' + pnlCol + ';font-size:11px">(' + (pnl >= 0 ? "+" : "") + pnl + ')</span></span></div>';
+  }).join("");
+}
+
+function cashoutRoyaleBet() {
+  if (!royaleState || !royaleState.running) { toast("No active round", "error"); return; }
+  const remaining = royaleState.balls.filter(b => b.alive).length;
+  if (remaining <= 3) { toast("Bets locked in Top 3!", "error"); return; }
+  const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+  if (contBets.length === 0) { toast("No continent bets to cashout", "error"); return; }
+  contBets.forEach(b => {
+    const alive = royaleState.balls.filter(x => x.alive);
+    const total = alive.length || 1;
+    const cnt = alive.filter(x => x.continent === b.target).length;
+    const curOdds = cnt > 0 ? (1 / (cnt / total)) : 0;
+    if (curOdds <= 0.01) { toast(b.target + " eliminated, no cashout", "error"); return; }
+    const cashAmount = Math.min(Math.floor(b.amount * b.buyOdds / curOdds), b.amount * 100);
+    creditWin(cashAmount, parseFloat((cashAmount / b.amount).toFixed(2)));
+    b.active = false;
+    toast("Cashed out " + cashAmount + "🪙 from " + b.label, "success");
+    SND.win();
+  });
+  renderRoyaleActiveBets();
+}
+
+function settleRoyaleBets() {
+  if (!royaleState || royaleState.settled) return;
+  royaleState.settled = true;
+  const winner = royaleState.winner;
+  const top3codes = [];
+  if (winner) top3codes.push(winner.code);
+  const lastElims = royaleState.balls.filter(b => !b.alive).sort((a, b) => b.elimOrder - a.elimOrder).slice(0, 2);
+  lastElims.forEach(e => top3codes.push(e.code));
+  royaleBets.forEach(b => {
+    if (!b.active) return;
+    b.active = false;
+    let won = false;
+    if (b.type === "winner" && winner && b.target === winner.code) {
+      const winAmt = Math.floor(b.amount * b.payout);
+      creditWin(winAmt, b.payout);
+      toast("Winner bet pays " + winAmt + "🪙! 🎉", "success");
+      SND.win(); won = true;
+    } else if (b.type === "top3" && top3codes.includes(b.target)) {
+      const winAmt = Math.floor(b.amount * b.payout);
+      creditWin(winAmt, b.payout);
+      toast("Top 3 bet pays " + winAmt + "🪙! 🎉", "success");
+      SND.win(); won = true;
+    } else if (b.type === "continent" && winner && winner.continent === b.target) {
+      const winAmt = Math.floor(b.amount * b.payout);
+      creditWin(winAmt, b.payout);
+      toast("Continent bet pays " + winAmt + "🪙! 🎉", "success");
+      SND.win(); won = true;
+    }
+    if (!won) recordLoss(b.amount);
+  });
+  renderRoyaleActiveBets();
+}
+
+// ==================== MARKETS ====================
+function placeMarketBet() {
+  currentGame = "Country Royale";
+  if (!royaleState || !royaleState.running) { toast("Market bets only available during a round!", "error"); return; }
+  const amount = getBet("mktBet");
+  const target = $("mktContinent").value;
+  const alive = royaleState.balls.filter(b => b.alive);
+  const total = alive.length || 1;
+  const contCount = alive.filter(b => b.continent === target).length;
+  if (contCount === 0) { toast(target + " is already eliminated!", "error"); return; }
+  if (!placeBet(amount)) return;
+  SND.click();
+  const prob = contCount / total;
+  const payout = prob > 0 ? Math.max(1.1, parseFloat((1 / prob).toFixed(2))) : ROYALE_COUNTRIES.length;
+  const label = target + " (Continent)";
+  const bet = { id: Date.now(), type: "continent", target, label, amount, payout, buyOdds: payout, active: true };
+  royaleBets.push(bet);
+  renderRoyaleActiveBets();
+  updateMarketsPanel();
+  toast("Bet placed: " + amount + "🪙 on " + label, "info");
+}
+
+function updateMarketsPanel() {
+  const barsEl = $("marketsOddsBars");
+  if (!barsEl) return;
+  if (!royaleState) {
+    barsEl.innerHTML = '<p class="mini">Start a Country Royale round to see live odds.</p>';
+    return;
+  }
+  const alive = royaleState.balls.filter(b => b.alive);
+  const total = alive.length || 1;
+  updateContinentSelectors();
+  barsEl.innerHTML = CONTINENTS.map(c => {
+    const cnt = alive.filter(b => b.continent === c).length;
+    const pct = Math.round((cnt / total) * 100);
+    const col = CONT_COLORS[c];
+    const isElim = pct === 0;
+    return '<div class="oddBar" style="opacity:' + (isElim ? '0.3' : '1') + '"><span class="barLabel" style="color:' + col + '">' + c + '</span><div class="barTrack"><div class="barFill" style="width:' + pct + '%;background:linear-gradient(90deg,' + col + ',' + col + 'cc)"></div></div><span class="barPct" style="color:' + (pct > 0 ? col : 'var(--muted)') + '">' + pct + '%</span></div>';
+  }).join("");
+  // update active bets display
+  const abEl = $("marketsActiveBets");
+  if (abEl) {
+    abEl.innerHTML = royaleBets.filter(b => b.active && b.type === "continent").map(b => {
+      let curOdds = b.payout;
+      if (royaleState) {
+        const a2 = royaleState.balls.filter(x => x.alive);
+        const t2 = a2.length || 1;
+        const c2 = a2.filter(x => x.continent === b.target).length;
+        curOdds = c2 > 0 ? parseFloat((1 / (c2 / t2)).toFixed(2)) : 0;
+      }
+      const cashVal = curOdds > 0 ? Math.floor(b.amount * b.buyOdds / curOdds) : 0;
+      const pnl = cashVal - b.amount;
+      const pnlCol = pnl >= 0 ? "var(--good)" : "var(--bad)";
+      return '<div class="activeRoyaleBet"><span class="betInfo">' + b.amount + '🪙 ' + b.label + '</span><span class="betOdds">' + curOdds.toFixed(1) + '× <span style="color:' + pnlCol + ';font-size:11px">(' + (pnl >= 0 ? "+" : "") + pnl + ')</span></span></div>';
+    }).join("");
+  }
+  // update markets cashout display
+  const mktCashEl = $("mktCashoutDisplay");
+  if (mktCashEl) {
+    const contBets = royaleBets.filter(b => b.active && b.type === "continent");
+    if (contBets.length === 0 || !royaleState.running) { mktCashEl.textContent = "—"; return; }
+    const parts = contBets.map(b => {
+      const a3 = royaleState.balls.filter(x => x.alive);
+      const t3 = a3.length || 1;
+      const c3 = a3.filter(x => x.continent === b.target).length;
+      const curOdds = c3 > 0 ? (1 / (c3 / t3)) : 0;
+      const coeff = curOdds > 0 ? (b.buyOdds / curOdds) : 0;
+      return coeff.toFixed(2) + "×";
+    });
+    mktCashEl.textContent = "Live: " + parts.join(", ");
+  }
+}
+
+function drawMarketsChart() {
+  const canvas = $("marketsChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const logicalW = 600, logicalH = 300;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr * rect.width / logicalW, dpr * rect.height / logicalH);
+  ctx.clearRect(0, 0, logicalW, logicalH);
+  ctx.fillStyle = "rgba(10,12,24,0.8)";
+  ctx.fillRect(0, 0, logicalW, logicalH);
+  const hist = royaleOddsHistory;
+  if (hist.length < 2) {
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "rgba(234,240,255,0.2)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Odds chart updates when round starts", logicalW / 2, logicalH / 2);
+    return;
+  }
+  const plotL = 42, plotR = logicalW - 10, plotT = 15, plotB = logicalH - 15;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+  const step = plotW / Math.max(hist.length - 1, 1);
+  CONTINENTS.forEach(cont => {
+    const col = CONT_COLORS[cont];
+    ctx.beginPath();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    hist.forEach((snap, i) => {
+      const x = plotL + i * step;
+      const y = plotB - (snap[cont] || 0) * plotH;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    const lastSnap = hist[hist.length - 1];
+    const lastVal = lastSnap[cont] || 0;
+    if (lastVal > 0) {
+      const ex = plotL + (hist.length - 1) * step;
+      const ey = plotB - lastVal * plotH;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 3, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.fill();
+    }
+  });
+}
+
+// ==================== INIT ====================
+(async function init() {
+  // initial data
+  for (let i = 0; i < 4; i++) fakeMineWin();
+  pushCrashRound(1.62); pushCrashRound(2.44); pushCrashRound(3.18); pushCrashRound(6.40);
+
+  // init games
+  renderMinesGrid();
+  updateMinesHUD();
+  updateDiceUI();
+  renderPlinkoBuckets();
+  drawPlinkoBoard();
+  bjDeck = createDeck();
+
+  // country royale init
+  populateRoyaleCountrySelect();
+  initRoyale();
+  updateContinentSelectors();
+
+  // slots init
+  renderSlotReels(false);
+  slTimer = setInterval(updateSlotTimer, 100);
+
+  // crash init
+  await refreshCommit();
+  setOverlay("1.00×", "Waiting for round…");
+  setCStatus("Ready", "");
+  drawCrash();
+  updateBalDisplay();
+})();
+
+// ==================== PUBLIC CHAT ====================
+var chatOpen = false;
+var chatLastTs = 0;
+var chatPollTimer = null;
+var chatUsername = null;
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  var box = document.getElementById("chatBox");
+  var btn = document.getElementById("chatToggle");
+  if (chatOpen) {
+    box.classList.add("open");
+    btn.style.display = "none";
+    btn.classList.remove("unread");
+    document.getElementById("chatInput").focus();
+    if (!chatPollTimer) startChatPolling();
+    scrollChat();
+  } else {
+    box.classList.remove("open");
+    btn.style.display = "flex";
+  }
+}
+
+function startChatPolling() {
+  pollChat();
+  chatPollTimer = setInterval(pollChat, 3000);
+}
+
+function pollChat() {
+  fetch("/api/chat/messages?since=" + chatLastTs)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.messages && data.messages.length) {
+        var container = document.getElementById("chatMessages");
+        data.messages.forEach(function(m) {
+          appendChatMsg(m, container);
+          chatLastTs = Math.max(chatLastTs, m.timestamp);
+        });
+        scrollChat();
+        if (!chatOpen) {
+          document.getElementById("chatToggle").classList.add("unread");
+        }
+        document.getElementById("chatOnline").textContent = (data.onlineCount || 0) + " online";
+      }
+    })
+    .catch(function() {});
+}
+
+function appendChatMsg(m, container) {
+  var div = document.createElement("div");
+  div.className = "chat-msg";
+  var time = new Date(m.timestamp);
+  var ts = time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0");
+  div.innerHTML =
+    '<span class="chat-time">' + ts + "</span>" +
+    '<span class="chat-user">' + escapeHtml(m.username) + ":</span> " +
+    escapeHtml(m.text);
+  container.appendChild(div);
+}
+
+function escapeHtml(s) {
+  var d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function scrollChat() {
+  var el = document.getElementById("chatMessages");
+  el.scrollTop = el.scrollHeight;
+}
+
+function sendChat() {
+  var input = document.getElementById("chatInput");
+  var text = input.value.trim();
+  if (!text) return;
+
+  fetch("/api/chat/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: text }),
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        var container = document.getElementById("chatMessages");
+        var div = document.createElement("div");
+        div.className = "chat-msg system";
+        div.textContent = data.error;
+        container.appendChild(div);
+        scrollChat();
+        return;
+      }
+      input.value = "";
+      pollChat();
+    })
+    .catch(function() {});
+}
+
+// Start polling when page loads (even when chat is closed, so badge can appear)
+startChatPolling();
