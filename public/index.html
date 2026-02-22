@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<!-- DonutWin – Casino  -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DonutWin – Casino </title>
+  <meta name="description" content="DonutWin casino – play Crash, Mines, Dice, Plinko & Blackjack with provably-fair verification.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- login gate -->
+  <div id="loginGate">
+    <form class="login-box" onsubmit="attemptLogin(); return false;">
+      <input type="password" id="gatePwd" placeholder="Enter password" autocomplete="off" autofocus>
+      <button type="submit" id="gateBtn">Enter</button>
+      <div class="login-err" id="gateErr"></div>
+    </form>
+  </div>
+
+  <canvas id="p"></canvas>
+  <!-- floating donuts -->
+  <div class="donuts" aria-hidden="true">
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+    <div class="donut"><div class="ring"></div><div class="frost"></div><div class="spr"></div><div class="shine"></div></div>
+  </div>
+
+  <div class="wrap">
+    <!-- nav -->
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <div class="ring"></div>
+          <div class="frost"></div>
+          <div class="spr"></div>
+          <div class="shine"></div>
+          <div class="center"></div>
+        </div>
+        <h1>Donut<span>Win</span></h1>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <label class="toggle" title="Sound effects">
+          <input id="sndMaster" type="checkbox" checked>
+          <span>🔊</span>
+        </label>
+        <input id="sndVolume" type="range" min="0" max="100" value="50" title="Volume" style="width:70px; accent-color:var(--accent); cursor:pointer;">
+        <a class="btn primary" href="#waitlist-section">Join waitlist</a>
+      </div>
+    </div>
+
+    <!-- hero -->
+    <div class="hero section">
+      <div class="card pad">
+        <span class="tag"><span class="dot"></span> true experience • fast gameplay • verifiable</span>
+        <h2 class="mobileHeading" style="font-size:22px; margin:12px 0 0;">All Your Favourite Games<br>in One Place</h2>
+        <h2 class="desktopHeading" style="font-size:22px; margin:12px 0 0;">DonutWin<br>Online Gambling Since 2026</h2>
+        <p class="sub">Six provably-fair casino games with real-time verification. Built for adrenaline, designed for trust.</p>
+        <div class="ctaRow">
+          <span class="mini"><span class="pulse"><i></i></span> building in public</span>
+        </div>
+        <p class="mini">Tip: enable sound!</p>
+        <div class="statGrid mobileOnly">
+          <div class="stat"><div class="k">Games available</div><div class="v">6</div></div>
+          <div class="stat"><div class="k">Mode</div><div class="v">Virtual 🪙</div></div>
+          <div class="stat"><div class="k">Engagement</div><div class="v">High</div></div>
+          <div class="stat"><div class="k">Fairness</div><div class="v">Verifiable</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="statGrid">
+          <div class="stat"><div class="k">Games available</div><div class="v">6</div></div>
+          <div class="stat"><div class="k">Mode</div><div class="v">Virtual 🪙</div></div>
+          <div class="stat"><div class="k">Engagement</div><div class="v">High</div></div>
+          <div class="stat"><div class="k">Fairness</div><div class="v">Verifiable</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- balance bar -->
+    <div class="balanceBar">
+      <span>🪙</span>
+      <span style="font-size:12px; color:var(--muted); font-weight:600;">Balance:</span>
+      <span class="balAmt" id="balDisplay">1,000</span>
+      <div class="sessionStats">
+        <span class="sessionStat">Rounds: <b id="ssRounds">0</b></span>
+        <span class="sessionStat">Streak: <b id="ssStreak">0</b></span>
+        <span class="sessionStat">Best: <b id="ssBest">-</b></span>
+        <span class="sessionStat">P&L: <b id="ssPnl">0</b></span>
+        <span class="sessionStat">Wagered: <b id="ssWagered">0</b></span>
+      </div>
+      <button type="button" class="balResetBtn" id="balReset" title="Reset balance to 1,000">↻ Reset</button>
+    </div>
+
+    <!-- tab bar -->
+    <div class="tabBar">
+      <button type="button" class="tabBtn active" data-tab="crash">💥 Crash</button>
+      <button type="button" class="tabBtn" data-tab="mines">💣 Mines</button>
+      <button type="button" class="tabBtn" data-tab="dice">🎲 Dice</button>
+      <button type="button" class="tabBtn" data-tab="plinko">📍 Plinko</button>
+      <button type="button" class="tabBtn" data-tab="blackjack">🃏 Blackjack</button>
+      <button type="button" class="tabBtn" data-tab="slots">🎰 Slots</button>
+      <button type="button" class="tabBtn" data-tab="royale">🌍 Country Royale</button>
+      <button type="button" class="tabBtn" data-tab="markets">📊 Markets</button>
+      <button type="button" class="tabBtn" data-tab="livebets">📊 Live Bets</button>
+      <button type="button" class="tabBtn hiddenTab" data-tab="history">📜 Bet History</button>
+    </div>
+
+    <!-- ==================== CRASH PANEL ==================== -->
+    <div id="tab-crash" class="gamePanel active">
+      <div class="card pad crashWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px"><span class="dot"></span> live</span>
+            <div class="betRow">
+              <input class="input" id="cBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('cBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('cBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('cBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('cBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('cBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('cBet',2)">×2</button>
+            </div>
+          </div>
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">Auto cashout</span>
+            <input class="input" id="cAuto" type="number" min="1.01" step="0.01" value="2.00" style="max-width:100px">
+            <button type="button" class="btn primary" id="cStart">Start round</button>
+            <button type="button" class="btn" id="cCash" disabled>Cash out</button>
+            <label class="toggle" title="Auto-bet"><input id="cAutoBet" type="checkbox"><span>Auto</span></label>
+          </div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Multiplier</div><div class="v" id="cMult">1.00×</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="cStatus">Ready</div></div>
+            <div class="stat3"><div class="k">Potential win</div><div class="v" id="cPotential">-</div></div>
+          </div>
+          <div class="crashCanvasWrap">
+            <canvas id="crashCanvas"></canvas>
+            <div class="crashOverlay" id="cOverlay"><b id="cOverlayMult">1.00×</b><small id="cOverlayHint">Waiting for round…</small></div>
+          </div>
+          <p class="mini" id="cMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Recent rounds</h2><span class="tag" style="font-size:11px"><span class="dot"></span> updating</span></div>
+          <div id="cRounds" style="margin-top:10px"></div>
+          <div class="mini" style="margin-top:12px">Hold <b>Space</b> to cash out during a round.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MINES PANEL ==================== -->
+    <div id="tab-mines" class="gamePanel">
+      <div class="card pad minesWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">Mines</span>
+            <div class="betRow">
+              <input class="input" id="mBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('mBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('mBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('mBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('mBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('mBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('mBet',2)">×2</button>
+            </div>
+            </div>
+          <div class="crashTop">
+            <input class="input" id="mMineCount" type="number" min="1" max="24" value="5" style="max-width:80px" title="Number of mines">
+            <button type="button" class="btn primary" id="mStart">Start</button>
+            <button type="button" class="btn" id="mCash" disabled>Cash out</button>
+            <button type="button" class="btn" id="mReset">Reset</button>
+          </div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Safe picks</div><div class="v" id="mSafe">0</div></div>
+            <div class="stat3"><div class="k">Multiplier</div><div class="v" id="mMult">1.00×</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="mStatus">Ready</div></div>
+          </div>
+          <div id="mGrid" class="mGrid" aria-label="Mines grid"></div>
+          <p class="mini" id="mMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Recent wins</h2><span class="tag" style="font-size:11px"><span class="dot"></span> updating</span></div>
+          <div id="mWins" style="margin-top:10px"></div>
+          <div class="mini" style="margin-top:12px">Click tiles → cash out anytime.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DICE PANEL ==================== -->
+    <div id="tab-dice" class="gamePanel">
+      <div class="card pad diceWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">🎲 Dice</span>
+            <div class="betRow">
+              <input class="input" id="dBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('dBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('dBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('dBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('dBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('dBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('dBet',2)">×2</button>
+            </div>
+            </div>
+          <div class="crashTop">
+            <span class="mini" id="dModeLabel">Roll over</span>
+            <input class="input" id="dTarget" type="number" min="1" max="98" value="50" style="max-width:80px">
+            <span class="mini">Win chance: <b id="dChance">50%</b></span>
+            <span class="mini">Multiplier: <b id="dPayoutLabel">1.98×</b></span>
+            <button type="button" class="btn primary" id="dRoll">Roll</button>
+            <label class="autoCheck" style="cursor:pointer;">
+              <input type="checkbox" id="dAutoBet">
+              <span>Auto</span>
+            </label>
+            <label class="autoCheck" style="cursor:pointer; margin-left:10px;">
+              <input type="checkbox" id="dSwapMode">
+              <span>Swap</span>
+            </label>
+          </div>
+          <div class="diceBar" id="dBar" style="--target:50%"><div class="marker" id="dMarker" style="left:50%"></div></div>
+          <div class="diceSliderWrap">
+            <span class="mini">1</span>
+            <input type="range" id="dTargetSlider" min="1" max="98" value="50">
+            <span class="mini">98</span>
+          </div>
+          <div class="diceResult" id="dResult">-</div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Last roll</div><div class="v" id="dLast">-</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="dStatus">Ready</div></div>
+            <div class="stat3"><div class="k">Streak</div><div class="v" id="dStreak">0</div></div>
+          </div>
+          <p class="mini" id="dMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Roll history</h2></div>
+          <div id="dHistory" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PLINKO PANEL ==================== -->
+    <div id="tab-plinko" class="gamePanel">
+      <div class="card pad plinkoWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">📍 Plinko</span>
+            <div class="betRow">
+              <input class="input" id="plBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('plBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('plBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('plBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('plBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('plBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('plBet',2)">×2</button>
+            </div>
+            </div>
+          <div class="crashTop">
+            <span class="mini">Risk</span>
+            <select class="input" id="plRisk"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+            <span class="mini">Rows</span>
+            <select class="input" id="plRows"><option value="8">8</option><option value="12" selected>12</option><option value="16">16</option></select>
+            <button type="button" class="btn primary" id="plDrop">Drop ball</button>
+          </div>
+          <div class="crashTop">
+            <span class="mini">Auto-bet</span>
+            <input class="input" id="plAutoBalls" type="number" min="1" max="500" value="10" style="max-width:70px" placeholder="Balls">
+            <span class="mini">balls</span>
+            <button type="button" class="btn" id="plAutoStart" style="background:var(--accent2)">▶ Start</button>
+            <button type="button" class="btn" id="plAutoStop" style="display:none; background:var(--bad)">⏹ Stop</button>
+          </div>
+          <div class="plinkoCanvasWrap"><canvas id="plinkoCanvas"></canvas></div>
+          <div class="plinkoBuckets" id="plBuckets"></div>
+          <div class="stats3">
+            <div class="stat3"><div class="k">Last mult</div><div class="v" id="plLastMult">-</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="plStatus">Ready</div></div>
+            <div class="stat3"><div class="k">Balls dropped</div><div class="v" id="plDropped">0</div></div>
+          </div>
+          <p class="mini" id="plMsg" style="margin-top:10px"></p>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Drop history</h2></div>
+          <div id="plHistory" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== BLACKJACK PANEL ==================== -->
+    <div id="tab-blackjack" class="gamePanel">
+      <div class="card pad bjWrap">
+        <div class="crashPanel">
+          <div class="crashTop">
+            <span class="tag" style="font-size:11px">🃏 Blackjack</span>
+            <div class="betRow">
+              <input class="input" id="bjBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('bjBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('bjBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('bjBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('bjBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('bjBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('bjBet',2)">×2</button>
+            </div>
+            </div>
+          <div class="bjTable">
+            <div class="bjLabel">Dealer <span id="bjDealerScore"></span></div>
+            <div class="bjHand" id="bjDealerHand"></div>
+            <div class="bjMsg" id="bjMsg"></div>
+            <div class="bjLabel">You <span id="bjPlayerScore"></span></div>
+            <div class="bjHand" id="bjPlayerHand"></div>
+            <div class="bjActions">
+              <button type="button" class="btn primary" id="bjDeal">Deal</button>
+              <button type="button" class="btn" id="bjHit" disabled>Hit</button>
+              <button type="button" class="btn" id="bjStand" disabled>Stand</button>
+              <button type="button" class="btn" id="bjDouble" disabled>Double</button>
+            </div>
+          </div>
+          <div class="stats3" style="margin-top:12px">
+            <div class="stat3"><div class="k">Wins</div><div class="v" id="bjWins">0</div></div>
+            <div class="stat3"><div class="k">Losses</div><div class="v" id="bjLosses">0</div></div>
+            <div class="stat3"><div class="k">Pushes</div><div class="v" id="bjPushes">0</div></div>
+          </div>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Hand history</h2></div>
+          <div id="bjHistory" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SLOTS PANEL ==================== -->
+    <div id="tab-slots" class="gamePanel">
+      <div class="card pad slotsWrap">
+        <div class="crashPanel">
+          <!-- Slot header -->
+          <div class="slotHeader">
+            <div class="slotTitle">
+              <span class="slotIcon">🎰</span>
+              <h3>Premium Slots</h3>
+            </div>
+            <span class="tag" id="slPhaseTag" style="font-size:11px"><span class="dot"></span> Waiting</span>
+          </div>
+          <!-- Bet controls row -->
+          <div class="crashTop">
+            <div class="betRow">
+              <input class="input" id="slBet" type="number" min="1" value="10" style="max-width:100px" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('slBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('slBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('slBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('slBet','max')">MAX</button>
+              <button type="button" class="qBet" onclick="multiplyBet('slBet',0.5)">÷2</button>
+              <button type="button" class="qBet" onclick="multiplyBet('slBet',2)">×2</button>
+            </div>
+          </div>
+          <!-- Timer and place bet -->
+          <div class="crashTop">
+            <button type="button" class="btn primary" id="slPlace">Place bet</button>
+            <label class="autoCheck" style="cursor:pointer;">
+              <input type="checkbox" id="slAutoBet">
+              <span>Auto</span>
+            </label>
+            <span class="mini" id="slTimerText">Next round in <b id="slCountdown">--</b>s</span>
+          </div>
+          <!-- Stats -->
+          <div class="stats3">
+            <div class="stat3"><div class="k">Your bet</div><div class="v" id="slYourBet">-</div></div>
+            <div class="stat3"><div class="k">Result</div><div class="v" id="slResult">-</div></div>
+            <div class="stat3"><div class="k">Status</div><div class="v" id="slStatus">Waiting</div></div>
+          </div>
+          <!-- Slot machine -->
+          <div class="slotMachine" id="slotMachine">
+            <div class="slotMachineInner">
+              <div class="slotReels" id="slotReels">
+                <div class="slotReel"><div class="slotStrip" id="slReel0"></div></div>
+                <div class="slotReel"><div class="slotStrip" id="slReel1"></div></div>
+                <div class="slotReel"><div class="slotStrip" id="slReel2"></div></div>
+              </div>
+              <div class="slotWinOverlay" id="slWinOverlay"></div>
+              <div class="slotBigWin" id="slBigWin"><div class="bigWinText" id="slBigWinText"></div></div>
+            </div>
+          </div>
+          <!-- Timer bar -->
+          <div class="slotTimerWrap">
+            <div class="slotTimerBar" id="slTimerBar"></div>
+          </div>
+          <!-- Paytable -->
+          <div class="slotPaytable">
+            <div class="slotPayRow"><span>🍩🍩🍩</span><span>10×</span></div>
+            <div class="slotPayRow"><span>💎💎💎</span><span>5×</span></div>
+            <div class="slotPayRow"><span>🍒🍒🍒</span><span>3×</span></div>
+            <div class="slotPayRow"><span>🔔🔔🔔</span><span>2×</span></div>
+            <div class="slotPayRow"><span>⭐⭐⭐</span><span>1.5×</span></div>
+            <div class="slotPayRow"><span>Any 2 match</span><span>0.5×</span></div>
+          </div>
+          <div class="slotResultBanner" id="slMsg"></div>
+        </div>
+        <div class="crashSide">
+          <div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; font-size:14px; color:rgba(234,240,255,.78);">Recent spins</h2><span class="tag" style="font-size:11px"><span class="dot"></span> live</span></div>
+          <div id="slHistory" style="margin-top:10px"></div>
+          <div class="mini" style="margin-top:12px">Bets lock when reels spin.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== COUNTRY ROYALE PANEL ==================== -->
+    <div id="tab-royale" class="gamePanel">
+      <div class="card pad royaleWrap">
+        <div class="royaleCanvasWrap">
+          <canvas id="royaleCanvas" width="600" height="600" class="royaleCanvas"></canvas>
+          <div class="royaleStatusBar">
+            <div class="rStat">🏆 Remaining <b id="royaleRemaining">0</b></div>
+            <div class="rStat">💀 Eliminated <b id="royaleElimCount">0</b></div>
+            <div class="rStat" id="royaleTimerStat">⏱ <b id="royaleTimer">0.0s</b></div>
+          </div>
+          <div class="elimPanel">
+            <div class="elimHeader">
+              <strong>Elimination Order</strong>
+              <span class="tag" style="font-size:10px"><span class="dot"></span> live</span>
+            </div>
+            <div class="elimFlags" id="royaleElimList"></div>
+          </div>
+        </div>
+        <div class="royaleControls">
+          <div class="royaleTitle">
+            <h2>🌍 Country Royale</h2>
+            <span class="rLive">LIVE</span>
+          </div>
+          <p class="royaleDesc">30 country balls battle inside a rotating arena. The gap eliminates — last one standing wins. Bet on the outcome, trade continent odds like a pro.</p>
+          <div class="royaleDivider"></div>
+          <div class="royaleSubTabs">
+            <button type="button" class="royaleSubTab active" onclick="switchRoyaleTab('game')">🌍 Country Royale</button>
+            <button type="button" class="royaleSubTab" onclick="switchRoyaleTab('market')">📊 Market</button>
+          </div>
+          <!-- Game sub-tab -->
+          <div id="royaleGamePanel" class="royaleSubPanel active">
+            <span class="sectionLabel">💰 Bet Amount</span>
+            <div class="betRow">
+              <input class="input" id="rBet" type="number" min="1" value="10" placeholder="Bet">
+              <button type="button" class="qBet" onclick="setQBet('rBet',10)">10</button>
+              <button type="button" class="qBet" onclick="setQBet('rBet',50)">50</button>
+              <button type="button" class="qBet" onclick="setQBet('rBet',100)">100</button>
+              <button type="button" class="qBet" onclick="setQBet('rBet','max')">Max</button>
+            </div>
+            <div class="betRow">
+              <button type="button" class="qBet" onclick="multiplyBet('rBet',0.5)">½</button>
+              <button type="button" class="qBet" onclick="multiplyBet('rBet',2)">2×</button>
+            </div>
+            <span class="sectionLabel">🎯 Bet Type</span>
+            <select id="royaleBetType" class="input" onchange="updateRoyaleSelectors()">
+              <option value="winner">🏆 Winner — 25× payout</option>
+              <option value="top3">🥇 Top 3 Finish — 8× payout</option>
+              <option value="continent">🌐 Continent — live odds</option>
+            </select>
+            <div id="royaleCountrySelect">
+              <span class="sectionLabel">🏳️ Pick Country</span>
+              <select id="royaleCountry" class="input"></select>
+            </div>
+            <div id="royaleContinentSelect" style="display:none;">
+              <span class="sectionLabel">🗺️ Pick Continent</span>
+              <select id="royaleContinent" class="input">
+                <option value="Africa">🌍 Africa</option>
+                <option value="Asia">🌏 Asia</option>
+                <option value="Europe">🌍 Europe</option>
+                <option value="North America">🌎 North America</option>
+                <option value="South America">🌎 South America</option>
+                <option value="Oceania">🌏 Oceania</option>
+              </select>
+            </div>
+            <button type="button" class="btnRoyalePlace" onclick="placeRoyaleBet()">Place Bet</button>
+            <div id="royaleActiveBets"></div>
+            <div class="royaleDivider"></div>
+            <button type="button" class="btnRoyaleStart" onclick="startRoyale()">▶&ensp;START ROUND</button>
+            <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()">💰 Cashout Position<span class="cashoutCoeff" id="cashoutCoeffDisplay">—</span></button>
+            <div class="rebetWrap" id="rebetWrap" style="display:none;">
+              <select id="rebetContinent" class="input" style="flex:1;padding:8px;">
+                <option value="Africa">🌍 Africa</option>
+                <option value="Asia">🌏 Asia</option>
+                <option value="Europe">🌍 Europe</option>
+                <option value="North America">🌎 North America</option>
+                <option value="South America">🌎 South America</option>
+                <option value="Oceania">🌏 Oceania</option>
+              </select>
+              <button type="button" class="btnRebet" onclick="rebetRoyale()">🔄 Re-bet</button>
+            </div>
+          </div>
+          <!-- Market sub-tab -->
+          <div id="royaleMarketPanel" class="royaleSubPanel">
+            <div class="oddsPanel">
+              <h3>Live Continent Odds</h3>
+              <div id="royaleOddsBars"></div>
+              <canvas id="oddsGraph" width="580" height="320" class="marketGraph"></canvas>
+              <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()" style="margin-top:12px;width:100%;">💰 Cashout Position<span class="cashoutCoeff" id="royaleMarketCashoutDisplay">—</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== LIVE BETS PANEL ==================== -->
+    <div id="tab-livebets" class="gamePanel">
+      <div class="card pad">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 style="margin:0; font-size:16px; color:rgba(234,240,255,.88);">🌐 Live Betting Activity</h2>
+          <span class="tag" style="font-size:11px"><span class="dot"></span> live feed</span>
+        </div>
+        <p class="mini" style="margin-bottom:18px; color:var(--muted);">Watch other players' bets in real-time across all games.</p>
+        <div id="liveBetsContainer" style="display:flex; flex-direction:column; gap:8px; max-height:600px; overflow-y:auto;">
+          <!-- Live bets will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MARKETS PANEL ==================== -->
+    <div id="tab-markets" class="gamePanel">
+      <div class="card pad marketsWrap">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h2 style="margin:0; font-size:16px;">📊 Live Markets</h2>
+            <span class="tag" style="font-size:11px"><span class="dot"></span> live</span>
+          </div>
+          <p class="mini" style="margin-bottom:14px;">Trade continent odds during Country Royale rounds. Buy low, sell high.</p>
+          <canvas id="marketsChart" width="600" height="300" class="marketsChart"></canvas>
+          <div class="oddsPanel" style="margin-top:12px;">
+            <h3>Live Continent Odds</h3>
+            <div id="marketsOddsBars"></div>
+          </div>
+        </div>
+        <div>
+          <div class="royaleDivider" style="margin-bottom:12px;"></div>
+          <span class="sectionLabel">💰 Bet Amount</span>
+          <div class="betRow">
+            <input class="input" id="mktBet" type="number" min="1" value="10" placeholder="Bet">
+            <button type="button" class="qBet" onclick="setQBet('mktBet',10)">10</button>
+            <button type="button" class="qBet" onclick="setQBet('mktBet',50)">50</button>
+            <button type="button" class="qBet" onclick="setQBet('mktBet',100)">100</button>
+            <button type="button" class="qBet" onclick="setQBet('mktBet','max')">Max</button>
+          </div>
+          <span class="sectionLabel">🗺️ Pick Continent</span>
+          <select id="mktContinent" class="input" style="width:100%;margin-bottom:8px;">
+            <option value="Africa">🌍 Africa</option>
+            <option value="Asia">🌏 Asia</option>
+            <option value="Europe">🌍 Europe</option>
+            <option value="North America">🌎 North America</option>
+            <option value="South America">🌎 South America</option>
+            <option value="Oceania">🌏 Oceania</option>
+          </select>
+          <button type="button" class="btnRoyalePlace" onclick="placeMarketBet()">Buy Position</button>
+          <div id="marketsActiveBets" style="margin-top:10px;"></div>
+          <div class="royaleDivider" style="margin:10px 0;"></div>
+          <button type="button" class="btnRoyaleCashout" onclick="cashoutRoyaleBet()">💰 Cashout Position<span class="cashoutCoeff" id="mktCashoutDisplay">—</span></button>
+          <!-- desktop-only live game preview -->
+          <div class="mktMiniGameWrap">
+            <canvas id="marketsMiniCanvas" width="300" height="300" class="miniCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== BET HISTORY PANEL ==================== -->
+    <div id="tab-history" class="gamePanel">
+      <div class="card pad">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h2 style="margin:0; font-size:16px;">📜 Bet History</h2>
+        </div>
+        <div class="historyFilters" id="historyFilters">
+          <button type="button" class="filterBtn active" data-filter="all">All</button>
+          <button type="button" class="filterBtn" data-filter="wins" style="border-color:rgba(124,255,107,0.3);">✅ Wins</button>
+          <button type="button" class="filterBtn" data-filter="losses" style="border-color:rgba(255,107,107,0.3);">❌ Losses</button>
+          <button type="button" class="filterBtn" data-filter="Crash">Crash</button>
+          <button type="button" class="filterBtn" data-filter="Mines">Mines</button>
+          <button type="button" class="filterBtn" data-filter="Dice">Dice</button>
+          <button type="button" class="filterBtn" data-filter="Plinko">Plinko</button>
+          <button type="button" class="filterBtn" data-filter="Blackjack">Blackjack</button>
+          <button type="button" class="filterBtn" data-filter="Slots">Slots</button>
+          <button type="button" class="filterBtn" data-filter="Country Royale">Country Royale</button>
+        </div>
+        <div class="historySort">
+          <select id="historySort" class="input" style="width:auto;" onchange="renderBetHistory()">
+            <option value="time">Most Recent</option>
+            <option value="winlose">Win/Lose</option>
+            <option value="betlow">Bet Amount (Low→High)</option>
+            <option value="bethigh">Bet Amount (High→Low)</option>
+            <option value="multhigh">Win Multiplier (High→Low)</option>
+          </select>
+        </div>
+        <div class="historyList" id="historyList">
+          <p class="mini" style="text-align:center;padding:20px;">No bets yet. Start playing!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== PROVABLY FAIR ==================== -->
+    <div class="section" id="provably-section">
+      <h2>Provably fair (verify locally)</h2>
+      <div class="split">
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Seeds</div>
+          <div class="lab">Client seed</div>
+          <input class="input" id="pfClientSeed" value="" autocomplete="off" style="max-width:100%" placeholder="Auto-generated on load">
+          <div class="lab">Server seed hash (commit)</div>
+          <div class="mono" id="pfCommit">—</div>
+          <div class="lab">Server seed (reveal after round)</div>
+          <div class="mono" id="pfReveal">—</div>
+          <div class="lab">Nonce</div>
+          <div class="mono" id="pfNonce">—</div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <button type="button" class="btn" id="pfNewSeeds">New seeds</button>
+          </div>
+          <div class="mini" style="margin-top:8px">We commit to a server seed hash before each round, then reveal after.</div>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Crash</div>
+          <div class="mono" id="pfCrashResult">—</div>
+          <button type="button" class="btn" id="pfCrashVerify">Verify last Crash</button>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Mines</div>
+          <div class="mono" id="pfMinesResult">—</div>
+          <button type="button" class="btn" id="pfMinesVerify">Verify last Mines</button>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Dice</div>
+          <div class="mono" id="pfDiceResult">—</div>
+          <button type="button" class="btn" id="pfDiceVerify">Verify last Dice</button>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Plinko</div>
+          <div class="mono" id="pfPlinkoResult">—</div>
+          <button type="button" class="btn" id="pfPlinkoVerify">Verify last Plinko</button>
+        </div>
+        <div class="pf">
+          <div class="tag"><span class="dot"></span> Verify Slots</div>
+          <div class="mono" id="pfSlotsResult">—</div>
+          <button type="button" class="btn" id="pfSlotsVerify">Verify last Slots</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== WAITLIST ==================== -->
+    <div id="waitlist-section" class="section">
+      <h2>Join the waitlist</h2>
+      <div class="card pad">
+        <p class="sub" style="margin:0 0 10px">Get an email when the full app goes live on <strong>app.donutwin.shop</strong>.</p>
+        <form id="wlForm" class="waitlist">
+          <input class="input" id="email" type="email" placeholder="you@domain.com" required autocomplete="email">
+          <button class="btn primary" type="submit">Notify me</button>
+          <span class="mini" id="wlMsg"></span>
+        </form>
+        <p class="mini" style="margin:12px 0 0">By joining you agree to receive occasional updates. No spam.</p>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div>© <span id="y"></span> DonutWin • early experience</div>
+      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+        <a href="#" onclick="switchTab('crash');return false">Crash</a>
+        <a href="#" onclick="switchTab('mines');return false">Mines</a>
+        <a href="#" onclick="switchTab('dice');return false">Dice</a>
+        <a href="#" onclick="switchTab('plinko');return false">Plinko</a>
+        <a href="#" onclick="switchTab('blackjack');return false">Blackjack</a>
+        <a href="#" onclick="switchTab('slots');return false">Slots</a>
+        <a href="#" onclick="switchTab('royale');return false">Country Royale</a>
+        <a href="#" onclick="switchTab('markets');return false">Markets</a>
+        <a href="#" onclick="switchTab('history');return false">📜 Bet History</a>
+        <a href="#provably-section">Verify</a>
+        <a href="#waitlist-section">Waitlist</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- toast container -->
+  <div class="toastContainer" id="toastContainer"></div>
+
+  <!-- public chat widget -->
+  <div id="chatWidget" class="chat-widget">
+    <button type="button" id="chatToggle" class="chat-toggle" onclick="toggleChat()">💬</button>
+    <div id="chatBox" class="chat-box">
+      <div class="chat-header">
+        <span>💬 Public Chat</span>
+        <span class="chat-online" id="chatOnline">0 online</span>
+        <button type="button" class="chat-close" onclick="toggleChat()">✕</button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <form class="chat-input-row" onsubmit="sendChat(); return false;">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Type a message…" maxlength="500" autocomplete="off">
+        <button type="submit" class="chat-send">➤</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
